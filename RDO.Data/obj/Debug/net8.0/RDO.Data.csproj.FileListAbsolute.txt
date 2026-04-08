@@ -1,0 +1,15 @@
+C:\dev\TesteAPI\RDO.Data\obj\Debug\net8.0\RDO.Data.csproj.AssemblyReference.cache
+C:\dev\TesteAPI\RDO.Data\obj\Debug\net8.0\RDO.Data.GeneratedMSBuildEditorConfig.editorconfig
+C:\dev\TesteAPI\RDO.Data\obj\Debug\net8.0\RDO.Data.AssemblyInfoInputs.cache
+C:\dev\TesteAPI\RDO.Data\obj\Debug\net8.0\RDO.Data.AssemblyInfo.cs
+C:\dev\TesteAPI\RDO.Data\obj\Debug\net8.0\RDO.Data.csproj.CoreCompileInputs.cache
+C:\dev\TesteAPI\RDO.Data\obj\Debug\net8.0\RDO.Data.sourcelink.json
+C:\dev\TesteAPI\RDO.Data\bin\Debug\net8.0\RDO.Data.deps.json
+C:\dev\TesteAPI\RDO.Data\bin\Debug\net8.0\RDO.Data.runtimeconfig.json
+C:\dev\TesteAPI\RDO.Data\bin\Debug\net8.0\RDO.Data.dll
+C:\dev\TesteAPI\RDO.Data\bin\Debug\net8.0\RDO.Data.pdb
+C:\dev\TesteAPI\RDO.Data\obj\Debug\net8.0\RDO.Data.dll
+C:\dev\TesteAPI\RDO.Data\obj\Debug\net8.0\refint\RDO.Data.dll
+C:\dev\TesteAPI\RDO.Data\obj\Debug\net8.0\RDO.Data.pdb
+C:\dev\TesteAPI\RDO.Data\obj\Debug\net8.0\RDO.Data.genruntimeconfig.cache
+C:\dev\TesteAPI\RDO.Data\obj\Debug\net8.0\ref\RDO.Data.dll

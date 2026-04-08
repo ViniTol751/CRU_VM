@@ -123,3 +123,4 @@ C:\dev\TesteAPI\obj\Debug\net10.0\refint\Teste.dll
 C:\dev\TesteAPI\obj\Debug\net10.0\Teste.pdb
 C:\dev\TesteAPI\obj\Debug\net10.0\Teste.genruntimeconfig.cache
 C:\dev\TesteAPI\obj\Debug\net10.0\ref\Teste.dll
+C:\dev\TesteAPI\obj\Debug\net10.0\Teste.sourcelink.json

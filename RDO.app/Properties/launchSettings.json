@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "RDO.app (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "RDO.app (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
