@@ -18,7 +18,7 @@ namespace RDO.App
         private void InicializarBanco()
         {
             using var db = new RdoDbContext(DbContextHelper.GetOptions());
-            db.Database.Migrate();
+            db.Database.EnsureCreated();
 
             // Garante que existe um usuário padrão (Id=1) — necessário pois UsuarioId é FK obrigatória
             if (db.Usuarios.Find(1) == null)

@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
@@ -32,9 +32,9 @@ namespace RDO.App.Views
 
         public Microsoft.UI.Xaml.Media.Brush StatusBackground => Status switch
         {
-            "Em execução" => new Microsoft.UI.Xaml.Media.SolidColorBrush(
+            "Em execuÃ§Ã£o" => new Microsoft.UI.Xaml.Media.SolidColorBrush(
                 Windows.UI.Color.FromArgb(255, 0, 140, 90)),
-            "Concluída" => new Microsoft.UI.Xaml.Media.SolidColorBrush(
+            "ConcluÃ­da" => new Microsoft.UI.Xaml.Media.SolidColorBrush(
                 Windows.UI.Color.FromArgb(255, 30, 80, 160)),
             "Paralisada" => new Microsoft.UI.Xaml.Media.SolidColorBrush(
                 Windows.UI.Color.FromArgb(255, 180, 40, 40)),
@@ -61,8 +61,8 @@ namespace RDO.App.Views
         private bool _mostraMeusRelatorios = false;
         private List<ObraViewModel> _todasObras = new();
 
-        // URL da API — altere para o endereço do servidor quando implantado
-        private const string ApiUrl = "http://localhost:5128";
+        // URL da API â€” altere para o endereÃ§o do servidor quando implantado
+        private const string ApiUrl = "http://localhost:5043";
         private readonly SyncService _syncService = new SyncService(ApiUrl);
 
         public MainPage()
@@ -87,7 +87,7 @@ namespace RDO.App.Views
             AtualizarIconeTema();
             CarregarNomeVinculado();
 
-            // Sync automático ao carregar a página (não bloqueia a UI)
+            // Sync automÃ¡tico ao carregar a pÃ¡gina (nÃ£o bloqueia a UI)
             _ = SincronizarAsync();
         }
 
@@ -109,8 +109,8 @@ namespace RDO.App.Views
             if (resultado.Success)
             {
                 AtualizarSyncUI(SyncEstado.Sincronizado,
-                    $"↑{resultado.PushedInserted + resultado.PushedUpdated}  ↓{resultado.PulledRecords}");
-                // Recarrega dados locais após pull
+                    $"â†‘{resultado.PushedInserted + resultado.PushedUpdated}  â†“{resultado.PulledRecords}");
+                // Recarrega dados locais apÃ³s pull
                 if (_mostraMeusRelatorios) CarregarMeusRelatorios();
                 else CarregarObras();
             }
@@ -219,9 +219,9 @@ namespace RDO.App.Views
             {
                 Id = r.Id,
                 ObraId = r.ObraId,
-                ObraNome = db.Obras.Find(r.ObraId)?.Nome ?? "—",
+                ObraNome = db.Obras.Find(r.ObraId)?.Nome ?? "â€”",
                 DataFormatada = r.Data.ToString("dd/MM/yyyy"),
-                NumeroFormatado = $"RDO nº {r.Numero:D3}",
+                NumeroFormatado = $"RDO nÂº {r.Numero:D3}",
                 Status = r.Status
             }).ToList();
 
@@ -262,20 +262,20 @@ namespace RDO.App.Views
             BtnInicio.Background = (!_apenasMinhas && !_mostraMeusRelatorios) ? cor : transp;
             BtnMinhasObras.Background = _mostraMeusRelatorios ? cor : transp;
 
-            // Mostra/esconde painéis
+            // Mostra/esconde painÃ©is
             ObrasPanel.Visibility = _mostraMeusRelatorios ? Visibility.Collapsed : Visibility.Visible;
             RelatoriosPanel.Visibility = _mostraMeusRelatorios ? Visibility.Visible : Visibility.Collapsed;
             FiltroBar.Visibility = _mostraMeusRelatorios ? Visibility.Collapsed : Visibility.Visible;
 
             if (_mostraMeusRelatorios)
             {
-                TituloPagina.Text = "Meus relatórios";
-                SubtituloLista.Text = "Relatórios criados por você ou com sua participação";
+                TituloPagina.Text = "Meus relatÃ³rios";
+                SubtituloLista.Text = "RelatÃ³rios criados por vocÃª ou com sua participaÃ§Ã£o";
                 BtnNovaObra.Visibility = Visibility.Collapsed;
             }
             else
             {
-                TituloPagina.Text = "Início";
+                TituloPagina.Text = "InÃ­cio";
                 SubtituloLista.Text = "Todas as obras";
                 BtnNovaObra.Visibility = Visibility.Visible;
             }
@@ -306,11 +306,11 @@ namespace RDO.App.Views
                 {
                     Id = r.Id, ObraId = r.ObraId,
                     DataFormatada = r.Data.ToString("dd/MM/yyyy"),
-                    NumeroFormatado = $"RDO nº {r.Numero:D3}",
+                    NumeroFormatado = $"RDO nÂº {r.Numero:D3}",
                     Status = r.Status
                 }).ToList();
 
-            // ── Layout: duas colunas de info ──
+            // â”€â”€ Layout: duas colunas de info â”€â”€
             var root = new StackPanel { Spacing = 16, Width = 1060 };
 
             // Nome + grupo
@@ -321,7 +321,7 @@ namespace RDO.App.Views
             {
                 var avisoRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
                 avisoRow.Children.Add(new FontIcon { Glyph = "\uE7BA", FontSize = 13, Foreground = new SolidColorBrush(Color.FromArgb(255, 245, 158, 11)) });
-                avisoRow.Children.Add(new TextBlock { Text = "Há um rascunho salvo para esta obra.", FontSize = 12, Foreground = new SolidColorBrush(Color.FromArgb(255, 245, 158, 11)), VerticalAlignment = VerticalAlignment.Center });
+                avisoRow.Children.Add(new TextBlock { Text = "HÃ¡ um rascunho salvo para esta obra.", FontSize = 12, Foreground = new SolidColorBrush(Color.FromArgb(255, 245, 158, 11)), VerticalAlignment = VerticalAlignment.Center });
                 root.Children.Add(new Border { Background = new SolidColorBrush(Color.FromArgb(255, 42, 31, 0)), BorderBrush = new SolidColorBrush(Color.FromArgb(255, 245, 158, 11)), BorderThickness = new Thickness(1), CornerRadius = new Microsoft.UI.Xaml.CornerRadius(6), Padding = new Thickness(10), Child = avisoRow });
             }
 
@@ -332,11 +332,11 @@ namespace RDO.App.Views
 
             var infoItems = new[]
             {
-                ("ENDEREÇO", obra.Endereco),
-                ("RESPONSÁVEL FOCUS", obra.Responsavel),
+                ("ENDEREÃ‡O", obra.Endereco),
+                ("RESPONSÃVEL FOCUS", obra.Responsavel),
                 ("RESP. CLIENTE", obra.Contratante),
                 ("ART / RRT", obra.ART),
-                ("PERÍODO", $"{obra.DataInicio:dd/MM/yyyy}" + (obra.PrevisaoTermino.HasValue ? $" → {obra.PrevisaoTermino:dd/MM/yyyy}" : ""))
+                ("PERÃODO", $"{obra.DataInicio:dd/MM/yyyy}" + (obra.PrevisaoTermino.HasValue ? $" â†’ {obra.PrevisaoTermino:dd/MM/yyyy}" : ""))
             };
 
             for (int i = 0; i < infoItems.Length; i++)
@@ -349,7 +349,7 @@ namespace RDO.App.Views
 
                 var sp = new StackPanel { Spacing = 2 };
                 sp.Children.Add(new TextBlock { Text = lbl, FontSize = 9, FontWeight = new Windows.UI.Text.FontWeight { Weight = 700 }, Foreground = (Brush)Application.Current.Resources["TextSecondaryBrush"], CharacterSpacing = 100 });
-                sp.Children.Add(new TextBlock { Text = string.IsNullOrEmpty(val) ? "—" : val, FontSize = 12, Foreground = (Brush)Application.Current.Resources["TextPrimaryBrush"], TextWrapping = TextWrapping.Wrap });
+                sp.Children.Add(new TextBlock { Text = string.IsNullOrEmpty(val) ? "â€”" : val, FontSize = 12, Foreground = (Brush)Application.Current.Resources["TextPrimaryBrush"], TextWrapping = TextWrapping.Wrap });
                 Grid.SetRow(sp, row);
                 Grid.SetColumn(sp, col);
                 if (i == infoItems.Length - 1 && infoItems.Length % 2 != 0)
@@ -359,25 +359,25 @@ namespace RDO.App.Views
 
             root.Children.Add(new Border { Background = (Brush)Application.Current.Resources["AppBgBrush"], BorderBrush = (Brush)Application.Current.Resources["AppBorderBrush"], BorderThickness = new Thickness(1), CornerRadius = new Microsoft.UI.Xaml.CornerRadius(6), Padding = new Thickness(16, 14, 16, 14), Child = infoGrid });
 
-            // ── Separador + cabeçalho da lista ──
+            // â”€â”€ Separador + cabeÃ§alho da lista â”€â”€
             root.Children.Add(new Border { Height = 1, Background = (Brush)Application.Current.Resources["AppBorderBrush"], Margin = new Thickness(0, 4, 0, 4) });
             var relHeader = new Grid();
             relHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             relHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             var relHeaderTitle = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center };
-            relHeaderTitle.Children.Add(new TextBlock { Text = "RELATÓRIOS PUBLICADOS", FontSize = 10, FontWeight = new Windows.UI.Text.FontWeight { Weight = 700 }, Foreground = (Brush)Application.Current.Resources["TextSecondaryBrush"], CharacterSpacing = 120, VerticalAlignment = VerticalAlignment.Center });
+            relHeaderTitle.Children.Add(new TextBlock { Text = "RELATÃ“RIOS PUBLICADOS", FontSize = 10, FontWeight = new Windows.UI.Text.FontWeight { Weight = 700 }, Foreground = (Brush)Application.Current.Resources["TextSecondaryBrush"], CharacterSpacing = 120, VerticalAlignment = VerticalAlignment.Center });
             relHeaderTitle.Children.Add(new Border { Background = (Brush)Application.Current.Resources["AccentBrush"], CornerRadius = new Microsoft.UI.Xaml.CornerRadius(10), Padding = new Thickness(8, 2, 8, 2), Child = new TextBlock { Text = relatoriosBd.Count.ToString(), FontSize = 11, FontWeight = new Windows.UI.Text.FontWeight { Weight = 700 }, Foreground = (Brush)Application.Current.Resources["AccentFgBrush"] } });
             Grid.SetColumn(relHeaderTitle, 0);
             relHeader.Children.Add(relHeaderTitle);
             root.Children.Add(relHeader);
 
-            // Coleta de botões que precisam da referência do dialog
+            // Coleta de botÃµes que precisam da referÃªncia do dialog
             var botoesEditar = new List<(Button btn, MeuRelatorioViewModel rel)>();
             StackPanel? listaPanel = null;
 
             if (relatoriosBd.Count == 0)
             {
-                root.Children.Add(new TextBlock { Text = "Nenhum relatório publicado ainda.", FontSize = 12, FontStyle = Windows.UI.Text.FontStyle.Italic, Foreground = (Brush)Application.Current.Resources["TextTertiaryBrush"] });
+                root.Children.Add(new TextBlock { Text = "Nenhum relatÃ³rio publicado ainda.", FontSize = 12, FontStyle = Windows.UI.Text.FontStyle.Italic, Foreground = (Brush)Application.Current.Resources["TextTertiaryBrush"] });
             }
             else
             {
@@ -395,7 +395,7 @@ namespace RDO.App.Views
                         Padding = new Thickness(14, 10, 14, 10)
                     };
 
-                    // Conteúdo normal do item
+                    // ConteÃºdo normal do item
                     var itemGrid = new Grid { ColumnSpacing = 8 };
                     itemGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                     itemGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -433,7 +433,7 @@ namespace RDO.App.Views
                     infoRel.Children.Add(statusBadge);
 
                     var btnEditar = new Button { Content = "\uE70F", FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe MDL2 Assets"), FontSize = 14, Width = 36, Height = 36, Padding = new Thickness(0), Background = (Brush)Application.Current.Resources["EditBtnBgBrush"], BorderBrush = (Brush)Application.Current.Resources["AppBorderBrush"], BorderThickness = new Thickness(1), Foreground = (Brush)Application.Current.Resources["AccentBrush"], VerticalAlignment = VerticalAlignment.Center };
-                    ToolTipService.SetToolTip(btnEditar, "Editar relatório");
+                    ToolTipService.SetToolTip(btnEditar, "Editar relatÃ³rio");
                     botoesEditar.Add((btnEditar, capturedRel));
 
                     var btnExportar = new Button { Content = "\uE8C8", FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe MDL2 Assets"), FontSize = 14, Width = 36, Height = 36, Padding = new Thickness(0), Background = (Brush)Application.Current.Resources["EditBtnBgBrush"], BorderBrush = (Brush)Application.Current.Resources["AppBorderBrush"], BorderThickness = new Thickness(1), Foreground = (Brush)Application.Current.Resources["AccentBrush"], VerticalAlignment = VerticalAlignment.Center, Tag = capturedRel.Id };
@@ -441,7 +441,7 @@ namespace RDO.App.Views
                     btnExportar.Click += BtnExportarPdfItem_Click;
 
                     var btnExcluir = new Button { Content = "\uE74D", FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe MDL2 Assets"), FontSize = 13, Width = 36, Height = 36, Padding = new Thickness(0), Background = new SolidColorBrush(Color.FromArgb(255, 38, 16, 16)), BorderBrush = new SolidColorBrush(Color.FromArgb(255, 90, 30, 30)), BorderThickness = new Thickness(1), Foreground = new SolidColorBrush(Color.FromArgb(255, 230, 80, 80)), VerticalAlignment = VerticalAlignment.Center };
-                    ToolTipService.SetToolTip(btnExcluir, "Excluir relatório");
+                    ToolTipService.SetToolTip(btnExcluir, "Excluir relatÃ³rio");
 
                     Grid.SetColumn(infoRel, 0);
                     Grid.SetColumn(btnEditar, 1);
@@ -457,7 +457,7 @@ namespace RDO.App.Views
                     var capturedListaPanel = listaPanel;
                     btnExcluir.Click += (s, ev) =>
                     {
-                        // Substituição inline por confirmação
+                        // SubstituiÃ§Ã£o inline por confirmaÃ§Ã£o
                         var confirmGrid = new Grid { ColumnSpacing = 10 };
                         confirmGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                         confirmGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -465,7 +465,7 @@ namespace RDO.App.Views
 
                         var msgStack = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
                         msgStack.Children.Add(new TextBlock { Text = $"Excluir {capturedRel.NumeroFormatado}?", FontSize = 13, FontWeight = new Windows.UI.Text.FontWeight { Weight = 600 }, Foreground = new SolidColorBrush(Color.FromArgb(255, 230, 80, 80)) });
-                        msgStack.Children.Add(new TextBlock { Text = "Esta ação não pode ser desfeita.", FontSize = 11, Foreground = (Brush)Application.Current.Resources["TextTertiaryBrush"] });
+                        msgStack.Children.Add(new TextBlock { Text = "Esta aÃ§Ã£o nÃ£o pode ser desfeita.", FontSize = 11, Foreground = (Brush)Application.Current.Resources["TextTertiaryBrush"] });
 
                         var btnSim = new Button { Content = "Excluir", Height = 34, Padding = new Thickness(14, 0, 14, 0), Background = new SolidColorBrush(Color.FromArgb(255, 160, 30, 30)), BorderThickness = new Thickness(0), Foreground = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)), FontWeight = new Windows.UI.Text.FontWeight { Weight = 600 }, FontSize = 12 };
                         var btnNao = new Button { Content = "Cancelar", Height = 34, Padding = new Thickness(14, 0, 14, 0), Background = (Brush)Application.Current.Resources["AppBgBrush"], BorderBrush = (Brush)Application.Current.Resources["AppBorderBrush"], BorderThickness = new Thickness(1), Foreground = (Brush)Application.Current.Resources["TextSecondaryBrush"], FontSize = 12 };
@@ -513,7 +513,7 @@ namespace RDO.App.Views
                 XamlRoot = this.XamlRoot
             };
 
-            // WinUI 3: sobrescreve o MaxWidth padrão (~548 px) para permitir modal mais largo
+            // WinUI 3: sobrescreve o MaxWidth padrÃ£o (~548 px) para permitir modal mais largo
             dialog.Resources["ContentDialogMaxWidth"] = 1160.0;
             dialog.Resources["ContentDialogMinWidth"] = 960.0;
 
@@ -567,7 +567,7 @@ namespace RDO.App.Views
         private void BtnNovaObra_Click(object sender, RoutedEventArgs e)
             => Frame.Navigate(typeof(NovaObraPage));
 
-        // Retorna "Primeiro S." — skip preposições brasileiras
+        // Retorna "Primeiro S." â€” skip preposiÃ§Ãµes brasileiras
         private static string AbreviarNome(string nomeCompleto)
         {
             var partes = nomeCompleto.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -638,7 +638,7 @@ namespace RDO.App.Views
 
             foreach (var f in funcionarios)
             {
-                var item = new ComboBoxItem { Content = $"{f.Nome} — {f.Funcao}", Tag = f.Id };
+                var item = new ComboBoxItem { Content = $"{f.Nome} â€” {f.Funcao}", Tag = f.Id };
                 if (f.Id == atualId) item.IsSelected = true;
                 combo.Items.Add(item);
             }
@@ -646,7 +646,7 @@ namespace RDO.App.Views
             var panel = new StackPanel { Spacing = 8 };
             panel.Children.Add(new TextBlock
             {
-                Text = "Vincule sua conta ao seu registro de funcionário para que seus relatórios apareçam nesta lista.",
+                Text = "Vincule sua conta ao seu registro de funcionÃ¡rio para que seus relatÃ³rios apareÃ§am nesta lista.",
                 TextWrapping = TextWrapping.Wrap,
                 Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 74, 96, 128)),
                 FontSize = 13
@@ -655,7 +655,7 @@ namespace RDO.App.Views
 
             var dialog = new ContentDialog
             {
-                Title = "Vincular perfil de funcionário",
+                Title = "Vincular perfil de funcionÃ¡rio",
                 Content = panel,
                 PrimaryButtonText = "Salvar",
                 SecondaryButtonText = "Desvincular",
@@ -677,9 +677,10 @@ namespace RDO.App.Views
             else if (result == ContentDialogResult.Secondary)
             {
                 ApplicationData.Current.LocalSettings.Values.Remove("FuncionarioVinculadoId");
-                NomeUsuarioTexto.Text = "Usuário";
-                PerfilUsuarioTexto.Text = "Sem vínculo";
+                NomeUsuarioTexto.Text = "UsuÃ¡rio";
+                PerfilUsuarioTexto.Text = "Sem vÃ­nculo";
             }
         }
     }
 }
+

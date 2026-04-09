@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -105,7 +105,7 @@ namespace RDO.App.Services
         }
 
         // ── CABEÇALHO ─────────────────────────────────────────────────────────
-        private static void DesenharCabecalho(IContainer c, Data.Models.Relatorio rel)
+        private static void DesenharCabecalho(IContainer c, Data.Models.Report rel)
         {
             c.BorderBottom(1).BorderColor("#0052cc").PaddingBottom(8).Row(row =>
             {
@@ -131,7 +131,7 @@ namespace RDO.App.Services
         }
 
         // ── IDENTIFICAÇÃO DA OBRA ─────────────────────────────────────────────
-        private static void SecaoIdentificacao(IContainer c, Data.Models.Relatorio rel)
+        private static void SecaoIdentificacao(IContainer c, Data.Models.Report rel)
         {
             c.Column(col =>
             {
@@ -163,7 +163,7 @@ namespace RDO.App.Services
         }
 
         // ── CONDIÇÕES CLIMÁTICAS ──────────────────────────────────────────────
-        private static void SecaoClima(IContainer c, Data.Models.Relatorio rel)
+        private static void SecaoClima(IContainer c, Data.Models.Report rel)
         {
             static string Marcador(bool marcado) => marcado ? "✓" : "○";
 
@@ -193,7 +193,7 @@ namespace RDO.App.Services
                     table.Cell().Background("#1a4a1a").Padding(5).AlignCenter().Text("PRATICÁVEL").FontColor("#FFFFFF").Bold();
                     table.Cell().Background("#4a1a1a").Padding(5).AlignCenter().Text("IMPRATICÁVEL").FontColor("#FFFFFF").Bold();
 
-                    void LinhaClima(string periodo, Data.Models.ClimaDetalhe? clima)
+                    void LinhaClima(string periodo, Data.Models.WeatherDetail? clima)
                     {
                         table.Cell().Background("#f0f4f8").Padding(5).AlignCenter().Text(periodo).Bold();
                         table.Cell().Padding(5).AlignCenter().Text(Marcador(clima?.Tempo == "Ensolarado")).FontSize(14).FontColor(clima?.Tempo == "Ensolarado" ? "#0052cc" : "#aabbcc");
@@ -211,7 +211,7 @@ namespace RDO.App.Services
         }
 
         // ── ACOMPANHANTES TÉCNICOS ────────────────────────────────────────────
-        private static void SecaoAcompanhantes(IContainer c, System.Collections.Generic.List<Data.Models.Acompanhante> acomps)
+        private static void SecaoAcompanhantes(IContainer c, System.Collections.Generic.List<Data.Models.Companion> acomps)
         {
             c.Column(col =>
             {
@@ -243,7 +243,7 @@ namespace RDO.App.Services
         }
 
         // ── EQUIPAMENTOS UTILIZADOS ───────────────────────────────────────────
-        private static void SecaoEquipamentos(IContainer c, Data.Models.Relatorio rel)
+        private static void SecaoEquipamentos(IContainer c, Data.Models.Report rel)
         {
             var equipamentos = rel.Equipamentos.ToList();
             c.Column(col =>
@@ -273,7 +273,7 @@ namespace RDO.App.Services
         }
 
         // ── EQUIPE ────────────────────────────────────────────────────────────
-        private static void SecaoEquipe(IContainer c, Data.Models.Relatorio rel)
+        private static void SecaoEquipe(IContainer c, Data.Models.Report rel)
         {
             var assinaturas = rel.Assinaturas.ToList();
             var count = assinaturas.Count;
@@ -328,7 +328,7 @@ namespace RDO.App.Services
         }
 
         // ── ATIVIDADES ────────────────────────────────────────────────────────
-        private static void SecaoAtividades(IContainer c, Data.Models.Relatorio rel)
+        private static void SecaoAtividades(IContainer c, Data.Models.Report rel)
         {
             c.Column(col =>
             {
@@ -356,7 +356,7 @@ namespace RDO.App.Services
         }
 
         // ── OCORRÊNCIAS ───────────────────────────────────────────────────────
-        private static void SecaoOcorrencias(IContainer c, Data.Models.Relatorio rel)
+        private static void SecaoOcorrencias(IContainer c, Data.Models.Report rel)
         {
             c.Column(col =>
             {
@@ -390,7 +390,7 @@ namespace RDO.App.Services
         }
 
         // ── FOTOS ─────────────────────────────────────────────────────────────
-        private static void SecaoFotos(IContainer c, Data.Models.Relatorio rel)
+        private static void SecaoFotos(IContainer c, Data.Models.Report rel)
         {
             var fotos = rel.Fotos.Where(f => File.Exists(f.CaminhoArquivo)).ToList();
             if (!fotos.Any()) return;
@@ -476,3 +476,6 @@ namespace RDO.App.Services
                      .FontSize(9).Bold().FontColor("#FFFFFF");
     }
 }
+
+
+

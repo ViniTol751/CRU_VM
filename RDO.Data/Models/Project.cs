@@ -19,4 +19,16 @@ public class Project : ILocalSyncEntity
     public bool IsDeleted { get; set; } = false;
     public ICollection<Report> Reports { get; set; } = new List<Report>();
     public ICollection<ProjectMember> Members { get; set; } = new List<ProjectMember>();
+
+    // Compatibilidade português
+    public string Nome { get => Name; set => Name = value; }
+    public string Endereco { get => Address; set => Address = value; }
+    public string Grupo { get => Group; set => Group = value; }
+    public string Responsavel { get => Manager; set => Manager = value; }
+    public string TipoContrato { get => ContractType; set => ContractType = value; }
+    public string Contratante { get => Client; set => Client = value; }
+    public DateTime DataInicio { get => StartDate; set => StartDate = value; }
+    public DateTime? PrevisaoTermino { get => ExpectedEndDate; set => ExpectedEndDate = value; }
+    public string? ImagemPath { get => ImagePath; set => ImagePath = value; }
+    public bool Ativo { get => IsActive; set => IsActive = value; }
 }

@@ -12,4 +12,10 @@ public class User : ILocalSyncEntity
     public bool IsDeleted { get; set; } = false;
     public ICollection<ProjectMember> Projects { get; set; } = new List<ProjectMember>();
     public ICollection<Report> Reports { get; set; } = new List<Report>();
+
+    // Compatibilidade português
+    public string Nome { get => Name; set => Name = value; }
+    public string SenhaHash { get => PasswordHash; set => PasswordHash = value; }
+    public string Perfil { get => Profile; set => Profile = value; }
+    public bool Ativo { get => IsActive; set => IsActive = value; }
 }

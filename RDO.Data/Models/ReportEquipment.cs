@@ -9,4 +9,9 @@ public class ReportEquipment : ILocalSyncEntity
     public bool IsDeleted { get; set; } = false;
     public Report? Report { get; set; }
     public Equipment? Equipment { get; set; }
+
+    // Compatibilidade português
+    public int RelatorioId { get => ReportId; set => ReportId = value; }
+    public int EquipamentoCadastradoId { get => EquipmentId; set => EquipmentId = value; }
+    public Equipment? EquipamentoCadastrado { get => Equipment; set => Equipment = value; }
 }

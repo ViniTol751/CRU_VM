@@ -29,4 +29,27 @@ public class Report : ILocalSyncEntity
     public ICollection<Signature> Signatures { get; set; } = new List<Signature>();
     public ICollection<ReportEquipment> Equipments { get; set; } = new List<ReportEquipment>();
     public ICollection<ReportCompanion> ReportCompanions { get; set; } = new List<ReportCompanion>();
+    public int ObraId { get => ProjectId; set => ProjectId = value; }
+    public int UsuarioId { get => UserId; set => UserId = value; }
+    public int? AcompanhanteId { get => CompanionId; set => CompanionId = value; }
+    public int Numero { get => Number; set => Number = value; }
+    public DateTime Data { get => Date; set => Date = value; }
+    public string HoraEntrada { get => CheckInTime; set => CheckInTime = value; }
+    public string HoraSaida { get => CheckOutTime; set => CheckOutTime = value; }
+    public string HoraIntervalo { get => BreakTime; set => BreakTime = value; }
+    public string ObsGerais { get => GeneralNotes; set => GeneralNotes = value; }
+    public bool Sincronizado { get => IsSynced; set => IsSynced = value; }
+    public DateTime CriadoEm { get => CreatedAt; set => CreatedAt = value; }
+    public bool Rascunho { get => IsDraft; set => IsDraft = value; }
+    public Project? Obra { get => Project; set => Project = value; }
+    public User? Usuario { get => User; set => User = value; }
+    public Companion? Acompanhante { get => Companion; set => Companion = value; }
+    public ICollection<WeatherDetail> Climas { get => WeatherDetails; set => WeatherDetails = value; }
+    public ICollection<Activity> Atividades { get => Activities; set => Activities = value; }
+    public ICollection<Occurrence> Ocorrencias { get => Occurrences; set => Occurrences = value; }
+    public ICollection<Material> Materiais { get => Materials; set => Materials = value; }
+    public ICollection<Photo> Fotos { get => Photos; set => Photos = value; }
+    public ICollection<Signature> Assinaturas { get => Signatures; set => Signatures = value; }
+    public ICollection<ReportEquipment> Equipamentos { get => Equipments; set => Equipments = value; }
+    public ICollection<ReportCompanion> RelatorioAcompanhantes { get => ReportCompanions; set => ReportCompanions = value; }
 }

@@ -1,0 +1,15 @@
+global using Obra                  = RDO.Data.Models.Project;
+global using Relatorio             = RDO.Data.Models.Report;
+global using Funcionario           = RDO.Data.Models.Employee;
+global using Usuario               = RDO.Data.Models.User;
+global using Acompanhante          = RDO.Data.Models.Companion;
+global using EquipamentoCadastrado = RDO.Data.Models.Equipment;
+global using MembroObra            = RDO.Data.Models.ProjectMember;
+global using Atividade             = RDO.Data.Models.Activity;
+global using ClimaDetalhe          = RDO.Data.Models.WeatherDetail;
+global using Ocorrencia            = RDO.Data.Models.Occurrence;
+global using Foto                  = RDO.Data.Models.Photo;
+global using Assinatura            = RDO.Data.Models.Signature;
+global using RelatorioEquipamento  = RDO.Data.Models.ReportEquipment;
+global using RelatorioAcompanhante = RDO.Data.Models.ReportCompanion;
+global using PresencaFuncionario   = RDO.Data.Models.EmployeePresence;

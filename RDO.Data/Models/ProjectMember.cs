@@ -10,4 +10,9 @@ public class ProjectMember : ILocalSyncEntity
     public bool IsDeleted { get; set; } = false;
     public Project? Project { get; set; }
     public User? User { get; set; }
+
+    // Compatibilidade português
+    public int ObraId { get => ProjectId; set => ProjectId = value; }
+    public int UsuarioId { get => UserId; set => UserId = value; }
+    public string Papel { get => Role; set => Role = value; }
 }

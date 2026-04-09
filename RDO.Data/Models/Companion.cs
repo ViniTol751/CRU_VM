@@ -10,4 +10,11 @@ public class Companion : ILocalSyncEntity
     public bool IsActive { get; set; } = true;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; } = false;
+
+    // Compatibilidade português
+    public string Nome { get => Name; set => Name = value; }
+    public string Cargo { get => Role; set => Role = value; }
+    public string Grupo { get => Group; set => Group = value; }
+    public string Contato { get => Contact; set => Contact = value; }
+    public bool Ativo { get => IsActive; set => IsActive = value; }
 }

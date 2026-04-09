@@ -16,4 +16,15 @@ public class Signature : ILocalSyncEntity
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; } = false;
     public Report? Report { get; set; }
+
+    // Compatibilidade português
+    public int RelatorioId { get => ReportId; set => ReportId = value; }
+    public string NomeAssinante { get => SignerName; set => SignerName = value; }
+    public string Cargo { get => Role; set => Role = value; }
+    public DateTime? DataAssinatura { get => SignedAt; set => SignedAt = value; }
+    public bool Assinado { get => IsSigned; set => IsSigned = value; }
+    public int? FuncionarioId { get => EmployeeId; set => EmployeeId = value; }
+    public string HoraEntrada { get => CheckInTime; set => CheckInTime = value; }
+    public string HoraSaida { get => CheckOutTime; set => CheckOutTime = value; }
+    public string HoraIntervalo { get => BreakTime; set => BreakTime = value; }
 }
