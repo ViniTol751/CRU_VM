@@ -18,7 +18,7 @@ namespace RDO.App.Views
 
     public sealed partial class CadastrosPage : Page
     {
-        private const string EmpresaPadrao = "Focus Engenharia ElÃ©trica";
+        private const string EmpresaPadrao = "Focus Engenharia Elétrica";
 
         public CadastrosPage()
         {
@@ -74,7 +74,7 @@ namespace RDO.App.Views
             FiltrarAcompanhantes(BuscaAcompanhantesBox?.Text ?? "");
         }
 
-        // â”€â”€ OBRAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── OBRAS ─────────────────────────────────────────────────────────────────
         private void FiltrarObras(string termo)
         {
             using var db = new RdoDbContext(DbContextHelper.GetOptions());
@@ -122,12 +122,12 @@ namespace RDO.App.Views
             {
                 using var db = new RdoDbContext(DbContextHelper.GetOptions());
                 var item = await db.Obras.FindAsync(o.Id);
-                if (item != null) { item.Ativo = false; item.IsDeleted = true; item.UpdatedAt = DateTime.UtcNow; await db.SaveChangesAsync(); }
+                if (item != null) { item.Ativo = false; await db.SaveChangesAsync(); }
                 FiltrarObras(BuscaObrasBox?.Text ?? "");
             }
         }
 
-        // â”€â”€ FUNCIONÃRIOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── FUNCIONÁRIOS ──────────────────────────────────────────────────────
         private void FiltrarFuncionarios(string termo)
         {
             using var db = new RdoDbContext(DbContextHelper.GetOptions());
@@ -175,7 +175,7 @@ namespace RDO.App.Views
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 PlaceholderText = "Selecione o tipo"
             };
-            tipoBox.Items.Add("PrÃ³prio");
+            tipoBox.Items.Add("Próprio");
             tipoBox.Items.Add("Terceiro");
 
             var empresaBox = new TextBox
@@ -186,7 +186,7 @@ namespace RDO.App.Views
             };
 
             var nomeBox = new TextBox { PlaceholderText = "Nome completo" };
-            var funcaoBox = new TextBox { PlaceholderText = "Ex: Engenheiro, TÃ©cnico..." };
+            var funcaoBox = new TextBox { PlaceholderText = "Ex: Engenheiro, Técnico..." };
             var contatoBox = new TextBox { PlaceholderText = "Telefone ou e-mail" };
             var avisoTexto = new TextBlock
             {
@@ -199,7 +199,7 @@ namespace RDO.App.Views
             tipoBox.SelectionChanged += (s, e) =>
             {
                 var tipo = tipoBox.SelectedItem?.ToString();
-                if (tipo == "PrÃ³prio")
+                if (tipo == "Próprio")
                 {
                     empresaBox.Text = EmpresaPadrao;
                     empresaBox.IsEnabled = false;
@@ -218,7 +218,7 @@ namespace RDO.App.Views
                 nomeBox.Text = existente.Nome;
                 funcaoBox.Text = existente.Funcao;
                 contatoBox.Text = existente.Contato;
-                tipoBox.SelectedIndex = existente.Tipo == "PrÃ³prio" ? 0 : 1;
+                tipoBox.SelectedIndex = existente.Tipo == "Próprio" ? 0 : 1;
                 empresaBox.Text = existente.Empresa;
                 if (existente.Tipo == "Terceiro")
                 {
@@ -239,13 +239,13 @@ namespace RDO.App.Views
             linha1.Children.Add(campoEmpresa);
             form.Children.Add(linha1);
             form.Children.Add(CriarCampo("NOME *", nomeBox));
-            form.Children.Add(CriarCampo("FUNÃ‡ÃƒO *", funcaoBox));
+            form.Children.Add(CriarCampo("FUNÇÃO *", funcaoBox));
             form.Children.Add(CriarCampo("CONTATO *", contatoBox));
             form.Children.Add(avisoTexto);
 
             var dialog = new ContentDialog
             {
-                Title = existente == null ? "Novo funcionÃ¡rio" : "Editar funcionÃ¡rio",
+                Title = existente == null ? "Novo funcionário" : "Editar funcionário",
                 Content = form,
                 PrimaryButtonText = "Salvar",
                 CloseButtonText = "Cancelar",
@@ -259,11 +259,11 @@ namespace RDO.App.Views
                 if (tipoBox.SelectedItem == null) erros.Add("Tipo");
                 if (string.IsNullOrWhiteSpace(empresaBox.Text)) erros.Add("Empresa");
                 if (string.IsNullOrWhiteSpace(nomeBox.Text)) erros.Add("Nome");
-                if (string.IsNullOrWhiteSpace(funcaoBox.Text)) erros.Add("FunÃ§Ã£o");
+                if (string.IsNullOrWhiteSpace(funcaoBox.Text)) erros.Add("Função");
                 if (string.IsNullOrWhiteSpace(contatoBox.Text)) erros.Add("Contato");
                 if (erros.Count > 0)
                 {
-                    avisoTexto.Text = $"Preencha os campos obrigatÃ³rios: {string.Join(", ", erros)}.";
+                    avisoTexto.Text = $"Preencha os campos obrigatórios: {string.Join(", ", erros)}.";
                     avisoTexto.Visibility = Visibility.Visible;
                     args.Cancel = true;
                 }
@@ -308,12 +308,12 @@ namespace RDO.App.Views
             {
                 using var db = new RdoDbContext(DbContextHelper.GetOptions());
                 var item = await db.Funcionarios.FindAsync(f.Id);
-                if (item != null) { item.Ativo = false; item.IsDeleted = true; item.UpdatedAt = DateTime.UtcNow; await db.SaveChangesAsync(); }
+                if (item != null) { item.Ativo = false; await db.SaveChangesAsync(); }
                 CarregarTodos();
             }
         }
 
-        // â”€â”€ EQUIPAMENTOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── EQUIPAMENTOS ─────────────────────────────────────────────────────
         private void FiltrarEquipamentos(string termo)
         {
             using var db = new RdoDbContext(DbContextHelper.GetOptions());
@@ -380,7 +380,7 @@ namespace RDO.App.Views
             var linha1 = new Grid { ColumnSpacing = 16 };
             linha1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             linha1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
-            var campoPatrimonio = CriarCampo("NÂº PATRIMÃ”NIO *", patrimonioBox);
+            var campoPatrimonio = CriarCampo("Nº PATRIMÔNIO *", patrimonioBox);
             var campoNome = CriarCampo("NOME *", nomeBox);
             Grid.SetColumn(campoPatrimonio, 0);
             Grid.SetColumn(campoNome, 1);
@@ -413,11 +413,11 @@ namespace RDO.App.Views
             dialog.PrimaryButtonClick += (s, args) =>
             {
                 var erros = new System.Collections.Generic.List<string>();
-                if (string.IsNullOrWhiteSpace(patrimonioBox.Text)) erros.Add("NÂº PatrimÃ´nio");
+                if (string.IsNullOrWhiteSpace(patrimonioBox.Text)) erros.Add("Nº Patrimônio");
                 if (string.IsNullOrWhiteSpace(nomeBox.Text)) erros.Add("Nome");
                 if (erros.Count > 0)
                 {
-                    avisoTexto.Text = $"Preencha os campos obrigatÃ³rios: {string.Join(", ", erros)}.";
+                    avisoTexto.Text = $"Preencha os campos obrigatórios: {string.Join(", ", erros)}.";
                     avisoTexto.Visibility = Visibility.Visible;
                     args.Cancel = true;
                 }
@@ -460,12 +460,12 @@ namespace RDO.App.Views
             {
                 using var db = new RdoDbContext(DbContextHelper.GetOptions());
                 var item = await db.EquipamentosCadastrados.FindAsync(eq.Id);
-                if (item != null) { item.Ativo = false; item.IsDeleted = true; item.UpdatedAt = DateTime.UtcNow; await db.SaveChangesAsync(); }
+                if (item != null) { item.Ativo = false; await db.SaveChangesAsync(); }
                 CarregarTodos();
             }
         }
 
-        // â”€â”€ ACOMPANHANTES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── ACOMPANHANTES ────────────────────────────────────────────────────
         private void FiltrarAcompanhantes(string termo)
         {
             using var db = new RdoDbContext(DbContextHelper.GetOptions());
@@ -545,7 +545,7 @@ namespace RDO.App.Views
 
             var dialog = new ContentDialog
             {
-                Title = existente == null ? "Novo acompanhante tÃ©cnico" : "Editar acompanhante tÃ©cnico",
+                Title = existente == null ? "Novo acompanhante técnico" : "Editar acompanhante técnico",
                 Content = form,
                 PrimaryButtonText = "Salvar",
                 CloseButtonText = "Cancelar",
@@ -557,7 +557,7 @@ namespace RDO.App.Views
             {
                 if (string.IsNullOrWhiteSpace(nomeBox.Text))
                 {
-                    await MostrarErro("O nome Ã© obrigatÃ³rio.");
+                    await MostrarErro("O nome é obrigatório.");
                     return;
                 }
                 using var db = new RdoDbContext(DbContextHelper.GetOptions());
@@ -595,12 +595,12 @@ namespace RDO.App.Views
             {
                 using var db = new RdoDbContext(DbContextHelper.GetOptions());
                 var item = await db.Acompanhantes.FindAsync(a.Id);
-                if (item != null) { item.Ativo = false; item.IsDeleted = true; item.UpdatedAt = DateTime.UtcNow; await db.SaveChangesAsync(); }
+                if (item != null) { item.Ativo = false; await db.SaveChangesAsync(); }
                 CarregarTodos();
             }
         }
 
-        // â”€â”€ NAVEGAÃ‡ÃƒO ABAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── NAVEGAÇÃO ABAS ────────────────────────────────────────────────────
         private void BtnAbaObras_Click(object sender, RoutedEventArgs e)
             => MostrarAba("Obras");
         private void BtnAbaFuncionarios_Click(object sender, RoutedEventArgs e)
@@ -610,7 +610,7 @@ namespace RDO.App.Views
         private void BtnAbaAcompanhantes_Click(object sender, RoutedEventArgs e)
             => MostrarAba("Acompanhantes");
 
-        // â”€â”€ HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── HELPERS ───────────────────────────────────────────────────────────
         private static StackPanel CriarCampo(string label, Control input)
         {
             var sp = new StackPanel { Spacing = 6 };
@@ -631,7 +631,7 @@ namespace RDO.App.Views
         {
             var dialog = new ContentDialog
             {
-                Title = "Confirmar exclusÃ£o",
+                Title = "Confirmar exclusão",
                 Content = $"Deseja excluir \"{nome}\"?",
                 PrimaryButtonText = "Excluir",
                 CloseButtonText = "Cancelar",
@@ -644,7 +644,7 @@ namespace RDO.App.Views
         {
             var dialog = new ContentDialog
             {
-                Title = "AtenÃ§Ã£o",
+                Title = "Atenção",
                 Content = mensagem,
                 CloseButtonText = "OK",
                 XamlRoot = this.XamlRoot
