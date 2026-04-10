@@ -1,3 +1,4 @@
+ï»¿using System.Text.Json.Serialization;
 namespace RDO.Data.Models;
 
 public class Photo : ILocalSyncEntity
@@ -10,9 +11,7 @@ public class Photo : ILocalSyncEntity
     public DateTime TakenAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; } = false;
-    public Report? Report { get; set; }
-
-    // Compatibilidade português
+    [JsonIgnore] public Report? Report { get; set; }
     public int RelatorioId { get => ReportId; set => ReportId = value; }
     public string CaminhoArquivo { get => FilePath; set => FilePath = value; }
     public string Legenda { get => Caption; set => Caption = value; }

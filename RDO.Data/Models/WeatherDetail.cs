@@ -1,3 +1,4 @@
+ï»¿using System.Text.Json.Serialization;
 namespace RDO.Data.Models;
 
 public class WeatherDetail : ILocalSyncEntity
@@ -11,9 +12,7 @@ public class WeatherDetail : ILocalSyncEntity
     public double RainfallIndex { get; set; } = 0;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; } = false;
-    public Report? Report { get; set; }
-
-    // Compatibilidade português
+    [JsonIgnore] public Report? Report { get; set; }
     public int RelatorioId { get => ReportId; set => ReportId = value; }
     public string Periodo { get => Period; set => Period = value; }
     public bool Ativo { get => IsActive; set => IsActive = value; }

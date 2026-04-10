@@ -1,3 +1,4 @@
+ï»¿using System.Text.Json.Serialization;
 namespace RDO.Data.Models;
 
 public class Project : ILocalSyncEntity
@@ -17,10 +18,8 @@ public class Project : ILocalSyncEntity
     public bool IsActive { get; set; } = true;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; } = false;
-    public ICollection<Report> Reports { get; set; } = new List<Report>();
-    public ICollection<ProjectMember> Members { get; set; } = new List<ProjectMember>();
-
-    // Compatibilidade português
+    [JsonIgnore] public ICollection<Report> Reports { get; set; } = new List<Report>();
+    [JsonIgnore] public ICollection<ProjectMember> Members { get; set; } = new List<ProjectMember>();
     public string Nome { get => Name; set => Name = value; }
     public string Endereco { get => Address; set => Address = value; }
     public string Grupo { get => Group; set => Group = value; }

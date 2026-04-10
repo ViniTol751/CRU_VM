@@ -1,3 +1,4 @@
+ï»¿using System.Text.Json.Serialization;
 namespace RDO.Data.Models;
 
 public class Material : ILocalSyncEntity
@@ -10,9 +11,7 @@ public class Material : ILocalSyncEntity
     public string Type { get; set; } = "Received";
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; } = false;
-    public Report? Report { get; set; }
-
-    // Compatibilidade português
+    [JsonIgnore] public Report? Report { get; set; }
     public int RelatorioId { get => ReportId; set => ReportId = value; }
     public string Nome { get => Name; set => Name = value; }
     public string Quantidade { get => Quantity; set => Quantity = value; }

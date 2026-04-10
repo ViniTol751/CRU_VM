@@ -1,3 +1,4 @@
+ï»¿using System.Text.Json.Serialization;
 namespace RDO.Data.Models;
 
 public class Occurrence : ILocalSyncEntity
@@ -10,9 +11,7 @@ public class Occurrence : ILocalSyncEntity
     public string EndTime { get; set; } = string.Empty;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; } = false;
-    public Report? Report { get; set; }
-
-    // Compatibilidade português
+    [JsonIgnore] public Report? Report { get; set; }
     public int RelatorioId { get => ReportId; set => ReportId = value; }
     public string Descricao { get => Description; set => Description = value; }
     public string HoraInicio { get => StartTime; set => StartTime = value; }

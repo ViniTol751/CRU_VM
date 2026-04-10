@@ -1,3 +1,4 @@
+ï»¿using System.Text.Json.Serialization;
 namespace RDO.Data.Models;
 
 public class EmployeePresence : ILocalSyncEntity
@@ -9,9 +10,7 @@ public class EmployeePresence : ILocalSyncEntity
     public int HoursWorked { get; set; }
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; } = false;
-    public Report? Report { get; set; }
-
-    // Compatibilidade português
+    [JsonIgnore] public Report? Report { get; set; }
     public int RelatorioId { get => ReportId; set => ReportId = value; }
     public string NomeFuncionario { get => EmployeeName; set => EmployeeName = value; }
     public string Funcao { get => JobTitle; set => JobTitle = value; }

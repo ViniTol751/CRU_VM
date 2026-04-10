@@ -1,3 +1,4 @@
+ï»¿using System.Text.Json.Serialization;
 namespace RDO.Data.Models;
 
 public class Signature : ILocalSyncEntity
@@ -6,7 +7,6 @@ public class Signature : ILocalSyncEntity
     public int ReportId { get; set; }
     public string SignerName { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
-    public string CPF { get; set; } = string.Empty;
     public DateTime? SignedAt { get; set; }
     public bool IsSigned { get; set; } = false;
     public int? EmployeeId { get; set; }
@@ -15,9 +15,7 @@ public class Signature : ILocalSyncEntity
     public string BreakTime { get; set; } = "01:00";
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; } = false;
-    public Report? Report { get; set; }
-
-    // Compatibilidade português
+    [JsonIgnore] public Report? Report { get; set; }
     public int RelatorioId { get => ReportId; set => ReportId = value; }
     public string NomeAssinante { get => SignerName; set => SignerName = value; }
     public string Cargo { get => Role; set => Role = value; }

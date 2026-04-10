@@ -121,6 +121,8 @@ public class SyncService
 
         using var db = new RdoDbContext(DbContextHelper.GetOptions());
         int total = 0;
+        string _currentEntity = "Projects";
+        try {
 
         total += await UpsertLocal(db.Projects, payload.Projects, db,
             (e, i) => { e.Name = i.Name; e.Address = i.Address; e.ART = i.ART;
@@ -130,26 +132,31 @@ public class SyncService
                 e.ImagePath = i.ImagePath; e.IsActive = i.IsActive;
                 e.IsDeleted = i.IsDeleted; });
 
+        _currentEntity = "Users";
         total += await UpsertLocal(db.Users, payload.Users, db,
             (e, i) => { e.Name = i.Name; e.Email = i.Email;
                 e.PasswordHash = i.PasswordHash; e.Profile = i.Profile;
                 e.IsActive = i.IsActive; e.IsDeleted = i.IsDeleted; });
 
+        _currentEntity = "Employees";
         total += await UpsertLocal(db.Employees, payload.Employees, db,
             (e, i) => { e.Name = i.Name; e.JobTitle = i.JobTitle;
                 e.Company = i.Company; e.Type = i.Type; e.Contact = i.Contact;
                 e.IsActive = i.IsActive; e.IsDeleted = i.IsDeleted; });
 
+        _currentEntity = "Equipments";
         total += await UpsertLocal(db.Equipments, payload.Equipments, db,
             (e, i) => { e.Name = i.Name; e.Manufacturer = i.Manufacturer;
                 e.Model = i.Model; e.SerialNumber = i.SerialNumber;
                 e.IsActive = i.IsActive; e.IsDeleted = i.IsDeleted; });
 
+        _currentEntity = "Companions";
         total += await UpsertLocal(db.Companions, payload.Companions, db,
             (e, i) => { e.Name = i.Name; e.Role = i.Role; e.Group = i.Group;
                 e.Contact = i.Contact; e.IsActive = i.IsActive;
                 e.IsDeleted = i.IsDeleted; });
 
+        _currentEntity = "Reports";
         total += await UpsertLocal(db.Reports, payload.Reports, db,
             (e, i) => { e.ProjectId = i.ProjectId; e.UserId = i.UserId;
                 e.CompanionId = i.CompanionId; e.Number = i.Number;
@@ -159,53 +166,64 @@ public class SyncService
                 e.IsSynced = true; e.IsDraft = i.IsDraft;
                 e.IsDeleted = i.IsDeleted; });
 
+        _currentEntity = "WeatherDetails";
         total += await UpsertLocal(db.WeatherDetails, payload.WeatherDetails, db,
             (e, i) => { e.ReportId = i.ReportId; e.Period = i.Period;
                 e.IsActive = i.IsActive; e.Weather = i.Weather;
                 e.Condition = i.Condition; e.RainfallIndex = i.RainfallIndex;
                 e.IsDeleted = i.IsDeleted; });
 
+        _currentEntity = "Activities";
         total += await UpsertLocal(db.Activities, payload.Activities, db,
             (e, i) => { e.ReportId = i.ReportId; e.Description = i.Description;
                 e.Location = i.Location; e.Status = i.Status;
                 e.IsDeleted = i.IsDeleted; });
 
+        _currentEntity = "Occurrences";
         total += await UpsertLocal(db.Occurrences, payload.Occurrences, db,
             (e, i) => { e.ReportId = i.ReportId; e.Description = i.Description;
                 e.Tags = i.Tags; e.StartTime = i.StartTime; e.EndTime = i.EndTime;
                 e.IsDeleted = i.IsDeleted; });
 
+        _currentEntity = "Materials";
         total += await UpsertLocal(db.Materials, payload.Materials, db,
             (e, i) => { e.ReportId = i.ReportId; e.Name = i.Name;
                 e.Quantity = i.Quantity; e.Unit = i.Unit;
                 e.Type = i.Type; e.IsDeleted = i.IsDeleted; });
 
+        _currentEntity = "Photos";
         total += await UpsertLocal(db.Photos, payload.Photos, db,
             (e, i) => { e.ReportId = i.ReportId; e.FilePath = i.FilePath;
                 e.Caption = i.Caption; e.RelatedActivity = i.RelatedActivity;
                 e.TakenAt = i.TakenAt; e.IsDeleted = i.IsDeleted; });
 
+        _currentEntity = "Signatures";
         total += await UpsertLocal(db.Signatures, payload.Signatures, db,
             (e, i) => { e.ReportId = i.ReportId; e.SignerName = i.SignerName;
-                e.Role = i.Role; e.CPF = i.CPF; e.SignedAt = i.SignedAt;
+                e.Role = i.Role; e.SignedAt = i.SignedAt;
                 e.IsSigned = i.IsSigned; e.EmployeeId = i.EmployeeId;
                 e.CheckInTime = i.CheckInTime; e.CheckOutTime = i.CheckOutTime;
                 e.BreakTime = i.BreakTime; e.IsDeleted = i.IsDeleted; });
 
+        _currentEntity = "ProjectMembers";
         total += await UpsertLocal(db.ProjectMembers, payload.ProjectMembers, db,
             (e, i) => { e.ProjectId = i.ProjectId; e.UserId = i.UserId;
                 e.Role = i.Role; e.IsDeleted = i.IsDeleted; });
 
+        _currentEntity = "ReportEquipments";
         total += await UpsertLocal(db.ReportEquipments, payload.ReportEquipments, db,
             (e, i) => { e.ReportId = i.ReportId; e.EquipmentId = i.EquipmentId;
                 e.IsDeleted = i.IsDeleted; });
 
+        _currentEntity = "ReportCompanions";
         total += await UpsertLocal(db.ReportCompanions, payload.ReportCompanions, db,
             (e, i) => { e.ReportId = i.ReportId; e.CompanionId = i.CompanionId;
                 e.IsDeleted = i.IsDeleted; });
 
         await db.SaveChangesAsync();
-
+        } catch (Exception ex) {
+            return new PullResult { Success = false, Error = $"Erro em {_currentEntity}: {ex.Message}" };
+        }
         return new PullResult { Success = true, TotalPulled = total };
     }
 
@@ -218,16 +236,20 @@ public class SyncService
         int count = 0;
         foreach (var item in incoming)
         {
-            var existing = await dbSet.FindAsync(item.Id);
+            foreach (var nav in db.Entry(item).Navigations)
+                nav.CurrentValue = null;
+            var existing = await dbSet.AsNoTracking().FirstOrDefaultAsync(x => x.Id == item.Id);
             if (existing is null)
             {
-                dbSet.Add(item);
+                item.UpdatedAt = item.UpdatedAt == default ? DateTime.UtcNow : item.UpdatedAt;
+                db.Entry(item).State = Microsoft.EntityFrameworkCore.EntityState.Added;
                 count++;
             }
             else if (item.UpdatedAt > existing.UpdatedAt)
             {
                 applyChanges(existing, item);
                 existing.UpdatedAt = item.UpdatedAt;
+                db.Entry(existing).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
                 count++;
             }
         }

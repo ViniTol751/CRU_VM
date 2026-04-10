@@ -1,4 +1,4 @@
-using Microsoft.UI;
+﻿using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -135,12 +135,12 @@ namespace RDO.App.Views
         {
             using var db = new RdoDbContext(DbContextHelper.GetOptions());
             var rel = db.Relatorios
-                .Include(r => r.Climas)
-                .Include(r => r.Atividades)
-                .Include(r => r.Ocorrencias)
-                .Include(r => r.Assinaturas)
-                .Include(r => r.Equipamentos)
-                .Include(r => r.Fotos)
+                .Include(r => r.WeatherDetails)
+                .Include(r => r.Activities)
+                .Include(r => r.Occurrences)
+                .Include(r => r.Signatures)
+                .Include(r => r.Equipments)
+                .Include(r => r.Photos)
                 .FirstOrDefault(r => r.Id == relatorioId);
 
             if (rel == null) return;
@@ -1515,9 +1515,7 @@ namespace RDO.App.Views
                         {
                             RelatorioId = relatorio.Id,
                             NomeAssinante = func.Nome,
-                            Cargo = func.Funcao,
-                            CPF = "",
-                            FuncionarioId = func.Id,
+                            Cargo = func.Funcao,                            FuncionarioId = func.Id,
                             DataAssinatura = DateTime.Now,
                             Assinado = true,
                             HoraEntrada = horaE,
