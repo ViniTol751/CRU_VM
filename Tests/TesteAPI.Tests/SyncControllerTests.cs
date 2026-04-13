@@ -143,6 +143,27 @@ public class SyncControllerTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Equal("Obra Inserida", saved!.Name);
     }
 
+    [Fact]
+    public async Task Pull_ShouldReturnEmptyProjects_WhenSinceIsInFuture()
+    {
+        await _factory.ResetDatabaseAsync();
+        await SeedProjectAsync(updatedAtUtc: new DateTime(2026, 4, 13, 12, 0, 0, DateTimeKind.Utc));
+
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost")
+        });
+
+        var futureSince = "2099-01-01T00:00:00";
+        var response = await client.GetAsync($"/api/sync/pull?since={Uri.EscapeDataString(futureSince)}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var payload = await response.Content.ReadFromJsonAsync<ApiSyncPullResult>();
+        Assert.NotNull(payload);
+        Assert.Empty(payload!.Projects);
+    }
+
     private async Task SeedProjectAsync(DateTime updatedAtUtc)
     {
         using var scope = _factory.Services.CreateScope();
