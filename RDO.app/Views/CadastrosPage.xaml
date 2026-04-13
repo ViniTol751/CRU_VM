@@ -68,6 +68,7 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
                         <Border Grid.Column="0" Background="{ThemeResource PanelBgBrush}"
@@ -105,7 +106,16 @@
                             </Grid>
                         </Border>
 
-                        <Button Grid.Column="1" Content="+ Adicionar"
+                        <Border Grid.Column="1" Background="{ThemeResource AccentSubtleBgBrush}"
+                                BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                CornerRadius="6" Padding="12,0" Height="40" VerticalAlignment="Center">
+                            <TextBlock x:Name="ObrasCountText"
+                                       Text="0 registros"
+                                       Foreground="{ThemeResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"/>
+                        </Border>
+
+                        <Button Grid.Column="2" Content="+ Adicionar"
                 Height="40"
                 Background="{ThemeResource AccentBrush}" BorderThickness="0"
                 Foreground="{ThemeResource AccentFgBrush}" FontWeight="SemiBold"
@@ -147,7 +157,7 @@
                    FontSize="9" FontWeight="SemiBold"
                    Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="100"/>
                                             <Border Background="{ThemeResource AccentSubtleBgBrush}"
-                BorderBrush="#00c8a0" BorderThickness="1"
+                BorderBrush="{ThemeResource AccentBrush}" BorderThickness="1"
                 CornerRadius="2" Padding="6,3"
                 HorizontalAlignment="Left"
                 Margin="0,4,0,0">
@@ -243,9 +253,9 @@
                 Tag="{Binding}"
                 Click="EditarObra_Click"/>
                                             <Button Content="🗑" Width="34" Height="34"
-                Background="#1a1212"
-                BorderBrush="#3a1a1a" BorderThickness="1"
-                Foreground="#ff6666" Padding="0"
+                Background="{ThemeResource DangerBgBrush}"
+                BorderBrush="{ThemeResource DangerBorderBrush}" BorderThickness="1"
+                Foreground="{ThemeResource DangerFgBrush}" Padding="0"
                 Tag="{Binding}"
                 Click="ExcluirObra_Click"/>
                                         </StackPanel>
@@ -263,6 +273,7 @@
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
@@ -302,7 +313,16 @@
                             </Grid>
                         </Border>
 
-                        <Button Grid.Column="1" Content="+ Adicionar"
+                        <Border Grid.Column="1" Background="{ThemeResource AccentSubtleBgBrush}"
+                                BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                CornerRadius="6" Padding="12,0" Height="40" VerticalAlignment="Center">
+                            <TextBlock x:Name="FuncionariosCountText"
+                                       Text="0 registros"
+                                       Foreground="{ThemeResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"/>
+                        </Border>
+
+                        <Button Grid.Column="2" Content="+ Adicionar"
                 Height="40"
                 Background="{ThemeResource AccentBrush}" BorderThickness="0"
                 Foreground="{ThemeResource AccentFgBrush}" FontWeight="SemiBold"
@@ -342,7 +362,7 @@
                                FontSize="9" FontWeight="SemiBold"
                                Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="100"/>
                                             <Border Background="{ThemeResource AccentSubtleBgBrush}"
-                            BorderBrush="#00c8a0" BorderThickness="1"
+                            BorderBrush="{ThemeResource AccentBrush}" BorderThickness="1"
                             CornerRadius="2" Padding="8,4"
                             HorizontalAlignment="Left"
                             Margin="0,4,0,0">
@@ -412,9 +432,9 @@
                             Tag="{Binding}"
                             Click="EditarFuncionario_Click"/>
                                             <Button Content="🗑" Width="34" Height="34"
-                            Background="#1a1212"
-                            BorderBrush="#3a1a1a" BorderThickness="1"
-                            Foreground="#ff6666" Padding="0"
+                            Background="{ThemeResource DangerBgBrush}"
+                            BorderBrush="{ThemeResource DangerBorderBrush}" BorderThickness="1"
+                            Foreground="{ThemeResource DangerFgBrush}" Padding="0"
                             Tag="{Binding}"
                             Click="ExcluirFuncionario_Click"/>
                                         </StackPanel>
@@ -432,6 +452,7 @@
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
@@ -470,7 +491,16 @@
                             </Grid>
                         </Border>
 
-                        <Button Grid.Column="1" Content="+ Adicionar"
+                        <Border Grid.Column="1" Background="{ThemeResource AccentSubtleBgBrush}"
+                                BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                CornerRadius="6" Padding="12,0" Height="40" VerticalAlignment="Center">
+                            <TextBlock x:Name="EquipamentosCountText"
+                                       Text="0 registros"
+                                       Foreground="{ThemeResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"/>
+                        </Border>
+
+                        <Button Grid.Column="2" Content="+ Adicionar"
                 Height="40"
                 Background="{ThemeResource AccentBrush}" BorderThickness="0"
                 Foreground="{ThemeResource AccentFgBrush}" FontWeight="SemiBold"
@@ -561,9 +591,9 @@
                             Tag="{Binding}"
                             Click="EditarEquipamento_Click"/>
                                             <Button Content="🗑" Width="34" Height="34"
-                            Background="#1a1212"
-                            BorderBrush="#3a1a1a" BorderThickness="1"
-                            Foreground="#ff6666" Padding="0"
+                            Background="{ThemeResource DangerBgBrush}"
+                            BorderBrush="{ThemeResource DangerBorderBrush}" BorderThickness="1"
+                            Foreground="{ThemeResource DangerFgBrush}" Padding="0"
                             Tag="{Binding}"
                             Click="ExcluirEquipamento_Click"/>
                                         </StackPanel>
@@ -581,6 +611,7 @@
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
@@ -619,7 +650,16 @@
                             </Grid>
                         </Border>
 
-                        <Button Grid.Column="1" Content="+ Adicionar"
+                        <Border Grid.Column="1" Background="{ThemeResource AccentSubtleBgBrush}"
+                                BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                CornerRadius="6" Padding="12,0" Height="40" VerticalAlignment="Center">
+                            <TextBlock x:Name="AcompanhantesCountText"
+                                       Text="0 registros"
+                                       Foreground="{ThemeResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"/>
+                        </Border>
+
+                        <Button Grid.Column="2" Content="+ Adicionar"
                 Height="40"
                 Background="{ThemeResource AccentBrush}" BorderThickness="0"
                 Foreground="{ThemeResource AccentFgBrush}" FontWeight="SemiBold"
@@ -682,7 +722,7 @@
                                FontSize="9" FontWeight="SemiBold"
                                Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="100"/>
                                             <Border Background="{ThemeResource AccentSubtleBgBrush}"
-                            BorderBrush="#00c8a0" BorderThickness="1"
+                            BorderBrush="{ThemeResource AccentBrush}" BorderThickness="1"
                             CornerRadius="2" Padding="8,4"
                             HorizontalAlignment="Left"
                             Margin="0,4,0,0">
@@ -714,9 +754,9 @@
                             Tag="{Binding}"
                             Click="EditarAcompanhante_Click"/>
                                             <Button Content="🗑" Width="34" Height="34"
-                            Background="#1a1212"
-                            BorderBrush="#3a1a1a" BorderThickness="1"
-                            Foreground="#ff6666" Padding="0"
+                            Background="{ThemeResource DangerBgBrush}"
+                            BorderBrush="{ThemeResource DangerBorderBrush}" BorderThickness="1"
+                            Foreground="{ThemeResource DangerFgBrush}" Padding="0"
                             Tag="{Binding}"
                             Click="ExcluirAcompanhante_Click"/>
                                         </StackPanel>

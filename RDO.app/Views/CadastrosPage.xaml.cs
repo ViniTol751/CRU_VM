@@ -45,9 +45,9 @@ namespace RDO.App.Views
             PainelAcompanhantes.Visibility = aba == "Acompanhantes" ? Visibility.Visible : Visibility.Collapsed;
             PainelObras.Visibility = aba == "Obras" ? Visibility.Visible : Visibility.Collapsed;
 
-            var cor = new SolidColorBrush(Color.FromArgb(255, 0, 200, 160));
+            var cor = (Brush)Application.Current.Resources["AccentBrush"];
             var transp = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
-            var muted = new SolidColorBrush(Color.FromArgb(255, 138, 180, 212));
+            var muted = (Brush)Application.Current.Resources["TextTertiaryBrush"];
 
             BtnAbaObras.BorderBrush = aba == "Obras" ? cor : transp;
             BtnAbaObras.BorderThickness = aba == "Obras" ? new Thickness(0, 0, 0, 2) : new Thickness(0);
@@ -90,6 +90,7 @@ namespace RDO.App.Views
                 ).ToList();
             }
             ObrasListViewCadastro.ItemsSource = lista;
+            ObrasCountText.Text = $"{lista.Count} registro(s)";
         }
 
         private void BuscaObras_TextChanged(object sender, TextChangedEventArgs e)
@@ -143,6 +144,7 @@ namespace RDO.App.Views
                 ).ToList();
             }
             FuncionariosListView.ItemsSource = lista;
+            FuncionariosCountText.Text = $"{lista.Count} registro(s)";
         }
 
         private void BuscaFuncionarios_TextChanged(object sender, TextChangedEventArgs e)
@@ -329,6 +331,7 @@ namespace RDO.App.Views
                 ).ToList();
             }
             EquipamentosListView.ItemsSource = lista;
+            EquipamentosCountText.Text = $"{lista.Count} registro(s)";
         }
 
         private void BuscaEquipamentos_TextChanged(object sender, TextChangedEventArgs e)
@@ -480,6 +483,7 @@ namespace RDO.App.Views
                 ).ToList();
             }
             AcompanhantesListView.ItemsSource = lista;
+            AcompanhantesCountText.Text = $"{lista.Count} registro(s)";
         }
 
         private void BuscaAcompanhantes_TextChanged(object sender, TextChangedEventArgs e)
@@ -619,7 +623,7 @@ namespace RDO.App.Views
                 Text = label,
                 FontSize = 11,
                 FontWeight = new Windows.UI.Text.FontWeight { Weight = 600 },
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 138, 180, 212)),
+                Foreground = (Brush)Application.Current.Resources["TextSecondaryBrush"],
                 CharacterSpacing = 150
             });
             input.HorizontalAlignment = HorizontalAlignment.Stretch;
