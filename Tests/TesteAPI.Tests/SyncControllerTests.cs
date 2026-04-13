@@ -164,6 +164,59 @@ public class SyncControllerTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Empty(payload!.Projects);
     }
 
+    [Fact]
+    public async Task Push_ShouldUpdateProject_WhenIncomingIsNewer()
+    {
+        await _factory.ResetDatabaseAsync();
+        await SeedProjectAsync(updatedAtUtc: new DateTime(2026, 4, 13, 12, 0, 0, DateTimeKind.Utc));
+
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost")
+        });
+
+        var payload = new
+        {
+            Projects = new[]
+            {
+                new
+                {
+                    Id = 1,
+                    Name = "Obra QA Atualizada",
+                    Address = "Rua QA",
+                    ART = "ART-001",
+                    Group = "Grupo QA",
+                    Status = "In Progress",
+                    Manager = "Gestor QA",
+                    ContractType = "Empreitada",
+                    Client = "Cliente QA",
+                    StartDate = new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc),
+                    ExpectedEndDate = (DateTime?)null,
+                    ImagePath = (string?)null,
+                    IsActive = true,
+                    UpdatedAt = new DateTime(2026, 4, 13, 16, 0, 0, DateTimeKind.Utc),
+                    IsDeleted = false
+                }
+            }
+        };
+
+        var pushResponse = await client.PostAsJsonAsync("/api/sync/push", payload);
+        Assert.Equal(HttpStatusCode.OK, pushResponse.StatusCode);
+
+        var result = await pushResponse.Content.ReadFromJsonAsync<ApiSyncPushResult>();
+        Assert.NotNull(result);
+        Assert.Equal(0, result!.Inserted);
+        Assert.Equal(1, result.Updated);
+        Assert.Equal(0, result.Skipped);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var saved = await db.Projects.FindAsync(1);
+        Assert.NotNull(saved);
+        Assert.Equal("Obra QA Atualizada", saved!.Name);
+        Assert.Equal(new DateTime(2026, 4, 13, 16, 0, 0, DateTimeKind.Utc), saved.UpdatedAt);
+    }
+
     private async Task SeedProjectAsync(DateTime updatedAtUtc)
     {
         using var scope = _factory.Services.CreateScope();
