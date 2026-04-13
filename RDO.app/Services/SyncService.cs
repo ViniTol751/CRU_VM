@@ -21,6 +21,10 @@ public class SyncService
     private readonly JsonSerializerOptions _jsonOptions;
 
     private const string LastSyncKey = "lastSync";
+    private static readonly string LogDirectoryPath = System.IO.Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "RDOApp", "logs");
+    private static readonly string LogFilePath = System.IO.Path.Combine(LogDirectoryPath, "sync-errors.log");
     private static readonly string StateFilePath = System.IO.Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "RDOApp", "sync_state.json");
@@ -39,7 +43,10 @@ public class SyncService
     public async Task<SyncResult> SyncAsync()
     {
         if (!IsNetworkAvailable())
+        {
+            WriteErrorLog("SYNC-OFFLINE", "Sem conectividade de rede detectada.");
             return SyncResult.Offline();
+        }
 
         try
         {
@@ -48,7 +55,7 @@ public class SyncService
             var pullResult = await PullAsync(since);
 
             if (pushResult.Success && pullResult.Success)
-                SaveLastSyncTime(DateTime.UtcNow);
+                SaveLastSyncTime(pullResult.ServerTime);
 
             return new SyncResult
             {
@@ -57,47 +64,65 @@ public class SyncService
                 PushedUpdated  = pushResult.Updated,
                 PushedSkipped  = pushResult.Skipped,
                 PulledRecords  = pullResult.TotalPulled,
-                Error          = pushResult.Error ?? pullResult.Error
+                Error          = pushResult.Error ?? pullResult.Error,
+                ErrorCode      = pushResult.ErrorCode ?? pullResult.ErrorCode
             };
         }
         catch (Exception ex)
         {
-            return SyncResult.Failure(ex.Message);
+            WriteErrorLog("SYNC-UNEXPECTED", ex.Message, ex);
+            return SyncResult.Failure("SYNC-UNEXPECTED", ex.Message);
         }
     }
 
     private async Task<PushResult> PushAsync()
     {
+
         using var db = new RdoDbContext(DbContextHelper.GetOptions());
+        var since = LoadLastSyncTime();
+
+        // IDs de relatórios não sincronizados
+        var unsyncedReportIds = await db.Reports
+            .Where(r => !r.IsSynced)
+            .Select(r => r.Id)
+            .ToListAsync();
 
         var payload = new SyncPushPayload
         {
-            Projects           = await db.Projects.ToListAsync(),
-            Users              = await db.Users.ToListAsync(),
-            Employees          = await db.Employees.ToListAsync(),
-            Equipments         = await db.Equipments.ToListAsync(),
-            Companions         = await db.Companions.ToListAsync(),
-            Reports            = await db.Reports.ToListAsync(),
-            WeatherDetails     = await db.WeatherDetails.ToListAsync(),
-            Activities         = await db.Activities.ToListAsync(),
-            Occurrences        = await db.Occurrences.ToListAsync(),
-            Materials          = await db.Materials.ToListAsync(),
-            Photos             = await db.Photos.ToListAsync(),
-            Signatures         = await db.Signatures.ToListAsync(),
-            ProjectMembers     = await db.ProjectMembers.ToListAsync(),
-            ReportEquipments   = await db.ReportEquipments.ToListAsync(),
-            ReportCompanions   = await db.ReportCompanions.ToListAsync(),
+            Projects         = await db.Projects.Where(x => x.UpdatedAt > since).ToListAsync(),
+            Users            = await db.Users.Where(x => x.UpdatedAt > since).ToListAsync(),
+            Employees        = await db.Employees.Where(x => x.UpdatedAt > since).ToListAsync(),
+            Equipments       = await db.Equipments.Where(x => x.UpdatedAt > since).ToListAsync(),
+            Companions       = await db.Companions.Where(x => x.UpdatedAt > since).ToListAsync(),
+            Reports          = await db.Reports.Where(x => x.UpdatedAt > since || !x.IsSynced).ToListAsync(),
+            WeatherDetails   = await db.WeatherDetails.Where(x => x.UpdatedAt > since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
+            Activities       = await db.Activities.Where(x => x.UpdatedAt > since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
+            Occurrences      = await db.Occurrences.Where(x => x.UpdatedAt > since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
+            Materials        = await db.Materials.Where(x => x.UpdatedAt > since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
+            Photos           = await db.Photos.Where(x => x.UpdatedAt > since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
+            Signatures       = await db.Signatures.Where(x => x.UpdatedAt > since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
+            ProjectMembers   = await db.ProjectMembers.Where(x => x.UpdatedAt > since).ToListAsync(),
+            ReportEquipments = await db.ReportEquipments.Where(x => x.UpdatedAt > since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
+            ReportCompanions = await db.ReportCompanions.Where(x => x.UpdatedAt > since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
         };
 
+        System.Diagnostics.Debug.WriteLine("PUSH payload: " + payload.Reports.Count + " reports, unsyncedIds: " + string.Join(",", unsyncedReportIds));
         var response = await _http.PostAsJsonAsync($"{_apiBaseUrl}/api/sync/push", payload, _jsonOptions);
         if (!response.IsSuccessStatusCode)
-            return new PushResult { Success = false, Error = $"Push failed: {response.StatusCode}" };
+        {
+            var error = $"Push failed: {response.StatusCode}";
+            WriteErrorLog("SYNC-PUSH-HTTP", error);
+            return new PushResult { Success = false, ErrorCode = "SYNC-PUSH-HTTP", Error = error };
+        }
 
         var result = await response.Content.ReadFromJsonAsync<ApiSyncPushResult>(_jsonOptions);
 
-        await db.Reports
-            .Where(r => !r.IsSynced)
-            .ExecuteUpdateAsync(s => s.SetProperty(r => r.IsSynced, true));
+        // Marca IsSynced apenas nos relatórios que foram enviados
+        var sentIds = payload.Reports.Select(r => r.Id).ToList();
+        if (sentIds.Any())
+            await db.Reports
+                .Where(r => sentIds.Contains(r.Id))
+                .ExecuteUpdateAsync(s => s.SetProperty(r => r.IsSynced, true));
 
         return new PushResult
         {
@@ -111,13 +136,20 @@ public class SyncService
     private async Task<PullResult> PullAsync(DateTime since)
     {
         var sinceStr = since.ToString("o");
-        var response = await _http.GetAsync($"{_apiBaseUrl}/api/sync/pull?since={sinceStr}");
+        var response = await _http.GetAsync($"{_apiBaseUrl}/api/sync/pull?since={Uri.EscapeDataString(sinceStr)}");
         if (!response.IsSuccessStatusCode)
-            return new PullResult { Success = false, Error = $"Pull failed: {response.StatusCode}" };
+        {
+            var error = $"Pull failed: {response.StatusCode}";
+            WriteErrorLog("SYNC-PULL-HTTP", error);
+            return new PullResult { Success = false, ErrorCode = "SYNC-PULL-HTTP", Error = error };
+        }
 
         var payload = await response.Content.ReadFromJsonAsync<SyncPullPayload>(_jsonOptions);
         if (payload is null)
-            return new PullResult { Success = false, Error = "Empty response from server" };
+        {
+            WriteErrorLog("SYNC-PULL-EMPTY", "Empty response from server");
+            return new PullResult { Success = false, ErrorCode = "SYNC-PULL-EMPTY", Error = "Empty response from server" };
+        }
 
         using var db = new RdoDbContext(DbContextHelper.GetOptions());
         int total = 0;
@@ -163,8 +195,9 @@ public class SyncService
                 e.Date = i.Date; e.CheckInTime = i.CheckInTime;
                 e.CheckOutTime = i.CheckOutTime; e.BreakTime = i.BreakTime;
                 e.GeneralNotes = i.GeneralNotes; e.Status = i.Status;
-                e.IsSynced = true; e.IsDraft = i.IsDraft;
-                e.IsDeleted = i.IsDeleted; });
+                e.IsDraft = i.IsDraft;
+                e.IsDeleted = i.IsDeleted;
+                e.IsSynced = true; });
 
         _currentEntity = "WeatherDetails";
         total += await UpsertLocal(db.WeatherDetails, payload.WeatherDetails, db,
@@ -222,9 +255,14 @@ public class SyncService
 
         await db.SaveChangesAsync();
         } catch (Exception ex) {
-            return new PullResult { Success = false, Error = $"Erro em {_currentEntity}: {ex.Message}" };
+            var error = $"Erro em {_currentEntity}: {ex.Message}";
+            WriteErrorLog("SYNC-PULL-UPSERT", error, ex);
+            return new PullResult { Success = false, ErrorCode = "SYNC-PULL-UPSERT", Error = error };
         }
-        return new PullResult { Success = true, TotalPulled = total };
+        var serverTime = payload.ServerTime == default
+            ? DateTime.UtcNow
+            : payload.ServerTime.ToUniversalTime();
+        return new PullResult { Success = true, TotalPulled = total, ServerTime = serverTime };
     }
 
     private static async Task<int> UpsertLocal<T>(
@@ -242,10 +280,11 @@ public class SyncService
             if (existing is null)
             {
                 item.UpdatedAt = item.UpdatedAt == default ? DateTime.UtcNow : item.UpdatedAt;
+                if (item is Report r) r.IsSynced = true;
                 db.Entry(item).State = Microsoft.EntityFrameworkCore.EntityState.Added;
                 count++;
             }
-            else if (item.UpdatedAt > existing.UpdatedAt)
+            else if (item.UpdatedAt.ToUniversalTime() >= existing.UpdatedAt.ToUniversalTime())
             {
                 applyChanges(existing, item);
                 existing.UpdatedAt = item.UpdatedAt;
@@ -269,16 +308,42 @@ public class SyncService
             if (state is not null && state.TryGetValue(LastSyncKey, out var val))
                 return DateTime.Parse(val, null, System.Globalization.DateTimeStyles.RoundtripKind);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            WriteErrorLog("SYNC-STATE-READ", "Falha ao ler estado de sincronização local.", ex);
+        }
         return DateTime.MinValue;
     }
 
     private void SaveLastSyncTime(DateTime time)
     {
-        var dir = System.IO.Path.GetDirectoryName(StateFilePath)!;
-        Directory.CreateDirectory(dir);
-        var state = new Dictionary<string, string> { [LastSyncKey] = time.ToString("o") };
-        File.WriteAllText(StateFilePath, JsonSerializer.Serialize(state));
+        try
+        {
+            var dir = System.IO.Path.GetDirectoryName(StateFilePath)!;
+            Directory.CreateDirectory(dir);
+            var state = new Dictionary<string, string> { [LastSyncKey] = time.ToString("o") };
+            File.WriteAllText(StateFilePath, JsonSerializer.Serialize(state));
+        }
+        catch (Exception ex)
+        {
+            WriteErrorLog("SYNC-STATE-WRITE", "Falha ao salvar estado de sincronização local.", ex);
+        }
+    }
+
+    private static void WriteErrorLog(string code, string message, Exception? ex = null)
+    {
+        try
+        {
+            Directory.CreateDirectory(LogDirectoryPath);
+            var line = $"[{DateTime.UtcNow:O}] code={code} message=\"{message}\"";
+            if (ex is not null)
+                line += $" exception=\"{ex.GetType().Name}: {ex.Message}\"";
+            File.AppendAllText(LogFilePath, line + Environment.NewLine);
+        }
+        catch
+        {
+            // Último fallback: nunca interromper o app por falha de log.
+        }
     }
 }
 
@@ -336,10 +401,12 @@ public class SyncResult
     public int PushedUpdated { get; set; }
     public int PushedSkipped { get; set; }
     public int PulledRecords { get; set; }
+    public string? ErrorCode { get; set; }
     public string? Error { get; set; }
 
-    public static SyncResult Offline() => new() { Success = false, IsOffline = true };
-    public static SyncResult Failure(string error) => new() { Success = false, Error = error };
+    public static SyncResult Offline() => new() { Success = false, IsOffline = true, ErrorCode = "SYNC-OFFLINE" };
+    public static SyncResult Failure(string errorCode, string error) =>
+        new() { Success = false, ErrorCode = errorCode, Error = error };
 }
 
 internal class PushResult
@@ -348,6 +415,7 @@ internal class PushResult
     public int Inserted { get; set; }
     public int Updated { get; set; }
     public int Skipped { get; set; }
+    public string? ErrorCode { get; set; }
     public string? Error { get; set; }
 }
 
@@ -355,5 +423,7 @@ internal class PullResult
 {
     public bool Success { get; set; }
     public int TotalPulled { get; set; }
+    public DateTime ServerTime { get; set; } = DateTime.UtcNow;
+    public string? ErrorCode { get; set; }
     public string? Error { get; set; }
 }
