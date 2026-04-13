@@ -3,8 +3,6 @@ using TesteAPI.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = 
@@ -18,7 +16,11 @@ var connectionString = builder.Configuration.GetConnectionString("AppDbConnectio
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
+// Necessário para compatibilidade de DateTime com o banco existente
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
+// Logging já vem configurado por padrão no WebApplication —
+// o ILogger<SyncController> é injetado automaticamente, sem nada extra aqui.
 
 var app = builder.Build();
 
@@ -32,3 +34,5 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
+
+public partial class Program { }
