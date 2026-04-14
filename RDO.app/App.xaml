@@ -9,46 +9,46 @@
 
                 <!-- ── TEMA ESCURO ─────────────────────────────────────────── -->
                 <ResourceDictionary x:Key="Dark">
-                    <SolidColorBrush x:Key="AppBgBrush"           Color="#1A1A2E"/>
-                    <SolidColorBrush x:Key="PanelBgBrush"         Color="#2D2D3D"/>
-                    <SolidColorBrush x:Key="AppBorderBrush"       Color="#3A3A52"/>
-                    <SolidColorBrush x:Key="AccentBrush"          Color="#2DD4A8"/>
-                    <SolidColorBrush x:Key="AccentFgBrush"        Color="#102026"/>
-                    <SolidColorBrush x:Key="TextPrimaryBrush"     Color="#F8FAFC"/>
-                    <SolidColorBrush x:Key="TextSecondaryBrush"   Color="#C9D4E2"/>
-                    <SolidColorBrush x:Key="TextTertiaryBrush"    Color="#67E8F9"/>
-                    <SolidColorBrush x:Key="InputBgBrush"         Color="#232337"/>
-                    <SolidColorBrush x:Key="CardImgBgBrush"       Color="#24263A"/>
-                    <SolidColorBrush x:Key="EditBtnBgBrush"       Color="#1F2B3A"/>
-                    <SolidColorBrush x:Key="AccentSubtleBgBrush"  Color="#1B3A3A"/>
-                    <SolidColorBrush x:Key="DangerBgBrush"        Color="#3A1F27"/>
-                    <SolidColorBrush x:Key="DangerBorderBrush"    Color="#7B2E42"/>
-                    <SolidColorBrush x:Key="DangerFgBrush"        Color="#FF8BA7"/>
-                    <SolidColorBrush x:Key="NavBgBrush"           Color="#1F2030"/>
-                    <Color x:Key="AppBgColor">#1A1A2E</Color>
-                    <Color x:Key="BorderColor">#3A3A52</Color>
+                    <SolidColorBrush x:Key="AppBgBrush"           Color="#1f1f1f"/>
+                    <SolidColorBrush x:Key="PanelBgBrush"         Color="#181818"/>
+                    <SolidColorBrush x:Key="AppBorderBrush"       Color="#2b2d31"/>
+                    <SolidColorBrush x:Key="AccentBrush"          Color="#007fd4"/>
+                    <SolidColorBrush x:Key="AccentFgBrush"        Color="#ffffff"/>
+                    <SolidColorBrush x:Key="TextPrimaryBrush"     Color="#cccccc"/>
+                    <SolidColorBrush x:Key="TextSecondaryBrush"   Color="#9d9d9d"/>
+                    <SolidColorBrush x:Key="TextTertiaryBrush"    Color="#6a6a6a"/>
+                    <SolidColorBrush x:Key="InputBgBrush"         Color="#252526"/>
+                    <SolidColorBrush x:Key="CardImgBgBrush"       Color="#111111"/>
+                    <SolidColorBrush x:Key="EditBtnBgBrush"       Color="#333333"/>
+                    <SolidColorBrush x:Key="AccentSubtleBgBrush"  Color="#004b7a"/>
+                    <SolidColorBrush x:Key="DangerBgBrush"        Color="#5a1d1d"/>
+                    <SolidColorBrush x:Key="DangerBorderBrush"    Color="#8c2a2a"/>
+                    <SolidColorBrush x:Key="DangerFgBrush"        Color="#f14c4c"/>
+                    <SolidColorBrush x:Key="NavBgBrush"           Color="#181818"/>
+                    <Color x:Key="AppBgColor">#1f1f1f</Color>
+                    <Color x:Key="BorderColor">#2b2d31</Color>
                 </ResourceDictionary>
 
                 <!-- ── TEMA CLARO ──────────────────────────────────────────── -->
                 <ResourceDictionary x:Key="Light">
-                    <SolidColorBrush x:Key="AppBgBrush"           Color="#F0F4F8"/>
-                    <SolidColorBrush x:Key="PanelBgBrush"         Color="#FFFFFF"/>
-                    <SolidColorBrush x:Key="AppBorderBrush"       Color="#D7E1EC"/>
-                    <SolidColorBrush x:Key="AccentBrush"          Color="#3B82F6"/>
-                    <SolidColorBrush x:Key="AccentFgBrush"        Color="#FFFFFF"/>
-                    <SolidColorBrush x:Key="TextPrimaryBrush"     Color="#1E3A5F"/>
-                    <SolidColorBrush x:Key="TextSecondaryBrush"   Color="#334155"/>
-                    <SolidColorBrush x:Key="TextTertiaryBrush"    Color="#6BA3C8"/>
-                    <SolidColorBrush x:Key="InputBgBrush"         Color="#F8FAFC"/>
-                    <SolidColorBrush x:Key="CardImgBgBrush"       Color="#E6EEF8"/>
-                    <SolidColorBrush x:Key="EditBtnBgBrush"       Color="#EAF2FF"/>
-                    <SolidColorBrush x:Key="AccentSubtleBgBrush"  Color="#DBEAFE"/>
-                    <SolidColorBrush x:Key="DangerBgBrush"        Color="#FEE2E2"/>
-                    <SolidColorBrush x:Key="DangerBorderBrush"    Color="#FCA5A5"/>
-                    <SolidColorBrush x:Key="DangerFgBrush"        Color="#B91C1C"/>
-                    <SolidColorBrush x:Key="NavBgBrush"           Color="#1E3A5F"/>
-                    <Color x:Key="AppBgColor">#F0F4F8</Color>
-                    <Color x:Key="BorderColor">#D7E1EC</Color>
+                    <SolidColorBrush x:Key="AppBgBrush"           Color="#d5d6db"/>
+                    <SolidColorBrush x:Key="PanelBgBrush"         Color="#e1e2e7"/>
+                    <SolidColorBrush x:Key="AppBorderBrush"       Color="#a8aecb"/>
+                    <SolidColorBrush x:Key="AccentBrush"          Color="#2e7de9"/>
+                    <SolidColorBrush x:Key="AccentFgBrush"        Color="#ffffff"/>
+                    <SolidColorBrush x:Key="TextPrimaryBrush"     Color="#343b58"/>
+                    <SolidColorBrush x:Key="TextSecondaryBrush"   Color="#565f89"/>
+                    <SolidColorBrush x:Key="TextTertiaryBrush"    Color="#9699a3"/>
+                    <SolidColorBrush x:Key="InputBgBrush"         Color="#cbccd1"/>
+                    <SolidColorBrush x:Key="CardImgBgBrush"       Color="#b4b5b9"/>
+                    <SolidColorBrush x:Key="EditBtnBgBrush"       Color="#c0c2cd"/>
+                    <SolidColorBrush x:Key="AccentSubtleBgBrush"  Color="#a8aecb"/>
+                    <SolidColorBrush x:Key="DangerBgBrush"        Color="#ffcccc"/>
+                    <SolidColorBrush x:Key="DangerBorderBrush"    Color="#f52a65"/>
+                    <SolidColorBrush x:Key="DangerFgBrush"        Color="#8c4351"/>
+                    <SolidColorBrush x:Key="NavBgBrush"           Color="#e1e2e7"/>
+                    <Color x:Key="AppBgColor">#d5d6db</Color>
+                    <Color x:Key="BorderColor">#a8aecb</Color>
                 </ResourceDictionary>
 
             </ResourceDictionary.ThemeDictionaries>

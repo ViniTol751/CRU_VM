@@ -2,27 +2,30 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using RDO.Data.Data;
+using TesteAPI.Data;
 
 #nullable disable
 
-namespace RDO.Data.Migrations
+namespace Teste.Migrations
 {
-    [DbContext(typeof(RdoDbContext))]
-    partial class RdoDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(AppDbContext))]
+    [Migration("20260413162532_AddSyncEventLog")]
+    partial class AddSyncEventLog
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.0")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("RDO.Data.Models.Activity", b =>
+            modelBuilder.Entity("TesteAPI.Controllers.SyncEventLog", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -30,9 +33,47 @@ namespace RDO.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Descricao")
+                    b.Property<string>("DeviceId")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("EntityId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EntityName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("EventId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ProcessedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId")
+                        .IsUnique();
+
+                    b.HasIndex("ProcessedAt");
+
+                    b.HasIndex("EntityName", "EntityId");
+
+                    b.ToTable("SyncEventLog");
+                });
+
+            modelBuilder.Entity("TesteAPI.Models.Activity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -41,16 +82,9 @@ namespace RDO.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("Local")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("Location")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<int>("RelatorioId")
-                        .HasColumnType("integer");
 
                     b.Property<int>("ReportId")
                         .HasColumnType("integer");
@@ -60,16 +94,16 @@ namespace RDO.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ReportId");
 
-                    b.ToTable("Activity");
+                    b.ToTable("Activities");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.Companion", b =>
+            modelBuilder.Entity("TesteAPI.Models.Companion", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -77,26 +111,11 @@ namespace RDO.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("Ativo")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Cargo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("Contact")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Contato")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("Group")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Grupo")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -110,23 +129,19 @@ namespace RDO.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Companion");
+                    b.ToTable("Companions");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.Employee", b =>
+            modelBuilder.Entity("TesteAPI.Models.Employee", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -134,26 +149,11 @@ namespace RDO.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("Ativo")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Company")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Contact")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Contato")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Empresa")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Funcao")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -171,27 +171,19 @@ namespace RDO.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Tipo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Employee");
+                    b.ToTable("Employees");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.EmployeePresence", b =>
+            modelBuilder.Entity("TesteAPI.Models.EmployeePresence", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -203,13 +195,6 @@ namespace RDO.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Funcao")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("HorasTrabalhadas")
-                        .HasColumnType("integer");
-
                     b.Property<int>("HoursWorked")
                         .HasColumnType("integer");
 
@@ -220,40 +205,26 @@ namespace RDO.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("NomeFuncionario")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("RelatorioId")
-                        .HasColumnType("integer");
-
                     b.Property<int>("ReportId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ReportId");
 
-                    b.ToTable("EmployeePresence");
+                    b.ToTable("EmployeePresences");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.Equipment", b =>
+            modelBuilder.Entity("TesteAPI.Models.Equipment", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("Ativo")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Fabricante")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -269,19 +240,7 @@ namespace RDO.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Modelo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("NumeroSerie")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -290,14 +249,49 @@ namespace RDO.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Equipment");
+                    b.ToTable("Equipments");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.Material", b =>
+            modelBuilder.Entity("TesteAPI.Models.EquipmentUsage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("EquipmentName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("HoursUsed")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("ReportId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReportId");
+
+                    b.ToTable("EquipmentUsages");
+                });
+
+            modelBuilder.Entity("TesteAPI.Models.Material", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -312,33 +306,14 @@ namespace RDO.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Quantidade")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("Quantity")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("RelatorioId")
-                        .HasColumnType("integer");
-
                     b.Property<int>("ReportId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Tipo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Unidade")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -347,26 +322,22 @@ namespace RDO.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ReportId");
 
-                    b.ToTable("Material");
+                    b.ToTable("Materials");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.Occurrence", b =>
+            modelBuilder.Entity("TesteAPI.Models.Occurrence", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Descricao")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -376,19 +347,8 @@ namespace RDO.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("HoraFim")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("HoraInicio")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
-
-                    b.Property<int>("RelatorioId")
-                        .HasColumnType("integer");
 
                     b.Property<int>("ReportId")
                         .HasColumnType("integer");
@@ -402,30 +362,22 @@ namespace RDO.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ReportId");
 
-                    b.ToTable("Occurrence");
+                    b.ToTable("Occurrences");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.Photo", b =>
+            modelBuilder.Entity("TesteAPI.Models.Photo", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AtividadeRelacionada")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("CaminhoArquivo")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<string>("Caption")
                         .IsRequired()
@@ -438,37 +390,27 @@ namespace RDO.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("Legenda")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("RelatedActivity")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<int>("RelatorioId")
-                        .HasColumnType("integer");
 
                     b.Property<int>("ReportId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("TakenAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("TiradaEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ReportId");
 
-                    b.ToTable("Photo");
+                    b.ToTable("Photos");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.Project", b =>
+            modelBuilder.Entity("TesteAPI.Models.Project", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -484,9 +426,6 @@ namespace RDO.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<bool>("Ativo")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Client")
                         .IsRequired()
                         .HasColumnType("text");
@@ -495,32 +434,14 @@ namespace RDO.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Contratante")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("DataInicio")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Endereco")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<DateTime?>("ExpectedEndDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Group")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Grupo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("ImagePath")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ImagemPath")
                         .HasColumnType("text");
 
                     b.Property<bool>("IsActive")
@@ -537,37 +458,22 @@ namespace RDO.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("PrevisaoTermino")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Responsavel")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("TipoContrato")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Project");
+                    b.ToTable("Projects");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.ProjectMember", b =>
+            modelBuilder.Entity("TesteAPI.Models.ProjectMember", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -578,13 +484,6 @@ namespace RDO.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("ObraId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Papel")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<int>("ProjectId")
                         .HasColumnType("integer");
 
@@ -593,12 +492,9 @@ namespace RDO.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("UsuarioId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -607,19 +503,16 @@ namespace RDO.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("ProjectMember");
+                    b.ToTable("ProjectMembers");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.Report", b =>
+            modelBuilder.Entity("TesteAPI.Models.Report", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("AcompanhanteId")
-                        .HasColumnType("integer");
 
                     b.Property<string>("BreakTime")
                         .IsRequired()
@@ -637,30 +530,12 @@ namespace RDO.Data.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("Data")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("Date")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("GeneralNotes")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("HoraEntrada")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("HoraIntervalo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("HoraSaida")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -676,36 +551,17 @@ namespace RDO.Data.Migrations
                     b.Property<int>("Number")
                         .HasColumnType("integer");
 
-                    b.Property<int>("Numero")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ObraId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ObsGerais")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<int>("ProjectId")
                         .HasColumnType("integer");
-
-                    b.Property<bool>("Rascunho")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("Sincronizado")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("UsuarioId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -716,19 +572,16 @@ namespace RDO.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Report");
+                    b.ToTable("Reports");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.ReportCompanion", b =>
+            modelBuilder.Entity("TesteAPI.Models.ReportCompanion", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AcompanhanteId")
-                        .HasColumnType("integer");
 
                     b.Property<int>("CompanionId")
                         .HasColumnType("integer");
@@ -736,14 +589,11 @@ namespace RDO.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("RelatorioId")
-                        .HasColumnType("integer");
-
                     b.Property<int>("ReportId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -751,19 +601,16 @@ namespace RDO.Data.Migrations
 
                     b.HasIndex("ReportId");
 
-                    b.ToTable("ReportCompanion");
+                    b.ToTable("ReportCompanions");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.ReportEquipment", b =>
+            modelBuilder.Entity("TesteAPI.Models.ReportEquipment", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("EquipamentoCadastradoId")
-                        .HasColumnType("integer");
 
                     b.Property<int>("EquipmentId")
                         .HasColumnType("integer");
@@ -771,14 +618,11 @@ namespace RDO.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("RelatorioId")
-                        .HasColumnType("integer");
-
                     b.Property<int>("ReportId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -786,10 +630,10 @@ namespace RDO.Data.Migrations
 
                     b.HasIndex("ReportId");
 
-                    b.ToTable("ReportEquipment");
+                    b.ToTable("ReportEquipments");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.Signature", b =>
+            modelBuilder.Entity("TesteAPI.Models.Signature", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -797,14 +641,7 @@ namespace RDO.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("Assinado")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("BreakTime")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Cargo")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -816,39 +653,14 @@ namespace RDO.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<DateTime?>("DataAssinatura")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<int?>("EmployeeId")
                         .HasColumnType("integer");
-
-                    b.Property<int?>("FuncionarioId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("HoraEntrada")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("HoraIntervalo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("HoraSaida")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsSigned")
                         .HasColumnType("boolean");
-
-                    b.Property<string>("NomeAssinante")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("RelatorioId")
-                        .HasColumnType("integer");
 
                     b.Property<int>("ReportId")
                         .HasColumnType("integer");
@@ -858,32 +670,29 @@ namespace RDO.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("SignedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("SignerName")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ReportId");
 
-                    b.ToTable("Signature");
+                    b.ToTable("Signatures");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.User", b =>
+            modelBuilder.Entity("TesteAPI.Models.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("Ativo")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -899,15 +708,7 @@ namespace RDO.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Perfil")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -915,19 +716,15 @@ namespace RDO.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("SenhaHash")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
-                    b.ToTable("User");
+                    b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.WeatherDetail", b =>
+            modelBuilder.Entity("TesteAPI.Models.WeatherDetail", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -935,19 +732,9 @@ namespace RDO.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("Ativo")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Condicao")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("Condition")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<double>("IndicePluviometrico")
-                        .HasColumnType("double precision");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -959,25 +746,14 @@ namespace RDO.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Periodo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<double>("RainfallIndex")
                         .HasColumnType("double precision");
-
-                    b.Property<int>("RelatorioId")
-                        .HasColumnType("integer");
 
                     b.Property<int>("ReportId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Tempo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Weather")
                         .IsRequired()
@@ -987,12 +763,12 @@ namespace RDO.Data.Migrations
 
                     b.HasIndex("ReportId");
 
-                    b.ToTable("WeatherDetail");
+                    b.ToTable("WeatherDetails");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.Activity", b =>
+            modelBuilder.Entity("TesteAPI.Models.Activity", b =>
                 {
-                    b.HasOne("RDO.Data.Models.Report", "Report")
+                    b.HasOne("TesteAPI.Models.Report", "Report")
                         .WithMany("Activities")
                         .HasForeignKey("ReportId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1001,9 +777,9 @@ namespace RDO.Data.Migrations
                     b.Navigation("Report");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.EmployeePresence", b =>
+            modelBuilder.Entity("TesteAPI.Models.EmployeePresence", b =>
                 {
-                    b.HasOne("RDO.Data.Models.Report", "Report")
+                    b.HasOne("TesteAPI.Models.Report", "Report")
                         .WithMany()
                         .HasForeignKey("ReportId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1012,9 +788,20 @@ namespace RDO.Data.Migrations
                     b.Navigation("Report");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.Material", b =>
+            modelBuilder.Entity("TesteAPI.Models.EquipmentUsage", b =>
                 {
-                    b.HasOne("RDO.Data.Models.Report", "Report")
+                    b.HasOne("TesteAPI.Models.Report", "Report")
+                        .WithMany()
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Report");
+                });
+
+            modelBuilder.Entity("TesteAPI.Models.Material", b =>
+                {
+                    b.HasOne("TesteAPI.Models.Report", "Report")
                         .WithMany("Materials")
                         .HasForeignKey("ReportId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1023,9 +810,9 @@ namespace RDO.Data.Migrations
                     b.Navigation("Report");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.Occurrence", b =>
+            modelBuilder.Entity("TesteAPI.Models.Occurrence", b =>
                 {
-                    b.HasOne("RDO.Data.Models.Report", "Report")
+                    b.HasOne("TesteAPI.Models.Report", "Report")
                         .WithMany("Occurrences")
                         .HasForeignKey("ReportId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1034,9 +821,9 @@ namespace RDO.Data.Migrations
                     b.Navigation("Report");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.Photo", b =>
+            modelBuilder.Entity("TesteAPI.Models.Photo", b =>
                 {
-                    b.HasOne("RDO.Data.Models.Report", "Report")
+                    b.HasOne("TesteAPI.Models.Report", "Report")
                         .WithMany("Photos")
                         .HasForeignKey("ReportId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1045,15 +832,15 @@ namespace RDO.Data.Migrations
                     b.Navigation("Report");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.ProjectMember", b =>
+            modelBuilder.Entity("TesteAPI.Models.ProjectMember", b =>
                 {
-                    b.HasOne("RDO.Data.Models.Project", "Project")
+                    b.HasOne("TesteAPI.Models.Project", "Project")
                         .WithMany("Members")
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("RDO.Data.Models.User", "User")
+                    b.HasOne("TesteAPI.Models.User", "User")
                         .WithMany("Projects")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1064,19 +851,19 @@ namespace RDO.Data.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.Report", b =>
+            modelBuilder.Entity("TesteAPI.Models.Report", b =>
                 {
-                    b.HasOne("RDO.Data.Models.Companion", "Companion")
+                    b.HasOne("TesteAPI.Models.Companion", "Companion")
                         .WithMany()
                         .HasForeignKey("CompanionId");
 
-                    b.HasOne("RDO.Data.Models.Project", "Project")
+                    b.HasOne("TesteAPI.Models.Project", "Project")
                         .WithMany("Reports")
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("RDO.Data.Models.User", "User")
+                    b.HasOne("TesteAPI.Models.User", "User")
                         .WithMany("Reports")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1089,15 +876,15 @@ namespace RDO.Data.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.ReportCompanion", b =>
+            modelBuilder.Entity("TesteAPI.Models.ReportCompanion", b =>
                 {
-                    b.HasOne("RDO.Data.Models.Companion", "Companion")
+                    b.HasOne("TesteAPI.Models.Companion", "Companion")
                         .WithMany()
                         .HasForeignKey("CompanionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("RDO.Data.Models.Report", "Report")
+                    b.HasOne("TesteAPI.Models.Report", "Report")
                         .WithMany("ReportCompanions")
                         .HasForeignKey("ReportId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1108,15 +895,15 @@ namespace RDO.Data.Migrations
                     b.Navigation("Report");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.ReportEquipment", b =>
+            modelBuilder.Entity("TesteAPI.Models.ReportEquipment", b =>
                 {
-                    b.HasOne("RDO.Data.Models.Equipment", "Equipment")
+                    b.HasOne("TesteAPI.Models.Equipment", "Equipment")
                         .WithMany()
                         .HasForeignKey("EquipmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("RDO.Data.Models.Report", "Report")
+                    b.HasOne("TesteAPI.Models.Report", "Report")
                         .WithMany("Equipments")
                         .HasForeignKey("ReportId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1127,9 +914,9 @@ namespace RDO.Data.Migrations
                     b.Navigation("Report");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.Signature", b =>
+            modelBuilder.Entity("TesteAPI.Models.Signature", b =>
                 {
-                    b.HasOne("RDO.Data.Models.Report", "Report")
+                    b.HasOne("TesteAPI.Models.Report", "Report")
                         .WithMany("Signatures")
                         .HasForeignKey("ReportId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1138,9 +925,9 @@ namespace RDO.Data.Migrations
                     b.Navigation("Report");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.WeatherDetail", b =>
+            modelBuilder.Entity("TesteAPI.Models.WeatherDetail", b =>
                 {
-                    b.HasOne("RDO.Data.Models.Report", "Report")
+                    b.HasOne("TesteAPI.Models.Report", "Report")
                         .WithMany("WeatherDetails")
                         .HasForeignKey("ReportId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1149,14 +936,14 @@ namespace RDO.Data.Migrations
                     b.Navigation("Report");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.Project", b =>
+            modelBuilder.Entity("TesteAPI.Models.Project", b =>
                 {
                     b.Navigation("Members");
 
                     b.Navigation("Reports");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.Report", b =>
+            modelBuilder.Entity("TesteAPI.Models.Report", b =>
                 {
                     b.Navigation("Activities");
 
@@ -1175,7 +962,7 @@ namespace RDO.Data.Migrations
                     b.Navigation("WeatherDetails");
                 });
 
-            modelBuilder.Entity("RDO.Data.Models.User", b =>
+            modelBuilder.Entity("TesteAPI.Models.User", b =>
                 {
                     b.Navigation("Projects");
 

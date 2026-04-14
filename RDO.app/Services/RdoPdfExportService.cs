@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -64,7 +64,6 @@ namespace RDO.App.Services
                     {
                         col.Spacing(10);
                         col.Item().Element(c => SecaoIdentificacao(c, rel));
-                        col.Item().Element(c => SecaoHorarioTrabalho(c, rel));
                         col.Item().Element(c => SecaoClima(c, rel));
                         // Acompanhantes: prioriza join-table; fallback para campo legado
                         var acomps = rel.RelatorioAcompanhantes.Select(ra => ra.Acompanhante).ToList();
@@ -72,14 +71,13 @@ namespace RDO.App.Services
                             acomps.Add(rel.Acompanhante);
                         if (acomps.Count > 0)
                             col.Item().Element(c => SecaoAcompanhantes(c, acomps));
+                        if (rel.Equipamentos.Any())
+                            col.Item().Element(c => SecaoEquipamentos(c, rel));
                         col.Item().Element(c => SecaoEquipe(c, rel));
-                        col.Item().Element(c => SecaoEquipamentos(c, rel));
                         col.Item().Element(c => SecaoAtividades(c, rel));
                         col.Item().Element(c => SecaoOcorrencias(c, rel));
-                        col.Item().Element(c => SecaoComentarios(c, rel));
-                        col.Item().Element(c => SecaoFotos(c, rel));
-                        col.Item().Element(c => SecaoVideos(c, rel));
-                        col.Item().Element(c => SecaoAnexos(c, rel));
+                        if (rel.Fotos.Any())
+                            col.Item().Element(c => SecaoFotos(c, rel));
                     });
                     page.Footer().AlignCenter().Text(t =>
                     {
@@ -117,8 +115,6 @@ namespace RDO.App.Services
                         .FontSize(16).Bold().FontColor("#0052cc");
                     col.Item().Text("RELATÓRIO DIÁRIO DE OBRA — RDO")
                         .FontSize(10).FontColor("#5a6f8a");
-                    col.Item().Text($"{rel.Data:dddd}, {rel.Data:dd/MM/yyyy}")
-                        .FontSize(9).FontColor("#1a2a3a");
                 });
                 row.ConstantItem(160).AlignRight().Column(col =>
                 {
@@ -159,69 +155,9 @@ namespace RDO.App.Services
                     }
 
                     Linha("Obra:", rel.Obra.Nome, "Grupo/Cliente:", rel.Obra.Grupo);
-                    Linha("Local:", rel.Obra.Endereco, "Contrato:", rel.Obra.TipoContrato);
-                    Linha("Contratante:", rel.Obra.Contratante, "Responsável:", rel.Obra.Responsavel);
-                    Linha("ART/RRT:", rel.Obra.ART, "Status:", rel.Status);
-                });
-            });
-        }
-
-        // ── HORÁRIO DE TRABALHO ───────────────────────────────────────────────
-        private static void SecaoHorarioTrabalho(IContainer c, Data.Models.Report rel)
-        {
-            var assinaturas = rel.Assinaturas.ToList();
-            var primeiraEntrada = assinaturas
-                .Select(a => TimeSpan.TryParse(a.HoraEntrada, out var t) ? (TimeSpan?)t : null)
-                .Where(t => t.HasValue)
-                .Select(t => t!.Value)
-                .DefaultIfEmpty()
-                .Min();
-            var ultimaSaida = assinaturas
-                .Select(a => TimeSpan.TryParse(a.HoraSaida, out var t) ? (TimeSpan?)t : null)
-                .Where(t => t.HasValue)
-                .Select(t => t!.Value)
-                .DefaultIfEmpty()
-                .Max();
-            var mediaIntervalo = assinaturas
-                .Select(a => TimeSpan.TryParse(a.HoraIntervalo, out var t) ? (TimeSpan?)t : null)
-                .Where(t => t.HasValue)
-                .Select(t => t!.Value)
-                .DefaultIfEmpty(TimeSpan.FromHours(1))
-                .Average(t => t.TotalMinutes);
-            var totalHoras = assinaturas.Sum(a =>
-            {
-                TimeSpan.TryParse(a.HoraEntrada, out var entrada);
-                TimeSpan.TryParse(a.HoraSaida, out var saida);
-                TimeSpan.TryParse(a.HoraIntervalo, out var intervalo);
-                var total = saida - entrada - intervalo;
-                return total.TotalMinutes > 0 ? total.TotalHours : 0;
-            });
-
-            c.Column(col =>
-            {
-                col.Item().Element(CabecalhoSecao("HORÁRIO DE TRABALHO"));
-                col.Item().Border(1).BorderColor("#d0dce8").Table(table =>
-                {
-                    table.ColumnsDefinition(cols =>
-                    {
-                        cols.ConstantColumn(130);
-                        cols.RelativeColumn();
-                        cols.ConstantColumn(130);
-                        cols.RelativeColumn();
-                    });
-
-                    void Linha(string l1, string v1, string l2, string v2)
-                    {
-                        table.Cell().Background("#f0f4f8").Padding(5).Text(l1).Bold().FontColor("#0052cc");
-                        table.Cell().Padding(5).Text(v1);
-                        table.Cell().Background("#f0f4f8").Padding(5).Text(l2).Bold().FontColor("#0052cc");
-                        table.Cell().Padding(5).Text(v2);
-                    }
-
-                    Linha("Entrada:", primeiraEntrada == default ? "—" : primeiraEntrada.ToString(@"hh\:mm"),
-                        "Saída:", ultimaSaida == default ? "—" : ultimaSaida.ToString(@"hh\:mm"));
-                    Linha("Intervalo:", TimeSpan.FromMinutes(mediaIntervalo).ToString(@"hh\:mm"),
-                        "Total horas:", $"{totalHoras:0.00} h");
+                    Linha("Endereço:", rel.Obra.Endereco, "ART/RRT:", rel.Obra.ART);
+                    Linha("Responsável:", rel.Obra.Responsavel, "Contratante:", rel.Obra.Contratante);
+                    Linha("Data:", rel.Data.ToString("dd/MM/yyyy"), "Status:", rel.Status);
                 });
             });
         }
@@ -229,15 +165,11 @@ namespace RDO.App.Services
         // ── CONDIÇÕES CLIMÁTICAS ──────────────────────────────────────────────
         private static void SecaoClima(IContainer c, Data.Models.Report rel)
         {
+            static string Marcador(bool marcado) => marcado ? "✓" : "○";
+
             var manha = rel.Climas.FirstOrDefault(x => x.Periodo == "Manhã");
             var tarde = rel.Climas.FirstOrDefault(x => x.Periodo == "Tarde");
-            static string IconeTempo(string? tempo) => tempo switch
-            {
-                "Ensolarado" => "☀",
-                "Nublado" => "☁",
-                "Chuvoso" => "☂",
-                _ => "•"
-            };
+            var noite = rel.Climas.FirstOrDefault(x => x.Periodo == "Noite");
 
             c.Column(col =>
             {
@@ -250,22 +182,30 @@ namespace RDO.App.Services
                         cols.RelativeColumn();
                         cols.RelativeColumn();
                         cols.RelativeColumn();
+                        cols.RelativeColumn();
+                        cols.RelativeColumn();
                     });
 
                     table.Cell().Background("#0052cc").Padding(5).AlignCenter().Text("PERÍODO").FontColor("#FFFFFF").Bold();
-                    table.Cell().Background("#0052cc").Padding(5).AlignCenter().Text("TEMPO").FontColor("#FFFFFF").Bold();
-                    table.Cell().Background("#0052cc").Padding(5).AlignCenter().Text("CONDIÇÃO").FontColor("#FFFFFF").Bold();
+                    table.Cell().Background("#0052cc").Padding(5).AlignCenter().Text("ENSOLARADO").FontColor("#FFFFFF").Bold();
+                    table.Cell().Background("#0052cc").Padding(5).AlignCenter().Text("NUBLADO").FontColor("#FFFFFF").Bold();
+                    table.Cell().Background("#0052cc").Padding(5).AlignCenter().Text("CHUVOSO").FontColor("#FFFFFF").Bold();
+                    table.Cell().Background("#1a4a1a").Padding(5).AlignCenter().Text("PRATICÁVEL").FontColor("#FFFFFF").Bold();
+                    table.Cell().Background("#4a1a1a").Padding(5).AlignCenter().Text("IMPRATICÁVEL").FontColor("#FFFFFF").Bold();
 
                     void LinhaClima(string periodo, Data.Models.WeatherDetail? clima)
                     {
                         table.Cell().Background("#f0f4f8").Padding(5).AlignCenter().Text(periodo).Bold();
-                        table.Cell().Padding(5).AlignCenter().Text($"{IconeTempo(clima?.Tempo)} {clima?.Tempo ?? "—"}").FontSize(10);
-                        table.Cell().Padding(5).AlignCenter().Text(clima?.Condicao ?? "—")
-                            .FontColor(clima?.Condicao == "Impraticável" ? "#cc0000" : "#008800");
+                        table.Cell().Padding(5).AlignCenter().Text(Marcador(clima?.Tempo == "Ensolarado")).FontSize(14).FontColor(clima?.Tempo == "Ensolarado" ? "#0052cc" : "#aabbcc");
+                        table.Cell().Padding(5).AlignCenter().Text(Marcador(clima?.Tempo == "Nublado")).FontSize(14).FontColor(clima?.Tempo == "Nublado" ? "#0052cc" : "#aabbcc");
+                        table.Cell().Padding(5).AlignCenter().Text(Marcador(clima?.Tempo == "Chuvoso")).FontSize(14).FontColor(clima?.Tempo == "Chuvoso" ? "#0052cc" : "#aabbcc");
+                        table.Cell().Padding(5).AlignCenter().Text(Marcador(clima?.Condicao == "Praticável")).FontSize(14).FontColor(clima?.Condicao == "Praticável" ? "#008800" : "#aabbcc");
+                        table.Cell().Padding(5).AlignCenter().Text(Marcador(clima?.Condicao == "Impraticável")).FontSize(14).FontColor(clima?.Condicao == "Impraticável" ? "#cc0000" : "#aabbcc");
                     }
 
                     LinhaClima("Manhã", manha);
                     LinhaClima("Tarde", tarde);
+                    LinhaClima("Noite", noite);
                 });
             });
         }
@@ -337,10 +277,6 @@ namespace RDO.App.Services
         {
             var assinaturas = rel.Assinaturas.ToList();
             var count = assinaturas.Count;
-            using var db = new RdoDbContext(DbContextHelper.GetOptions());
-            var employeeIds = assinaturas.Where(a => a.FuncionarioId.HasValue).Select(a => a.FuncionarioId!.Value).Distinct().ToList();
-            var employeeMap = db.Funcionarios.Where(f => employeeIds.Contains(f.Id))
-                .ToDictionary(f => f.Id, f => f);
             c.Column(col =>
             {
                 col.Item().Element(CabecalhoSecao($"EQUIPE DE CAMPO ({count})"));
@@ -356,7 +292,6 @@ namespace RDO.App.Services
                     {
                         cols.RelativeColumn(2);
                         cols.RelativeColumn();
-                        cols.RelativeColumn();
                         cols.ConstantColumn(50);
                         cols.ConstantColumn(50);
                         cols.ConstantColumn(55);
@@ -365,7 +300,6 @@ namespace RDO.App.Services
 
                     table.Cell().Background("#0052cc").Padding(5).Text("NOME").FontColor("#FFFFFF").Bold();
                     table.Cell().Background("#0052cc").Padding(5).Text("FUNÇÃO / CARGO").FontColor("#FFFFFF").Bold();
-                    table.Cell().Background("#0052cc").Padding(5).Text("EMPRESA / TIPO").FontColor("#FFFFFF").Bold();
                     table.Cell().Background("#0052cc").Padding(5).AlignCenter().Text("ENTRADA").FontColor("#FFFFFF").Bold().FontSize(8);
                     table.Cell().Background("#0052cc").Padding(5).AlignCenter().Text("SAÍDA").FontColor("#FFFFFF").Bold().FontSize(8);
                     table.Cell().Background("#0052cc").Padding(5).AlignCenter().Text("INTERV.").FontColor("#FFFFFF").Bold().FontSize(8);
@@ -384,17 +318,12 @@ namespace RDO.App.Services
                             : "—";
                         table.Cell().Background(bg).Padding(5).Text(a.NomeAssinante);
                         table.Cell().Background(bg).Padding(5).Text(a.Cargo);
-                        var origem = a.FuncionarioId.HasValue && employeeMap.TryGetValue(a.FuncionarioId.Value, out var f)
-                            ? $"{f.Empresa} / {f.Tipo}"
-                            : "Sem vínculo";
-                        table.Cell().Background(bg).Padding(5).Text(origem).FontSize(8).FontColor("#5a6f8a");
                         table.Cell().Background(bg).Padding(5).AlignCenter().Text(a.HoraEntrada).FontSize(8);
                         table.Cell().Background(bg).Padding(5).AlignCenter().Text(a.HoraSaida).FontSize(8);
                         table.Cell().Background(bg).Padding(5).AlignCenter().Text(string.IsNullOrEmpty(a.HoraIntervalo) ? "—" : a.HoraIntervalo).FontSize(8);
                         table.Cell().Background(bg).Padding(5).AlignCenter().Text(hsTrab).FontSize(8).Bold().FontColor("#0052cc");
                     }
                 });
-                col.Item().PaddingTop(4).Text($"Total equipe: {count}  |  Faltas: 0").FontSize(8).FontColor("#5a6f8a");
             });
         }
 
@@ -453,32 +382,9 @@ namespace RDO.App.Services
                                 if (!string.IsNullOrEmpty(ocorrencias[i].HoraInicio))
                                     ocol.Item().Text($"⏱ {ocorrencias[i].HoraInicio} – {ocorrencias[i].HoraFim}")
                                         .FontSize(8).FontColor("#6080a0");
-                                if (!string.IsNullOrWhiteSpace(ocorrencias[i].Tags))
-                                    ocol.Item().Text($"Tags: {ocorrencias[i].Tags}")
-                                        .FontSize(8).FontColor("#0052cc");
                             });
                         });
                     }
-                });
-            });
-        }
-
-        private static void SecaoComentarios(IContainer c, Data.Models.Report rel)
-        {
-            c.Column(col =>
-            {
-                col.Item().Element(CabecalhoSecao("COMENTÁRIOS"));
-                col.Item().Border(1).BorderColor("#d0dce8").Padding(8).Column(inner =>
-                {
-                    if (string.IsNullOrWhiteSpace(rel.ObsGerais))
-                    {
-                        inner.Item().Text("Sem dados").FontColor("#6080a0").Italic();
-                        return;
-                    }
-
-                    inner.Item().Text($"Autor: Sistema").FontColor("#5a6f8a").FontSize(8);
-                    inner.Item().Text($"Data/Hora: {DateTime.Now:dd/MM/yyyy HH:mm}").FontColor("#5a6f8a").FontSize(8);
-                    inner.Item().PaddingTop(4).Text(rel.ObsGerais);
                 });
             });
         }
@@ -487,16 +393,11 @@ namespace RDO.App.Services
         private static void SecaoFotos(IContainer c, Data.Models.Report rel)
         {
             var fotos = rel.Fotos.Where(f => File.Exists(f.CaminhoArquivo)).ToList();
+            if (!fotos.Any()) return;
 
             c.Column(col =>
             {
                 col.Item().Element(CabecalhoSecao($"REGISTRO FOTOGRÁFICO ({fotos.Count})"));
-                if (!fotos.Any())
-                {
-                    col.Item().Border(1).BorderColor("#d0dce8").Padding(8)
-                        .Text("Sem dados").FontColor("#6080a0").Italic();
-                    return;
-                }
                 col.Item().Border(1).BorderColor("#d0dce8").Padding(8).Table(table =>
                 {
                     table.ColumnsDefinition(cols =>
@@ -530,26 +431,6 @@ namespace RDO.App.Services
                     if (fotos.Count % 2 != 0)
                         table.Cell().Padding(4);
                 });
-            });
-        }
-
-        private static void SecaoVideos(IContainer c, Data.Models.Report rel)
-        {
-            c.Column(col =>
-            {
-                col.Item().Element(CabecalhoSecao("VÍDEOS"));
-                col.Item().Border(1).BorderColor("#d0dce8").Padding(8)
-                    .Text("Sem dados").FontColor("#6080a0").Italic();
-            });
-        }
-
-        private static void SecaoAnexos(IContainer c, Data.Models.Report rel)
-        {
-            c.Column(col =>
-            {
-                col.Item().Element(CabecalhoSecao("ANEXOS"));
-                col.Item().Border(1).BorderColor("#d0dce8").Padding(8)
-                    .Text("Sem dados").FontColor("#6080a0").Italic();
             });
         }
 

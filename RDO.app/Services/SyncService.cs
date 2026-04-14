@@ -5,9 +5,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -21,10 +23,6 @@ public class SyncService
     private readonly JsonSerializerOptions _jsonOptions;
 
     private const string LastSyncKey = "lastSync";
-    private static readonly string LogDirectoryPath = System.IO.Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "RDOApp", "logs");
-    private static readonly string LogFilePath = System.IO.Path.Combine(LogDirectoryPath, "sync-errors.log");
     private static readonly string StateFilePath = System.IO.Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "RDOApp", "sync_state.json");
@@ -44,18 +42,26 @@ public class SyncService
     {
         if (!IsNetworkAvailable())
         {
-            WriteErrorLog("SYNC-OFFLINE", "Sem conectividade de rede detectada.");
+            SyncLogger.LogOffline(_apiBaseUrl);
             return SyncResult.Offline();
         }
 
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             var since = LoadLastSyncTime();
             var pushResult = await PushAsync();
             var pullResult = await PullAsync(since);
+            sw.Stop();
 
             if (pushResult.Success && pullResult.Success)
+            {
                 SaveLastSyncTime(pullResult.ServerTime);
+                SyncLogger.LogSuccess(_apiBaseUrl,
+                    pushResult.Inserted + pushResult.Updated,
+                    pullResult.TotalPulled,
+                    sw.Elapsed.TotalMilliseconds);
+            }
 
             return new SyncResult
             {
@@ -70,8 +76,21 @@ public class SyncService
         }
         catch (Exception ex)
         {
-            WriteErrorLog("SYNC-UNEXPECTED", ex.Message, ex);
-            return SyncResult.Failure("SYNC-UNEXPECTED", ex.Message);
+            sw.Stop();
+            var (userMsg, errorType, diagnosis) = ClassifyException(ex);
+            SyncLogger.LogError(new SyncLogEntry
+            {
+                Operation       = "Sync (Push + Pull)",
+                ErrorCode       = "SYNC-UNEXPECTED",
+                ErrorType       = errorType,
+                ApiUrl          = _apiBaseUrl,
+                DurationMs      = sw.Elapsed.TotalMilliseconds,
+                UserMessage     = userMsg,
+                TechnicalDetail = ex.Message,
+                StackTrace      = ex.StackTrace ?? "",
+                Diagnosis       = diagnosis
+            });
+            return SyncResult.Failure("SYNC-UNEXPECTED", userMsg);
         }
     }
 
@@ -107,13 +126,51 @@ public class SyncService
         };
 
         System.Diagnostics.Debug.WriteLine("PUSH payload: " + payload.Reports.Count + " reports, unsyncedIds: " + string.Join(",", unsyncedReportIds));
-        var response = await _http.PostAsJsonAsync($"{_apiBaseUrl}/api/sync/push", payload, _jsonOptions);
-        if (!response.IsSuccessStatusCode)
+
+        var swPush = System.Diagnostics.Stopwatch.StartNew();
+        HttpResponseMessage pushResponse;
+        try
         {
-            var error = $"Push failed: {response.StatusCode}";
-            WriteErrorLog("SYNC-PUSH-HTTP", error);
-            return new PushResult { Success = false, ErrorCode = "SYNC-PUSH-HTTP", Error = error };
+            pushResponse = await _http.PostAsJsonAsync($"{_apiBaseUrl}/api/sync/push", payload, _jsonOptions);
         }
+        catch (Exception ex)
+        {
+            swPush.Stop();
+            var (userMsg, errorType, diagnosis) = ClassifyException(ex);
+            SyncLogger.LogError(new SyncLogEntry
+            {
+                Operation       = "Push",
+                ErrorCode       = "SYNC-PUSH-CONN",
+                ErrorType       = errorType,
+                ApiUrl          = $"{_apiBaseUrl}/api/sync/push",
+                DurationMs      = swPush.Elapsed.TotalMilliseconds,
+                UserMessage     = userMsg,
+                TechnicalDetail = ex.Message,
+                StackTrace      = ex.StackTrace ?? "",
+                Diagnosis       = diagnosis
+            });
+            return new PushResult { Success = false, ErrorCode = "SYNC-PUSH-CONN", Error = userMsg };
+        }
+        swPush.Stop();
+
+        if (!pushResponse.IsSuccessStatusCode)
+        {
+            var (userMsg, diagnosis) = ClassifyHttpError(pushResponse.StatusCode, "Push");
+            SyncLogger.LogError(new SyncLogEntry
+            {
+                Operation       = "Push",
+                ErrorCode       = "SYNC-PUSH-HTTP",
+                ErrorType       = "HTTP Error",
+                HttpStatusCode  = pushResponse.StatusCode,
+                ApiUrl          = $"{_apiBaseUrl}/api/sync/push",
+                DurationMs      = swPush.Elapsed.TotalMilliseconds,
+                UserMessage     = userMsg,
+                TechnicalDetail = $"HTTP {(int)pushResponse.StatusCode} {pushResponse.StatusCode}",
+                Diagnosis       = diagnosis
+            });
+            return new PushResult { Success = false, ErrorCode = "SYNC-PUSH-HTTP", Error = userMsg };
+        }
+        var response = pushResponse;
 
         var result = await response.Content.ReadFromJsonAsync<ApiSyncPushResult>(_jsonOptions);
 
@@ -136,19 +193,70 @@ public class SyncService
     private async Task<PullResult> PullAsync(DateTime since)
     {
         var sinceStr = since.ToString("o");
-        var response = await _http.GetAsync($"{_apiBaseUrl}/api/sync/pull?since={Uri.EscapeDataString(sinceStr)}");
-        if (!response.IsSuccessStatusCode)
+        var pullUrl  = $"{_apiBaseUrl}/api/sync/pull?since={Uri.EscapeDataString(sinceStr)}";
+
+        var swPull = System.Diagnostics.Stopwatch.StartNew();
+        HttpResponseMessage pullResponse;
+        try
         {
-            var error = $"Pull failed: {response.StatusCode}";
-            WriteErrorLog("SYNC-PULL-HTTP", error);
-            return new PullResult { Success = false, ErrorCode = "SYNC-PULL-HTTP", Error = error };
+            pullResponse = await _http.GetAsync(pullUrl);
+        }
+        catch (Exception ex)
+        {
+            swPull.Stop();
+            var (userMsg, errorType, diagnosis) = ClassifyException(ex);
+            SyncLogger.LogError(new SyncLogEntry
+            {
+                Operation       = "Pull",
+                ErrorCode       = "SYNC-PULL-CONN",
+                ErrorType       = errorType,
+                ApiUrl          = pullUrl,
+                DurationMs      = swPull.Elapsed.TotalMilliseconds,
+                UserMessage     = userMsg,
+                TechnicalDetail = ex.Message,
+                StackTrace      = ex.StackTrace ?? "",
+                Diagnosis       = diagnosis
+            });
+            return new PullResult { Success = false, ErrorCode = "SYNC-PULL-CONN", Error = userMsg };
+        }
+        swPull.Stop();
+
+        if (!pullResponse.IsSuccessStatusCode)
+        {
+            var (userMsg, diagnosis) = ClassifyHttpError(pullResponse.StatusCode, "Pull");
+            SyncLogger.LogError(new SyncLogEntry
+            {
+                Operation       = "Pull",
+                ErrorCode       = "SYNC-PULL-HTTP",
+                ErrorType       = "HTTP Error",
+                HttpStatusCode  = pullResponse.StatusCode,
+                ApiUrl          = pullUrl,
+                DurationMs      = swPull.Elapsed.TotalMilliseconds,
+                UserMessage     = userMsg,
+                TechnicalDetail = $"HTTP {(int)pullResponse.StatusCode} {pullResponse.StatusCode}",
+                Diagnosis       = diagnosis
+            });
+            return new PullResult { Success = false, ErrorCode = "SYNC-PULL-HTTP", Error = userMsg };
         }
 
-        var payload = await response.Content.ReadFromJsonAsync<SyncPullPayload>(_jsonOptions);
+        var payload = await pullResponse.Content.ReadFromJsonAsync<SyncPullPayload>(_jsonOptions);
         if (payload is null)
         {
-            WriteErrorLog("SYNC-PULL-EMPTY", "Empty response from server");
-            return new PullResult { Success = false, ErrorCode = "SYNC-PULL-EMPTY", Error = "Empty response from server" };
+            const string emptyMsg  = "Resposta vazia do servidor";
+            const string emptyDiag = "• A API retornou um corpo vazio — verifique os logs da API\n" +
+                                     "• Confirme que a versão da API é compatível com o aplicativo";
+            SyncLogger.LogError(new SyncLogEntry
+            {
+                Operation       = "Pull",
+                ErrorCode       = "SYNC-PULL-EMPTY",
+                ErrorType       = "Resposta Vazia",
+                ApiUrl          = pullUrl,
+                DurationMs      = swPull.Elapsed.TotalMilliseconds,
+                UserMessage     = emptyMsg,
+                TechnicalDetail = "Content-Length: 0 ou corpo não serializável",
+                Diagnosis       = emptyDiag
+            });
+            return new PullResult { Success = false, ErrorCode = "SYNC-PULL-EMPTY", Error = emptyMsg };
         }
 
         using var db = new RdoDbContext(DbContextHelper.GetOptions());
@@ -255,8 +363,20 @@ public class SyncService
 
         await db.SaveChangesAsync();
         } catch (Exception ex) {
-            var error = $"Erro em {_currentEntity}: {ex.Message}";
-            WriteErrorLog("SYNC-PULL-UPSERT", error, ex);
+            var error = $"Erro ao salvar {_currentEntity} localmente: {ex.Message}";
+            SyncLogger.LogError(new SyncLogEntry
+            {
+                Operation       = $"Pull — Upsert {_currentEntity}",
+                ErrorCode       = "SYNC-PULL-UPSERT",
+                ErrorType       = ex.GetType().Name,
+                ApiUrl          = pullUrl,
+                UserMessage     = error,
+                TechnicalDetail = ex.Message,
+                StackTrace      = ex.StackTrace ?? "",
+                Diagnosis       = $"• Erro ao persistir entidade '{_currentEntity}' no banco local\n" +
+                                  $"• Verifique se as migrations do SQLite estão atualizadas\n" +
+                                  $"• Logs em: {SyncLogger.GetLogDirectory()}"
+            });
             return new PullResult { Success = false, ErrorCode = "SYNC-PULL-UPSERT", Error = error };
         }
         var serverTime = payload.ServerTime == default
@@ -310,7 +430,14 @@ public class SyncService
         }
         catch (Exception ex)
         {
-            WriteErrorLog("SYNC-STATE-READ", "Falha ao ler estado de sincronização local.", ex);
+            SyncLogger.LogError(new SyncLogEntry
+            {
+                Operation = "LoadLastSyncTime", ErrorCode = "SYNC-STATE-READ",
+                ErrorType = ex.GetType().Name, ApiUrl = _apiBaseUrl,
+                UserMessage = "Falha ao ler estado de sincronização local.",
+                TechnicalDetail = ex.Message, StackTrace = ex.StackTrace ?? "",
+                Diagnosis = $"• Verifique permissões em: {StateFilePath}"
+            });
         }
         return DateTime.MinValue;
     }
@@ -326,24 +453,129 @@ public class SyncService
         }
         catch (Exception ex)
         {
-            WriteErrorLog("SYNC-STATE-WRITE", "Falha ao salvar estado de sincronização local.", ex);
+            SyncLogger.LogError(new SyncLogEntry
+            {
+                Operation = "SaveLastSyncTime", ErrorCode = "SYNC-STATE-WRITE",
+                ErrorType = ex.GetType().Name, ApiUrl = _apiBaseUrl,
+                UserMessage = "Falha ao salvar estado de sincronização local.",
+                TechnicalDetail = ex.Message, StackTrace = ex.StackTrace ?? "",
+                Diagnosis = $"• Verifique permissões em: {StateFilePath}"
+            });
         }
     }
 
-    private static void WriteErrorLog(string code, string message, Exception? ex = null)
+    // ─────────────────────────────────────────────────────────────────
+    // Classificação de exceções de rede
+    // ─────────────────────────────────────────────────────────────────
+    private (string userMessage, string errorType, string diagnosis) ClassifyException(Exception ex)
     {
-        try
+        if (ex is TaskCanceledException or TimeoutException)
+            return (
+                "A API não respondeu — timeout de 30 s atingido",
+                "Timeout",
+                $"• Verifique se a API está em execução: dotnet run\n" +
+                $"• Verifique se o Docker/PostgreSQL está ativo\n" +
+                $"• Confirme a URL configurada: {_apiBaseUrl}\n" +
+                $"• Logs em: {SyncLogger.GetLogDirectory()}"
+            );
+
+        if (ex is HttpRequestException httpEx)
         {
-            Directory.CreateDirectory(LogDirectoryPath);
-            var line = $"[{DateTime.UtcNow:O}] code={code} message=\"{message}\"";
-            if (ex is not null)
-                line += $" exception=\"{ex.GetType().Name}: {ex.Message}\"";
-            File.AppendAllText(LogFilePath, line + Environment.NewLine);
+            if (IsConnectionRefused(httpEx))
+                return (
+                    "API offline — conexão recusada",
+                    "Conexão Recusada (ECONNREFUSED)",
+                    $"• Inicie a API: cd TesteAPI && dotnet run\n" +
+                    $"• Verifique se o Docker está rodando: docker ps\n" +
+                    $"• Confirme que o PostgreSQL está ativo: docker ps | grep postgres\n" +
+                    $"• Confirme a porta na URL: {_apiBaseUrl}\n" +
+                    $"• Teste no navegador: {_apiBaseUrl}/swagger"
+                );
+
+            if (IsHostNotFound(httpEx))
+                return (
+                    "Host não encontrado — verifique a URL da API",
+                    "Host Não Encontrado (DNS)",
+                    $"• Confirme a URL configurada: {_apiBaseUrl}\n" +
+                    $"• Verifique a conectividade de rede"
+                );
+
+            return (
+                "Falha na comunicação com a API",
+                "Erro de Rede (HttpRequestException)",
+                $"• Verifique se a API está acessível: {_apiBaseUrl}\n" +
+                $"• Detalhe: {httpEx.Message}"
+            );
         }
-        catch
+
+        return (
+            "Erro inesperado durante a sincronização",
+            ex.GetType().Name,
+            $"• Verifique os logs em: {SyncLogger.GetLogDirectory()}\n" +
+            $"• Detalhe: {ex.Message}"
+        );
+    }
+
+    private static bool IsConnectionRefused(HttpRequestException ex)
+    {
+        if (ex.InnerException is SocketException se &&
+            (se.SocketErrorCode == SocketError.ConnectionRefused ||
+             se.SocketErrorCode == SocketError.TimedOut))
+            return true;
+        var msg = (ex.InnerException?.Message ?? ex.Message).ToLowerInvariant();
+        return msg.Contains("connection refused") || msg.Contains("actively refused") ||
+               msg.Contains("no connection could be made") || msg.Contains("econnrefused");
+    }
+
+    private static bool IsHostNotFound(HttpRequestException ex)
+    {
+        if (ex.InnerException is SocketException se &&
+            se.SocketErrorCode == SocketError.HostNotFound) return true;
+        var msg = (ex.InnerException?.Message ?? ex.Message).ToLowerInvariant();
+        return msg.Contains("no such host") || msg.Contains("name or service not known");
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Classificação de erros HTTP
+    // ─────────────────────────────────────────────────────────────────
+    private (string userMessage, string diagnosis) ClassifyHttpError(HttpStatusCode code, string operation)
+    {
+        return code switch
         {
-            // Último fallback: nunca interromper o app por falha de log.
-        }
+            HttpStatusCode.InternalServerError => (
+                $"Erro interno na API (500) — {operation} falhou",
+                $"• Erro 500 geralmente indica problema no banco de dados PostgreSQL\n" +
+                $"• Verifique se o container PostgreSQL está saudável: docker ps\n" +
+                $"• Consulte os logs da API para o detalhe da exceção\n" +
+                $"• Execute as migrations se necessário: dotnet ef database update"
+            ),
+            HttpStatusCode.ServiceUnavailable => (
+                $"Serviço indisponível (503) — {operation} falhou",
+                $"• A API está sobrecarregada ou em manutenção\n" +
+                $"• Verifique se o banco PostgreSQL está acessível\n" +
+                $"• Aguarde e tente novamente"
+            ),
+            HttpStatusCode.BadGateway => (
+                $"Erro de gateway (502) — {operation} falhou",
+                $"• Problema entre serviços Docker\n" +
+                $"• Verifique se todos os containers estão rodando: docker ps\n" +
+                $"• Reinicie se necessário: docker-compose restart"
+            ),
+            HttpStatusCode.GatewayTimeout => (
+                $"Timeout no gateway (504) — {operation} falhou",
+                $"• O banco de dados PostgreSQL pode estar lento ou travado\n" +
+                $"• Verifique os logs do PostgreSQL"
+            ),
+            HttpStatusCode.NotFound => (
+                $"Endpoint não encontrado (404) — {operation} falhou",
+                $"• A URL da API pode estar incorreta: {_apiBaseUrl}\n" +
+                $"• Verifique se a versão da API é compatível com o aplicativo"
+            ),
+            _ => (
+                $"Falha HTTP {(int)code} {code} — {operation} falhou",
+                $"• Verifique os logs da API para mais informações"
+            )
+        };
     }
 }
 

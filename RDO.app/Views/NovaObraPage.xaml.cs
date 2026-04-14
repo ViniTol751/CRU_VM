@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -168,6 +168,7 @@ namespace RDO.App.Views
                         item.DataInicio = DataInicioPicker.Date.DateTime;
                         item.PrevisaoTermino = DataTerminoPicker.Date.DateTime;
                         item.ImagemPath = imagemDestino;
+                        item.UpdatedAt = DateTime.UtcNow;
                     }
                     await db.SaveChangesAsync();
 

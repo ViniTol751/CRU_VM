@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RDO.app")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+59c714e771e31c15049434791a422a9f91861324")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d32b81b0719f5bb48df60a50a9a57a6875cefffc")]
 [assembly: System.Reflection.AssemblyProductAttribute("RDO.app")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RDO.app")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

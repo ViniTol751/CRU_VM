@@ -1,10 +1,11 @@
-﻿using Microsoft.UI.Xaml;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using RDO.app.Services;
 using RDO.Data.Data;
 using RDO.Data.Models;
-using RDO.app.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -116,7 +117,10 @@ namespace RDO.App.Views
             }
             else
             {
-                AtualizarSyncUI(SyncEstado.Erro, resultado.Error ?? "Erro");
+                var detalheErro = string.IsNullOrWhiteSpace(resultado.ErrorCode)
+                    ? (resultado.Error ?? "Erro")
+                    : $"{resultado.ErrorCode}: {resultado.Error}";
+                AtualizarSyncUI(SyncEstado.Erro, detalheErro);
             }
         }
 
@@ -207,15 +211,27 @@ namespace RDO.App.Views
             if (ApplicationData.Current.LocalSettings.Values.ContainsKey("FuncionarioVinculadoId"))
                 funcId = (int?)ApplicationData.Current.LocalSettings.Values["FuncionarioVinculadoId"];
 
-            var relatorios = db.Relatorios
-                .Where(r => !r.Rascunho && (
-                    r.UsuarioId == 1 ||
-                    (funcId.HasValue && r.Assinaturas.Any(a => a.FuncionarioId == funcId.Value))
-                ))
+            var query = db.Relatorios
+                .Include(r => r.Signatures)
+                .Where(r => !r.Rascunho && r.UsuarioId == 1)
                 .OrderByDescending(r => r.Data)
                 .ToList();
 
-            var lista = relatorios.Select(r => new MeuRelatorioViewModel
+            if (funcId.HasValue)
+            {
+                var porFuncionario = db.Relatorios
+                    .Include(r => r.Signatures)
+                    .Where(r => !r.Rascunho && r.Signatures.Any(a => a.FuncionarioId == funcId.Value))
+                    .OrderByDescending(r => r.Data)
+                    .ToList();
+
+                query = query.Union(porFuncionario)
+                             .DistinctBy(r => r.Id)
+                             .OrderByDescending(r => r.Data)
+                             .ToList();
+            }
+
+            var lista = query.Select(r => new MeuRelatorioViewModel
             {
                 Id = r.Id,
                 ObraId = r.ObraId,
@@ -228,7 +244,6 @@ namespace RDO.App.Views
             MeusRelatoriosListView.ItemsSource = lista;
             TotalObrasTexto.Text = lista.Count.ToString();
         }
-
         private void AplicarFiltros()
         {
             if (ObrasItemsControl == null || TotalObrasTexto == null) return;

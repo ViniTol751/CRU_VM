@@ -1,12 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using RDO.Data.Models;
 
 namespace RDO.Data.Data;
 
 public class RdoDbContext : DbContext
 {
-    public RdoDbContext(DbContextOptions<RdoDbContext> options) : base(options) { }
+    public RdoDbContext(DbContextOptions<RdoDbContext> options)
+        : base(options) { }
 
+    // ── Entidades de negócio ─────────────────────────────────────────────────
     public DbSet<Project> Projects { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<Employee> Employees { get; set; }
@@ -24,7 +26,7 @@ public class RdoDbContext : DbContext
     public DbSet<ReportCompanion> ReportCompanions { get; set; }
     public DbSet<EmployeePresence> EmployeePresences { get; set; }
 
-    // Aliases português — apontam para os mesmos DbSets
+    // ── Aliases em português (retrocompatibilidade) ──────────────────────────
     public DbSet<Project> Obras => Projects;
     public DbSet<Report> Relatorios => Reports;
     public DbSet<Employee> Funcionarios => Employees;
@@ -42,6 +44,7 @@ public class RdoDbContext : DbContext
     public DbSet<ReportCompanion> RelatorioAcompanhantes => ReportCompanions;
     public DbSet<EmployeePresence> PresencasFuncionarios => EmployeePresences;
 
+    // ── Configuração do modelo ───────────────────────────────────────────────
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -63,29 +66,23 @@ public class RdoDbContext : DbContext
             e.Ignore(r => r.RelatorioAcompanhantes);
         });
 
-        modelBuilder.Entity<Activity>(e => {
-            e.HasOne(a => a.Report).WithMany(r => r.Activities).HasForeignKey(a => a.ReportId);
-        });
+        modelBuilder.Entity<Activity>(e =>
+            e.HasOne(a => a.Report).WithMany(r => r.Activities).HasForeignKey(a => a.ReportId));
 
-        modelBuilder.Entity<WeatherDetail>(e => {
-            e.HasOne(w => w.Report).WithMany(r => r.WeatherDetails).HasForeignKey(w => w.ReportId);
-        });
+        modelBuilder.Entity<WeatherDetail>(e =>
+            e.HasOne(w => w.Report).WithMany(r => r.WeatherDetails).HasForeignKey(w => w.ReportId));
 
-        modelBuilder.Entity<Occurrence>(e => {
-            e.HasOne(o => o.Report).WithMany(r => r.Occurrences).HasForeignKey(o => o.ReportId);
-        });
+        modelBuilder.Entity<Occurrence>(e =>
+            e.HasOne(o => o.Report).WithMany(r => r.Occurrences).HasForeignKey(o => o.ReportId));
 
-        modelBuilder.Entity<Material>(e => {
-            e.HasOne(m => m.Report).WithMany(r => r.Materials).HasForeignKey(m => m.ReportId);
-        });
+        modelBuilder.Entity<Material>(e =>
+            e.HasOne(m => m.Report).WithMany(r => r.Materials).HasForeignKey(m => m.ReportId));
 
-        modelBuilder.Entity<Photo>(e => {
-            e.HasOne(p => p.Report).WithMany(r => r.Photos).HasForeignKey(p => p.ReportId);
-        });
+        modelBuilder.Entity<Photo>(e =>
+            e.HasOne(p => p.Report).WithMany(r => r.Photos).HasForeignKey(p => p.ReportId));
 
-        modelBuilder.Entity<Signature>(e => {
-            e.HasOne(s => s.Report).WithMany(r => r.Signatures).HasForeignKey(s => s.ReportId);
-        });
+        modelBuilder.Entity<Signature>(e =>
+            e.HasOne(s => s.Report).WithMany(r => r.Signatures).HasForeignKey(s => s.ReportId));
 
         modelBuilder.Entity<ReportEquipment>(e => {
             e.HasOne(re => re.Report).WithMany(r => r.Equipments).HasForeignKey(re => re.ReportId);
@@ -99,29 +96,12 @@ public class RdoDbContext : DbContext
             e.Ignore(rc => rc.Acompanhante);
         });
 
-        modelBuilder.Entity<EmployeePresence>(e => {
-            e.HasOne(ep => ep.Report).WithMany().HasForeignKey(ep => ep.ReportId);
-        });
+        modelBuilder.Entity<EmployeePresence>(e =>
+            e.HasOne(ep => ep.Report).WithMany().HasForeignKey(ep => ep.ReportId));
 
         modelBuilder.Entity<ProjectMember>(e => {
             e.HasOne(pm => pm.Project).WithMany(p => p.Members).HasForeignKey(pm => pm.ProjectId);
             e.HasOne(pm => pm.User).WithMany(u => u.Projects).HasForeignKey(pm => pm.UserId);
         });
-
-        modelBuilder.Entity<Project>(e => {
-        });
-
-        modelBuilder.Entity<User>(e => {
-        });
-
-        modelBuilder.Entity<Employee>(e => {
-        });
-
-        modelBuilder.Entity<Equipment>(e => {
-        });
-
-        modelBuilder.Entity<Companion>(e => {
-        });
     }
 }
-

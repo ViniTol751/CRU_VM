@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "/KZ0bOLh4Vo=",
+  "dgSpecHash": "0PFxCkfQPUs=",
   "success": true,
   "projectFilePath": "C:\\dev\\TesteAPI\\RDO.app\\RDO.app.csproj",
   "expectedPackageFiles": [
@@ -45,6 +45,8 @@
     "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.windowsappsdk.widgets\\1.8.251231004\\microsoft.windowsappsdk.widgets.1.8.251231004.nupkg.sha512",
     "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.windowsappsdk.winui\\1.8.260224000\\microsoft.windowsappsdk.winui.1.8.260224000.nupkg.sha512",
     "C:\\Users\\ViniciusToledo\\.nuget\\packages\\mono.texttemplating\\2.2.1\\mono.texttemplating.2.2.1.nupkg.sha512",
+    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\npgsql\\8.0.0\\npgsql.8.0.0.nupkg.sha512",
+    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\npgsql.entityframeworkcore.postgresql\\8.0.0\\npgsql.entityframeworkcore.postgresql.8.0.0.nupkg.sha512",
     "C:\\Users\\ViniciusToledo\\.nuget\\packages\\questpdf\\2026.2.4\\questpdf.2026.2.4.nupkg.sha512",
     "C:\\Users\\ViniciusToledo\\.nuget\\packages\\sqlitepclraw.bundle_e_sqlite3\\2.1.6\\sqlitepclraw.bundle_e_sqlite3.2.1.6.nupkg.sha512",
     "C:\\Users\\ViniciusToledo\\.nuget\\packages\\sqlitepclraw.core\\2.1.6\\sqlitepclraw.core.2.1.6.nupkg.sha512",
@@ -69,15 +71,15 @@
     "C:\\Users\\ViniciusToledo\\.nuget\\packages\\system.text.json\\8.0.0\\system.text.json.8.0.0.nupkg.sha512",
     "C:\\Users\\ViniciusToledo\\.nuget\\packages\\system.threading.channels\\6.0.0\\system.threading.channels.6.0.0.nupkg.sha512",
     "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x86\\8.0.25\\microsoft.netcore.app.runtime.win-x86.8.0.25.nupkg.sha512",
-    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.25\\microsoft.netcore.app.runtime.win-x64.8.0.25.nupkg.sha512",
-    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.netcore.app.runtime.win-arm64\\8.0.25\\microsoft.netcore.app.runtime.win-arm64.8.0.25.nupkg.sha512",
-    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x86\\8.0.25\\microsoft.windowsdesktop.app.runtime.win-x86.8.0.25.nupkg.sha512",
-    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.25\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.25.nupkg.sha512",
-    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-arm64\\8.0.25\\microsoft.windowsdesktop.app.runtime.win-arm64.8.0.25.nupkg.sha512",
+    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.57\\microsoft.windows.sdk.net.ref.10.0.19041.57.nupkg.sha512",
     "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x86\\8.0.25\\microsoft.aspnetcore.app.runtime.win-x86.8.0.25.nupkg.sha512",
+    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.netcore.app.runtime.win-arm64\\8.0.25\\microsoft.netcore.app.runtime.win-arm64.8.0.25.nupkg.sha512",
     "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\8.0.25\\microsoft.aspnetcore.app.runtime.win-x64.8.0.25.nupkg.sha512",
+    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-arm64\\8.0.25\\microsoft.windowsdesktop.app.runtime.win-arm64.8.0.25.nupkg.sha512",
+    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.25\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.25.nupkg.sha512",
     "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-arm64\\8.0.25\\microsoft.aspnetcore.app.runtime.win-arm64.8.0.25.nupkg.sha512",
-    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.57\\microsoft.windows.sdk.net.ref.10.0.19041.57.nupkg.sha512"
+    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.25\\microsoft.netcore.app.runtime.win-x64.8.0.25.nupkg.sha512",
+    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x86\\8.0.25\\microsoft.windowsdesktop.app.runtime.win-x86.8.0.25.nupkg.sha512"
   ],
   "logs": []
 }

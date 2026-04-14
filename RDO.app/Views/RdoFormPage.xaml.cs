@@ -1250,7 +1250,8 @@ namespace RDO.App.Views
             topRow.Children.Add(downBtnOc);
             topRow.Children.Add(remBtn);
 
-            var horariosRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20, Margin = new Thickness(38, 0, 0, 0) };
+            var 
+                sRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20, Margin = new Thickness(38, 0, 0, 0) };
 
             var inicioBox = CriarTimePicker(8, 0);
             if (!string.IsNullOrEmpty(ocorrencia.HoraInicio) && TimeSpan.TryParse(ocorrencia.HoraInicio, out var tInicio))
@@ -1272,11 +1273,8 @@ namespace RDO.App.Views
             fimStack.Children.Add(new TextBlock { Text = "FIM", FontSize = 9, FontWeight = new Windows.UI.Text.FontWeight { Weight = 600 }, Foreground = TR("TextSecondaryBrush"), CharacterSpacing = 80 });
             fimStack.Children.Add(fimBox);
 
-            horariosRow.Children.Add(inicioStack);
-            horariosRow.Children.Add(fimStack);
 
             mainStack.Children.Add(topRow);
-            mainStack.Children.Add(horariosRow);
             border.Child = mainStack;
 
             OcorrenciasPanel.Children.Add(border);
@@ -1385,13 +1383,17 @@ namespace RDO.App.Views
                 Relatorio relatorio;
                 if (_editRelatorioId > 0)
                 {
+                    // ── Modo edição ──────────────────────────────────────────
                     relatorio = await db.Relatorios.FindAsync(_editRelatorioId)
                         ?? throw new Exception("Relatório não encontrado.");
                     relatorio.Data = DataPicker.Date?.DateTime ?? DateTime.Now;
                     relatorio.Status = statusEscolhido;
-                    relatorio.AcompanhanteId = null; // substituído pelo join-table
+                    relatorio.AcompanhanteId = null;
                     relatorio.Rascunho = false;
+                    relatorio.UpdatedAt = DateTime.UtcNow;
+                    relatorio.IsSynced = false;
 
+                    // Remove dependentes antigos — serão salvos no SaveChangesAsync final
                     db.Climas.RemoveRange(db.Climas.Where(c => c.RelatorioId == _editRelatorioId));
                     db.Atividades.RemoveRange(db.Atividades.Where(a => a.RelatorioId == _editRelatorioId));
                     db.Ocorrencias.RemoveRange(db.Ocorrencias.Where(o => o.RelatorioId == _editRelatorioId));
@@ -1399,10 +1401,14 @@ namespace RDO.App.Views
                     db.Fotos.RemoveRange(db.Fotos.Where(f => f.RelatorioId == _editRelatorioId));
                     db.RelatorioEquipamentos.RemoveRange(db.RelatorioEquipamentos.Where(re => re.RelatorioId == _editRelatorioId));
                     db.RelatorioAcompanhantes.RemoveRange(db.RelatorioAcompanhantes.Where(ra => ra.RelatorioId == _editRelatorioId));
-                    await db.SaveChangesAsync();
+
+                    // Salva remoções e atualização do relatório para liberar as FKs
+                    // antes de reinserir os dependentes
+                    await db.SaveChangesAsync(); // ← (1/2) necessário para evitar conflito de FK
                 }
                 else
                 {
+                    // ── Modo novo ────────────────────────────────────────────
                     var numero = db.Relatorios.Count(r => r.ObraId == _obraId && !r.Rascunho) + 1;
                     relatorio = new Relatorio
                     {
@@ -1412,14 +1418,18 @@ namespace RDO.App.Views
                         Data = DataPicker.Date?.DateTime ?? DateTime.Now,
                         ObsGerais = "",
                         Status = statusEscolhido,
-                        AcompanhanteId = null, // usa join-table
+                        AcompanhanteId = null,
                         Sincronizado = false,
                         Rascunho = false,
-                        CriadoEm = DateTime.Now
+                        CriadoEm = DateTime.UtcNow
                     };
                     db.Relatorios.Add(relatorio);
-                    await db.SaveChangesAsync();
+
+                    // Necessário para obter relatorio.Id antes de inserir dependentes
+                    await db.SaveChangesAsync(); // ← (1/2) necessário para ter o Id
                 }
+
+                // ── Adiciona dependentes usando relatorio.Id já disponível ──
 
                 void SalvarClima(string periodo, ToggleButton ens, ToggleButton nub, ToggleButton chu, ToggleButton prat, ToggleButton imprat)
                 {
@@ -1459,23 +1469,37 @@ namespace RDO.App.Views
                 }
 
                 foreach (var a in _atividades.Where(a => _atividadesConfirmadas.Contains(a)))
-                { a.RelatorioId = relatorio.Id; db.Atividades.Add(a); }
+                {
+                    a.RelatorioId = relatorio.Id;
+                    db.Atividades.Add(a);
+                }
 
                 foreach (var o in _ocorrencias.Where(o => _ocorrenciasConfirmadas.Contains(o)))
-                { o.RelatorioId = relatorio.Id; db.Ocorrencias.Add(o); }
+                {
+                    o.RelatorioId = relatorio.Id;
+                    db.Ocorrencias.Add(o);
+                }
 
-                var pastaFotos = PathIO.Combine(Environment.GetFolderPath(
-                    Environment.SpecialFolder.LocalApplicationData), "RDOApp", "Fotos");
+                var pastaFotos = PathIO.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "RDOApp", "Fotos");
                 Directory.CreateDirectory(pastaFotos);
                 foreach (var f in _fotos)
                 {
                     var destino = PathIO.Combine(pastaFotos, PathIO.GetFileName(f.CaminhoArquivo));
                     if (File.Exists(f.CaminhoArquivo) &&
-                        !string.Equals(PathIO.GetFullPath(f.CaminhoArquivo), PathIO.GetFullPath(destino), StringComparison.OrdinalIgnoreCase))
+                        !string.Equals(PathIO.GetFullPath(f.CaminhoArquivo),
+                                       PathIO.GetFullPath(destino),
+                                       StringComparison.OrdinalIgnoreCase))
                         File.Copy(f.CaminhoArquivo, destino, overwrite: true);
-                    f.RelatorioId = relatorio.Id;
-                    f.CaminhoArquivo = destino;
-                    db.Fotos.Add(new Foto { RelatorioId = relatorio.Id, CaminhoArquivo = f.CaminhoArquivo, Legenda = f.Legenda, TiradaEm = f.TiradaEm });
+
+                    db.Fotos.Add(new Foto
+                    {
+                        RelatorioId = relatorio.Id,
+                        CaminhoArquivo = destino,
+                        Legenda = f.Legenda,
+                        TiradaEm = f.TiradaEm
+                    });
                 }
 
                 foreach (var eqId in _equipamentoIds)
@@ -1496,12 +1520,12 @@ namespace RDO.App.Views
                     });
                 }
 
-                // Salvar funcionários da equipe como registros de Assinatura
                 if (_funcionarioIds.Count > 0)
                 {
                     var funcionarios = db.Funcionarios
                         .Where(f => _funcionarioIds.Contains(f.Id))
                         .ToList();
+
                     foreach (var func in funcionarios)
                     {
                         string horaE = "08:00", horaS = "17:00", horaI = "01:00";
@@ -1515,7 +1539,8 @@ namespace RDO.App.Views
                         {
                             RelatorioId = relatorio.Id,
                             NomeAssinante = func.Nome,
-                            Cargo = func.Funcao,                            FuncionarioId = func.Id,
+                            Cargo = func.Funcao,
+                            FuncionarioId = func.Id,
                             DataAssinatura = DateTime.Now,
                             Assinado = true,
                             HoraEntrada = horaE,
@@ -1525,7 +1550,8 @@ namespace RDO.App.Views
                     }
                 }
 
-                await db.SaveChangesAsync();
+                // Salva todos os dependentes de uma vez — gera um único lote de eventos na SyncQueue
+                await db.SaveChangesAsync(); // ← (2/2) único SaveChanges para todos os dependentes
 
                 _savedRelatorioId = relatorio.Id;
                 MainPage.ShowMeusRelatoriosOnNavigate = true;
@@ -1542,6 +1568,7 @@ namespace RDO.App.Views
                 var result = await dialog.ShowAsync();
                 if (result == ContentDialogResult.Primary)
                     await ExportarPdf(_savedRelatorioId);
+
                 Frame.GoBack();
             }
             catch (Exception ex)
@@ -1550,6 +1577,7 @@ namespace RDO.App.Views
                 await MostrarErro($"Erro ao salvar: {causa}");
             }
         }
+
 
         // ── VOLTAR + RASCUNHO ─────────────────────────────────────────────────
         private void VoltarBtn_Click(object sender, RoutedEventArgs e)
