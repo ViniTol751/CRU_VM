@@ -12,7 +12,7 @@
                     <SolidColorBrush x:Key="AppBgBrush"           Color="#1f1f1f"/>
                     <SolidColorBrush x:Key="PanelBgBrush"         Color="#181818"/>
                     <SolidColorBrush x:Key="AppBorderBrush"       Color="#2b2d31"/>
-                    <SolidColorBrush x:Key="AccentBrush"          Color="#007fd4"/>
+                    <SolidColorBrush x:Key="AccentBrush"          Color="#2563eb"/>
                     <SolidColorBrush x:Key="AccentFgBrush"        Color="#ffffff"/>
                     <SolidColorBrush x:Key="TextPrimaryBrush"     Color="#cccccc"/>
                     <SolidColorBrush x:Key="TextSecondaryBrush"   Color="#9d9d9d"/>
@@ -20,21 +20,19 @@
                     <SolidColorBrush x:Key="InputBgBrush"         Color="#252526"/>
                     <SolidColorBrush x:Key="CardImgBgBrush"       Color="#111111"/>
                     <SolidColorBrush x:Key="EditBtnBgBrush"       Color="#333333"/>
-                    <SolidColorBrush x:Key="AccentSubtleBgBrush"  Color="#004b7a"/>
+                    <SolidColorBrush x:Key="AccentSubtleBgBrush"  Color="#1e3a78"/>
                     <SolidColorBrush x:Key="DangerBgBrush"        Color="#5a1d1d"/>
                     <SolidColorBrush x:Key="DangerBorderBrush"    Color="#8c2a2a"/>
                     <SolidColorBrush x:Key="DangerFgBrush"        Color="#f14c4c"/>
                     <SolidColorBrush x:Key="NavBgBrush"           Color="#181818"/>
-                    <Color x:Key="AppBgColor">#1f1f1f</Color>
-                    <Color x:Key="BorderColor">#2b2d31</Color>
-                </ResourceDictionary>
+                    </ResourceDictionary>
 
                 <!-- ── TEMA CLARO ──────────────────────────────────────────── -->
                 <ResourceDictionary x:Key="Light">
                     <SolidColorBrush x:Key="AppBgBrush"           Color="#d5d6db"/>
                     <SolidColorBrush x:Key="PanelBgBrush"         Color="#e1e2e7"/>
                     <SolidColorBrush x:Key="AppBorderBrush"       Color="#a8aecb"/>
-                    <SolidColorBrush x:Key="AccentBrush"          Color="#2e7de9"/>
+                    <SolidColorBrush x:Key="AccentBrush"          Color="#2563eb"/>
                     <SolidColorBrush x:Key="AccentFgBrush"        Color="#ffffff"/>
                     <SolidColorBrush x:Key="TextPrimaryBrush"     Color="#343b58"/>
                     <SolidColorBrush x:Key="TextSecondaryBrush"   Color="#565f89"/>
@@ -47,9 +45,7 @@
                     <SolidColorBrush x:Key="DangerBorderBrush"    Color="#f52a65"/>
                     <SolidColorBrush x:Key="DangerFgBrush"        Color="#8c4351"/>
                     <SolidColorBrush x:Key="NavBgBrush"           Color="#e1e2e7"/>
-                    <Color x:Key="AppBgColor">#d5d6db</Color>
-                    <Color x:Key="BorderColor">#a8aecb</Color>
-                </ResourceDictionary>
+                    </ResourceDictionary>
 
             </ResourceDictionary.ThemeDictionaries>
             <ResourceDictionary.MergedDictionaries>

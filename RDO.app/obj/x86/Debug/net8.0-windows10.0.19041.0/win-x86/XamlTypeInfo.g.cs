@@ -226,57 +226,51 @@ namespace RDO.app.RDO_app_XamlTypeInfo
         
         private void InitTypeTables()
         {
-            _typeNameTable = new string[24];
-            _typeNameTable[0] = "Windows.UI.Color";
-            _typeNameTable[1] = "System.ValueType";
+            _typeNameTable = new string[21];
+            _typeNameTable[0] = "Microsoft.UI.Xaml.Controls.XamlControlsResources";
+            _typeNameTable[1] = "Microsoft.UI.Xaml.ResourceDictionary";
             _typeNameTable[2] = "Object";
-            _typeNameTable[3] = "Byte";
-            _typeNameTable[4] = "Microsoft.UI.Xaml.Controls.XamlControlsResources";
-            _typeNameTable[5] = "Microsoft.UI.Xaml.ResourceDictionary";
-            _typeNameTable[6] = "Boolean";
-            _typeNameTable[7] = "RDO.App.MainWindow";
-            _typeNameTable[8] = "Microsoft.UI.Xaml.Window";
-            _typeNameTable[9] = "RDO.App.Converters.NullableDateConverter";
-            _typeNameTable[10] = "RDO.App.Views.CadastrosPage";
-            _typeNameTable[11] = "Microsoft.UI.Xaml.Controls.Page";
-            _typeNameTable[12] = "Microsoft.UI.Xaml.Controls.UserControl";
-            _typeNameTable[13] = "RDO.App.Views.LoginPage";
-            _typeNameTable[14] = "RDO.App.Converters.ImagePathConverter";
-            _typeNameTable[15] = "RDO.App.Converters.BoolToVisibilityConverter";
-            _typeNameTable[16] = "RDO.App.Views.MainPage";
-            _typeNameTable[17] = "RDO.App.Views.NovaObraPage";
-            _typeNameTable[18] = "RDO.App.Views.RascunhosPage";
-            _typeNameTable[19] = "RDO.App.Views.RdoFormPage";
-            _typeNameTable[20] = "Microsoft.UI.Xaml.Controls.TreeViewNode";
-            _typeNameTable[21] = "Microsoft.UI.Xaml.DependencyObject";
-            _typeNameTable[22] = "System.Collections.Generic.IList`1<Microsoft.UI.Xaml.Controls.TreeViewNode>";
-            _typeNameTable[23] = "Int32";
+            _typeNameTable[3] = "Boolean";
+            _typeNameTable[4] = "RDO.App.MainWindow";
+            _typeNameTable[5] = "Microsoft.UI.Xaml.Window";
+            _typeNameTable[6] = "RDO.App.Converters.NullableDateConverter";
+            _typeNameTable[7] = "RDO.App.Views.CadastrosPage";
+            _typeNameTable[8] = "Microsoft.UI.Xaml.Controls.Page";
+            _typeNameTable[9] = "Microsoft.UI.Xaml.Controls.UserControl";
+            _typeNameTable[10] = "RDO.App.Views.LoginPage";
+            _typeNameTable[11] = "RDO.App.Converters.ImagePathConverter";
+            _typeNameTable[12] = "RDO.App.Converters.BoolToVisibilityConverter";
+            _typeNameTable[13] = "RDO.App.Views.MainPage";
+            _typeNameTable[14] = "RDO.App.Views.NovaObraPage";
+            _typeNameTable[15] = "RDO.App.Views.RascunhosPage";
+            _typeNameTable[16] = "RDO.App.Views.RdoFormPage";
+            _typeNameTable[17] = "Microsoft.UI.Xaml.Controls.TreeViewNode";
+            _typeNameTable[18] = "Microsoft.UI.Xaml.DependencyObject";
+            _typeNameTable[19] = "System.Collections.Generic.IList`1<Microsoft.UI.Xaml.Controls.TreeViewNode>";
+            _typeNameTable[20] = "Int32";
 
-            _typeTable = new global::System.Type[24];
-            _typeTable[0] = typeof(global::Windows.UI.Color);
-            _typeTable[1] = typeof(global::System.ValueType);
+            _typeTable = new global::System.Type[21];
+            _typeTable[0] = typeof(global::Microsoft.UI.Xaml.Controls.XamlControlsResources);
+            _typeTable[1] = typeof(global::Microsoft.UI.Xaml.ResourceDictionary);
             _typeTable[2] = typeof(global::System.Object);
-            _typeTable[3] = typeof(global::System.Byte);
-            _typeTable[4] = typeof(global::Microsoft.UI.Xaml.Controls.XamlControlsResources);
-            _typeTable[5] = typeof(global::Microsoft.UI.Xaml.ResourceDictionary);
-            _typeTable[6] = typeof(global::System.Boolean);
-            _typeTable[7] = typeof(global::RDO.App.MainWindow);
-            _typeTable[8] = typeof(global::Microsoft.UI.Xaml.Window);
-            _typeTable[9] = typeof(global::RDO.App.Converters.NullableDateConverter);
-            _typeTable[10] = typeof(global::RDO.App.Views.CadastrosPage);
-            _typeTable[11] = typeof(global::Microsoft.UI.Xaml.Controls.Page);
-            _typeTable[12] = typeof(global::Microsoft.UI.Xaml.Controls.UserControl);
-            _typeTable[13] = typeof(global::RDO.App.Views.LoginPage);
-            _typeTable[14] = typeof(global::RDO.App.Converters.ImagePathConverter);
-            _typeTable[15] = typeof(global::RDO.App.Converters.BoolToVisibilityConverter);
-            _typeTable[16] = typeof(global::RDO.App.Views.MainPage);
-            _typeTable[17] = typeof(global::RDO.App.Views.NovaObraPage);
-            _typeTable[18] = typeof(global::RDO.App.Views.RascunhosPage);
-            _typeTable[19] = typeof(global::RDO.App.Views.RdoFormPage);
-            _typeTable[20] = typeof(global::Microsoft.UI.Xaml.Controls.TreeViewNode);
-            _typeTable[21] = typeof(global::Microsoft.UI.Xaml.DependencyObject);
-            _typeTable[22] = typeof(global::System.Collections.Generic.IList<global::Microsoft.UI.Xaml.Controls.TreeViewNode>);
-            _typeTable[23] = typeof(global::System.Int32);
+            _typeTable[3] = typeof(global::System.Boolean);
+            _typeTable[4] = typeof(global::RDO.App.MainWindow);
+            _typeTable[5] = typeof(global::Microsoft.UI.Xaml.Window);
+            _typeTable[6] = typeof(global::RDO.App.Converters.NullableDateConverter);
+            _typeTable[7] = typeof(global::RDO.App.Views.CadastrosPage);
+            _typeTable[8] = typeof(global::Microsoft.UI.Xaml.Controls.Page);
+            _typeTable[9] = typeof(global::Microsoft.UI.Xaml.Controls.UserControl);
+            _typeTable[10] = typeof(global::RDO.App.Views.LoginPage);
+            _typeTable[11] = typeof(global::RDO.App.Converters.ImagePathConverter);
+            _typeTable[12] = typeof(global::RDO.App.Converters.BoolToVisibilityConverter);
+            _typeTable[13] = typeof(global::RDO.App.Views.MainPage);
+            _typeTable[14] = typeof(global::RDO.App.Views.NovaObraPage);
+            _typeTable[15] = typeof(global::RDO.App.Views.RascunhosPage);
+            _typeTable[16] = typeof(global::RDO.App.Views.RdoFormPage);
+            _typeTable[17] = typeof(global::Microsoft.UI.Xaml.Controls.TreeViewNode);
+            _typeTable[18] = typeof(global::Microsoft.UI.Xaml.DependencyObject);
+            _typeTable[19] = typeof(global::System.Collections.Generic.IList<global::Microsoft.UI.Xaml.Controls.TreeViewNode>);
+            _typeTable[20] = typeof(global::System.Int32);
         }
 
         private int LookupTypeIndexByName(string typeName)
@@ -311,42 +305,39 @@ namespace RDO.app.RDO_app_XamlTypeInfo
             return -1;
         }
 
-        private object Activate_4_XamlControlsResources() { return new global::Microsoft.UI.Xaml.Controls.XamlControlsResources(); }
-        private object Activate_7_MainWindow() { return new global::RDO.App.MainWindow(); }
-        private object Activate_9_NullableDateConverter() { return new global::RDO.App.Converters.NullableDateConverter(); }
-        private object Activate_10_CadastrosPage() { return new global::RDO.App.Views.CadastrosPage(); }
-        private object Activate_13_LoginPage() { return new global::RDO.App.Views.LoginPage(); }
-        private object Activate_14_ImagePathConverter() { return new global::RDO.App.Converters.ImagePathConverter(); }
-        private object Activate_15_BoolToVisibilityConverter() { return new global::RDO.App.Converters.BoolToVisibilityConverter(); }
-        private object Activate_16_MainPage() { return new global::RDO.App.Views.MainPage(); }
-        private object Activate_17_NovaObraPage() { return new global::RDO.App.Views.NovaObraPage(); }
-        private object Activate_18_RascunhosPage() { return new global::RDO.App.Views.RascunhosPage(); }
-        private object Activate_19_RdoFormPage() { return new global::RDO.App.Views.RdoFormPage(); }
-        private object Activate_20_TreeViewNode() { return new global::Microsoft.UI.Xaml.Controls.TreeViewNode(); }
-        private void StaticInitializer_0_Color() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::Windows.UI.Color).TypeHandle);
-        private void StaticInitializer_1_ValueType() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::System.ValueType).TypeHandle);
-        private void StaticInitializer_3_Byte() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::System.Byte).TypeHandle);
-        private void StaticInitializer_4_XamlControlsResources() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::Microsoft.UI.Xaml.Controls.XamlControlsResources).TypeHandle);
-        private void StaticInitializer_7_MainWindow() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.MainWindow).TypeHandle);
-        private void StaticInitializer_9_NullableDateConverter() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.Converters.NullableDateConverter).TypeHandle);
-        private void StaticInitializer_10_CadastrosPage() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.Views.CadastrosPage).TypeHandle);
-        private void StaticInitializer_13_LoginPage() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.Views.LoginPage).TypeHandle);
-        private void StaticInitializer_14_ImagePathConverter() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.Converters.ImagePathConverter).TypeHandle);
-        private void StaticInitializer_15_BoolToVisibilityConverter() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.Converters.BoolToVisibilityConverter).TypeHandle);
-        private void StaticInitializer_16_MainPage() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.Views.MainPage).TypeHandle);
-        private void StaticInitializer_17_NovaObraPage() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.Views.NovaObraPage).TypeHandle);
-        private void StaticInitializer_18_RascunhosPage() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.Views.RascunhosPage).TypeHandle);
-        private void StaticInitializer_19_RdoFormPage() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.Views.RdoFormPage).TypeHandle);
-        private void StaticInitializer_20_TreeViewNode() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::Microsoft.UI.Xaml.Controls.TreeViewNode).TypeHandle);
-        private void StaticInitializer_22_IList() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::System.Collections.Generic.IList<global::Microsoft.UI.Xaml.Controls.TreeViewNode>).TypeHandle);
-        private void MapAdd_4_XamlControlsResources(object instance, object key, object item)
+        private object Activate_0_XamlControlsResources() { return new global::Microsoft.UI.Xaml.Controls.XamlControlsResources(); }
+        private object Activate_4_MainWindow() { return new global::RDO.App.MainWindow(); }
+        private object Activate_6_NullableDateConverter() { return new global::RDO.App.Converters.NullableDateConverter(); }
+        private object Activate_7_CadastrosPage() { return new global::RDO.App.Views.CadastrosPage(); }
+        private object Activate_10_LoginPage() { return new global::RDO.App.Views.LoginPage(); }
+        private object Activate_11_ImagePathConverter() { return new global::RDO.App.Converters.ImagePathConverter(); }
+        private object Activate_12_BoolToVisibilityConverter() { return new global::RDO.App.Converters.BoolToVisibilityConverter(); }
+        private object Activate_13_MainPage() { return new global::RDO.App.Views.MainPage(); }
+        private object Activate_14_NovaObraPage() { return new global::RDO.App.Views.NovaObraPage(); }
+        private object Activate_15_RascunhosPage() { return new global::RDO.App.Views.RascunhosPage(); }
+        private object Activate_16_RdoFormPage() { return new global::RDO.App.Views.RdoFormPage(); }
+        private object Activate_17_TreeViewNode() { return new global::Microsoft.UI.Xaml.Controls.TreeViewNode(); }
+        private void StaticInitializer_0_XamlControlsResources() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::Microsoft.UI.Xaml.Controls.XamlControlsResources).TypeHandle);
+        private void StaticInitializer_4_MainWindow() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.MainWindow).TypeHandle);
+        private void StaticInitializer_6_NullableDateConverter() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.Converters.NullableDateConverter).TypeHandle);
+        private void StaticInitializer_7_CadastrosPage() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.Views.CadastrosPage).TypeHandle);
+        private void StaticInitializer_10_LoginPage() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.Views.LoginPage).TypeHandle);
+        private void StaticInitializer_11_ImagePathConverter() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.Converters.ImagePathConverter).TypeHandle);
+        private void StaticInitializer_12_BoolToVisibilityConverter() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.Converters.BoolToVisibilityConverter).TypeHandle);
+        private void StaticInitializer_13_MainPage() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.Views.MainPage).TypeHandle);
+        private void StaticInitializer_14_NovaObraPage() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.Views.NovaObraPage).TypeHandle);
+        private void StaticInitializer_15_RascunhosPage() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.Views.RascunhosPage).TypeHandle);
+        private void StaticInitializer_16_RdoFormPage() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::RDO.App.Views.RdoFormPage).TypeHandle);
+        private void StaticInitializer_17_TreeViewNode() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::Microsoft.UI.Xaml.Controls.TreeViewNode).TypeHandle);
+        private void StaticInitializer_19_IList() => global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::System.Collections.Generic.IList<global::Microsoft.UI.Xaml.Controls.TreeViewNode>).TypeHandle);
+        private void MapAdd_0_XamlControlsResources(object instance, object key, object item)
         {
             var collection = (global::System.Collections.Generic.IDictionary<global::System.Object, global::System.Object>)instance;
             var newKey = (global::System.Object)key;
             var newItem = (global::System.Object)item;
             collection.Add(newKey, newItem);
         }
-        private void VectorAdd_22_IList(object instance, object item)
+        private void VectorAdd_19_IList(object instance, object item)
         {
             var collection = (global::System.Collections.Generic.ICollection<global::Microsoft.UI.Xaml.Controls.TreeViewNode>)instance;
             var newItem = (global::Microsoft.UI.Xaml.Controls.TreeViewNode)item;
@@ -363,146 +354,123 @@ namespace RDO.app.RDO_app_XamlTypeInfo
             switch (typeIndex)
             {
 
-            case 0:   //  Windows.UI.Color
-                userType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType(this, typeName, type, GetXamlTypeByName("System.ValueType"));
-                userType.StaticInitializer = StaticInitializer_0_Color;
-                userType.AddMemberName("A");
-                userType.AddMemberName("R");
-                userType.AddMemberName("G");
-                userType.AddMemberName("B");
+            case 0:   //  Microsoft.UI.Xaml.Controls.XamlControlsResources
+                userType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType(this, typeName, type, GetXamlTypeByName("Microsoft.UI.Xaml.ResourceDictionary"));
+                userType.Activator = Activate_0_XamlControlsResources;
+                userType.StaticInitializer = StaticInitializer_0_XamlControlsResources;
+                userType.DictionaryAdd = MapAdd_0_XamlControlsResources;
+                userType.AddMemberName("UseCompactResources");
                 xamlType = userType;
                 break;
 
-            case 1:   //  System.ValueType
-                userType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType(this, typeName, type, GetXamlTypeByName("Object"));
-                userType.StaticInitializer = StaticInitializer_1_ValueType;
-                xamlType = userType;
+            case 1:   //  Microsoft.UI.Xaml.ResourceDictionary
+                xamlType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlSystemBaseType(typeName, type);
                 break;
 
             case 2:   //  Object
                 xamlType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlSystemBaseType(typeName, type);
                 break;
 
-            case 3:   //  Byte
-                userType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType(this, typeName, type, GetXamlTypeByName("System.ValueType"));
-                userType.StaticInitializer = StaticInitializer_3_Byte;
-                userType.SetIsReturnTypeStub();
-                xamlType = userType;
-                break;
-
-            case 4:   //  Microsoft.UI.Xaml.Controls.XamlControlsResources
-                userType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType(this, typeName, type, GetXamlTypeByName("Microsoft.UI.Xaml.ResourceDictionary"));
-                userType.Activator = Activate_4_XamlControlsResources;
-                userType.StaticInitializer = StaticInitializer_4_XamlControlsResources;
-                userType.DictionaryAdd = MapAdd_4_XamlControlsResources;
-                userType.AddMemberName("UseCompactResources");
-                xamlType = userType;
-                break;
-
-            case 5:   //  Microsoft.UI.Xaml.ResourceDictionary
+            case 3:   //  Boolean
                 xamlType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlSystemBaseType(typeName, type);
                 break;
 
-            case 6:   //  Boolean
-                xamlType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlSystemBaseType(typeName, type);
-                break;
-
-            case 7:   //  RDO.App.MainWindow
+            case 4:   //  RDO.App.MainWindow
                 userType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType(this, typeName, type, GetXamlTypeByName("Microsoft.UI.Xaml.Window"));
-                userType.Activator = Activate_7_MainWindow;
-                userType.StaticInitializer = StaticInitializer_7_MainWindow;
+                userType.Activator = Activate_4_MainWindow;
+                userType.StaticInitializer = StaticInitializer_4_MainWindow;
                 userType.SetIsLocalType();
                 xamlType = userType;
                 break;
 
-            case 8:   //  Microsoft.UI.Xaml.Window
+            case 5:   //  Microsoft.UI.Xaml.Window
                 xamlType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlSystemBaseType(typeName, type);
                 break;
 
-            case 9:   //  RDO.App.Converters.NullableDateConverter
+            case 6:   //  RDO.App.Converters.NullableDateConverter
                 userType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType(this, typeName, type, GetXamlTypeByName("Object"));
-                userType.Activator = Activate_9_NullableDateConverter;
-                userType.StaticInitializer = StaticInitializer_9_NullableDateConverter;
+                userType.Activator = Activate_6_NullableDateConverter;
+                userType.StaticInitializer = StaticInitializer_6_NullableDateConverter;
                 userType.SetIsLocalType();
                 xamlType = userType;
                 break;
 
-            case 10:   //  RDO.App.Views.CadastrosPage
+            case 7:   //  RDO.App.Views.CadastrosPage
                 userType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType(this, typeName, type, GetXamlTypeByName("Microsoft.UI.Xaml.Controls.Page"));
-                userType.Activator = Activate_10_CadastrosPage;
-                userType.StaticInitializer = StaticInitializer_10_CadastrosPage;
+                userType.Activator = Activate_7_CadastrosPage;
+                userType.StaticInitializer = StaticInitializer_7_CadastrosPage;
                 userType.SetIsLocalType();
                 xamlType = userType;
                 break;
 
-            case 11:   //  Microsoft.UI.Xaml.Controls.Page
+            case 8:   //  Microsoft.UI.Xaml.Controls.Page
                 xamlType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlSystemBaseType(typeName, type);
                 break;
 
-            case 12:   //  Microsoft.UI.Xaml.Controls.UserControl
+            case 9:   //  Microsoft.UI.Xaml.Controls.UserControl
                 xamlType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlSystemBaseType(typeName, type);
                 break;
 
-            case 13:   //  RDO.App.Views.LoginPage
+            case 10:   //  RDO.App.Views.LoginPage
                 userType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType(this, typeName, type, GetXamlTypeByName("Microsoft.UI.Xaml.Controls.Page"));
-                userType.Activator = Activate_13_LoginPage;
-                userType.StaticInitializer = StaticInitializer_13_LoginPage;
+                userType.Activator = Activate_10_LoginPage;
+                userType.StaticInitializer = StaticInitializer_10_LoginPage;
                 userType.SetIsLocalType();
                 xamlType = userType;
                 break;
 
-            case 14:   //  RDO.App.Converters.ImagePathConverter
+            case 11:   //  RDO.App.Converters.ImagePathConverter
                 userType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType(this, typeName, type, GetXamlTypeByName("Object"));
-                userType.Activator = Activate_14_ImagePathConverter;
-                userType.StaticInitializer = StaticInitializer_14_ImagePathConverter;
+                userType.Activator = Activate_11_ImagePathConverter;
+                userType.StaticInitializer = StaticInitializer_11_ImagePathConverter;
                 userType.SetIsLocalType();
                 xamlType = userType;
                 break;
 
-            case 15:   //  RDO.App.Converters.BoolToVisibilityConverter
+            case 12:   //  RDO.App.Converters.BoolToVisibilityConverter
                 userType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType(this, typeName, type, GetXamlTypeByName("Object"));
-                userType.Activator = Activate_15_BoolToVisibilityConverter;
-                userType.StaticInitializer = StaticInitializer_15_BoolToVisibilityConverter;
+                userType.Activator = Activate_12_BoolToVisibilityConverter;
+                userType.StaticInitializer = StaticInitializer_12_BoolToVisibilityConverter;
                 userType.SetIsLocalType();
                 xamlType = userType;
                 break;
 
-            case 16:   //  RDO.App.Views.MainPage
+            case 13:   //  RDO.App.Views.MainPage
                 userType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType(this, typeName, type, GetXamlTypeByName("Microsoft.UI.Xaml.Controls.Page"));
-                userType.Activator = Activate_16_MainPage;
-                userType.StaticInitializer = StaticInitializer_16_MainPage;
+                userType.Activator = Activate_13_MainPage;
+                userType.StaticInitializer = StaticInitializer_13_MainPage;
                 userType.SetIsLocalType();
                 xamlType = userType;
                 break;
 
-            case 17:   //  RDO.App.Views.NovaObraPage
+            case 14:   //  RDO.App.Views.NovaObraPage
                 userType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType(this, typeName, type, GetXamlTypeByName("Microsoft.UI.Xaml.Controls.Page"));
-                userType.Activator = Activate_17_NovaObraPage;
-                userType.StaticInitializer = StaticInitializer_17_NovaObraPage;
+                userType.Activator = Activate_14_NovaObraPage;
+                userType.StaticInitializer = StaticInitializer_14_NovaObraPage;
                 userType.SetIsLocalType();
                 xamlType = userType;
                 break;
 
-            case 18:   //  RDO.App.Views.RascunhosPage
+            case 15:   //  RDO.App.Views.RascunhosPage
                 userType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType(this, typeName, type, GetXamlTypeByName("Microsoft.UI.Xaml.Controls.Page"));
-                userType.Activator = Activate_18_RascunhosPage;
-                userType.StaticInitializer = StaticInitializer_18_RascunhosPage;
+                userType.Activator = Activate_15_RascunhosPage;
+                userType.StaticInitializer = StaticInitializer_15_RascunhosPage;
                 userType.SetIsLocalType();
                 xamlType = userType;
                 break;
 
-            case 19:   //  RDO.App.Views.RdoFormPage
+            case 16:   //  RDO.App.Views.RdoFormPage
                 userType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType(this, typeName, type, GetXamlTypeByName("Microsoft.UI.Xaml.Controls.Page"));
-                userType.Activator = Activate_19_RdoFormPage;
-                userType.StaticInitializer = StaticInitializer_19_RdoFormPage;
+                userType.Activator = Activate_16_RdoFormPage;
+                userType.StaticInitializer = StaticInitializer_16_RdoFormPage;
                 userType.SetIsLocalType();
                 xamlType = userType;
                 break;
 
-            case 20:   //  Microsoft.UI.Xaml.Controls.TreeViewNode
+            case 17:   //  Microsoft.UI.Xaml.Controls.TreeViewNode
                 userType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType(this, typeName, type, GetXamlTypeByName("Microsoft.UI.Xaml.DependencyObject"));
-                userType.Activator = Activate_20_TreeViewNode;
-                userType.StaticInitializer = StaticInitializer_20_TreeViewNode;
+                userType.Activator = Activate_17_TreeViewNode;
+                userType.StaticInitializer = StaticInitializer_17_TreeViewNode;
                 userType.AddMemberName("Children");
                 userType.AddMemberName("Content");
                 userType.AddMemberName("Depth");
@@ -514,19 +482,19 @@ namespace RDO.app.RDO_app_XamlTypeInfo
                 xamlType = userType;
                 break;
 
-            case 21:   //  Microsoft.UI.Xaml.DependencyObject
+            case 18:   //  Microsoft.UI.Xaml.DependencyObject
                 xamlType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlSystemBaseType(typeName, type);
                 break;
 
-            case 22:   //  System.Collections.Generic.IList`1<Microsoft.UI.Xaml.Controls.TreeViewNode>
+            case 19:   //  System.Collections.Generic.IList`1<Microsoft.UI.Xaml.Controls.TreeViewNode>
                 userType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType(this, typeName, type, null);
-                userType.StaticInitializer = StaticInitializer_22_IList;
-                userType.CollectionAdd = VectorAdd_22_IList;
+                userType.StaticInitializer = StaticInitializer_19_IList;
+                userType.CollectionAdd = VectorAdd_19_IList;
                 userType.SetIsReturnTypeStub();
                 xamlType = userType;
                 break;
 
-            case 23:   //  Int32
+            case 20:   //  Int32
                 xamlType = new global::RDO.app.RDO_app_XamlTypeInfo.XamlSystemBaseType(typeName, type);
                 break;
             }
@@ -588,102 +556,62 @@ namespace RDO.app.RDO_app_XamlTypeInfo
             return foundXamlType;
         }
 
-        private object get_0_Color_A(object instance)
-        {
-            var that = (global::Windows.UI.Color)instance;
-            return that.A;
-        }
-        private void set_0_Color_A(object instance, object Value)
-        {
-            var that = (global::Windows.UI.Color)instance;
-            that.A = (global::System.Byte)Value;
-        }
-        private object get_1_Color_R(object instance)
-        {
-            var that = (global::Windows.UI.Color)instance;
-            return that.R;
-        }
-        private void set_1_Color_R(object instance, object Value)
-        {
-            var that = (global::Windows.UI.Color)instance;
-            that.R = (global::System.Byte)Value;
-        }
-        private object get_2_Color_G(object instance)
-        {
-            var that = (global::Windows.UI.Color)instance;
-            return that.G;
-        }
-        private void set_2_Color_G(object instance, object Value)
-        {
-            var that = (global::Windows.UI.Color)instance;
-            that.G = (global::System.Byte)Value;
-        }
-        private object get_3_Color_B(object instance)
-        {
-            var that = (global::Windows.UI.Color)instance;
-            return that.B;
-        }
-        private void set_3_Color_B(object instance, object Value)
-        {
-            var that = (global::Windows.UI.Color)instance;
-            that.B = (global::System.Byte)Value;
-        }
-        private object get_4_XamlControlsResources_UseCompactResources(object instance)
+        private object get_0_XamlControlsResources_UseCompactResources(object instance)
         {
             var that = (global::Microsoft.UI.Xaml.Controls.XamlControlsResources)instance;
             return that.UseCompactResources;
         }
-        private void set_4_XamlControlsResources_UseCompactResources(object instance, object Value)
+        private void set_0_XamlControlsResources_UseCompactResources(object instance, object Value)
         {
             var that = (global::Microsoft.UI.Xaml.Controls.XamlControlsResources)instance;
             that.UseCompactResources = (global::System.Boolean)Value;
         }
-        private object get_5_TreeViewNode_Children(object instance)
+        private object get_1_TreeViewNode_Children(object instance)
         {
             var that = (global::Microsoft.UI.Xaml.Controls.TreeViewNode)instance;
             return that.Children;
         }
-        private object get_6_TreeViewNode_Content(object instance)
+        private object get_2_TreeViewNode_Content(object instance)
         {
             var that = (global::Microsoft.UI.Xaml.Controls.TreeViewNode)instance;
             return that.Content;
         }
-        private void set_6_TreeViewNode_Content(object instance, object Value)
+        private void set_2_TreeViewNode_Content(object instance, object Value)
         {
             var that = (global::Microsoft.UI.Xaml.Controls.TreeViewNode)instance;
             that.Content = (global::System.Object)Value;
         }
-        private object get_7_TreeViewNode_Depth(object instance)
+        private object get_3_TreeViewNode_Depth(object instance)
         {
             var that = (global::Microsoft.UI.Xaml.Controls.TreeViewNode)instance;
             return that.Depth;
         }
-        private object get_8_TreeViewNode_HasChildren(object instance)
+        private object get_4_TreeViewNode_HasChildren(object instance)
         {
             var that = (global::Microsoft.UI.Xaml.Controls.TreeViewNode)instance;
             return that.HasChildren;
         }
-        private object get_9_TreeViewNode_HasUnrealizedChildren(object instance)
+        private object get_5_TreeViewNode_HasUnrealizedChildren(object instance)
         {
             var that = (global::Microsoft.UI.Xaml.Controls.TreeViewNode)instance;
             return that.HasUnrealizedChildren;
         }
-        private void set_9_TreeViewNode_HasUnrealizedChildren(object instance, object Value)
+        private void set_5_TreeViewNode_HasUnrealizedChildren(object instance, object Value)
         {
             var that = (global::Microsoft.UI.Xaml.Controls.TreeViewNode)instance;
             that.HasUnrealizedChildren = (global::System.Boolean)Value;
         }
-        private object get_10_TreeViewNode_IsExpanded(object instance)
+        private object get_6_TreeViewNode_IsExpanded(object instance)
         {
             var that = (global::Microsoft.UI.Xaml.Controls.TreeViewNode)instance;
             return that.IsExpanded;
         }
-        private void set_10_TreeViewNode_IsExpanded(object instance, object Value)
+        private void set_6_TreeViewNode_IsExpanded(object instance, object Value)
         {
             var that = (global::Microsoft.UI.Xaml.Controls.TreeViewNode)instance;
             that.IsExpanded = (global::System.Boolean)Value;
         }
-        private object get_11_TreeViewNode_Parent(object instance)
+        private object get_7_TreeViewNode_Parent(object instance)
         {
             var that = (global::Microsoft.UI.Xaml.Controls.TreeViewNode)instance;
             return that.Parent;
@@ -696,81 +624,57 @@ namespace RDO.app.RDO_app_XamlTypeInfo
 
             switch (longMemberName)
             {
-            case "Windows.UI.Color.A":
-                userType = (global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType)GetXamlTypeByName("Windows.UI.Color");
-                xamlMember = new global::RDO.app.RDO_app_XamlTypeInfo.XamlMember(this, "A", "Byte");
-                xamlMember.Getter = get_0_Color_A;
-                xamlMember.Setter = set_0_Color_A;
-                break;
-            case "Windows.UI.Color.R":
-                userType = (global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType)GetXamlTypeByName("Windows.UI.Color");
-                xamlMember = new global::RDO.app.RDO_app_XamlTypeInfo.XamlMember(this, "R", "Byte");
-                xamlMember.Getter = get_1_Color_R;
-                xamlMember.Setter = set_1_Color_R;
-                break;
-            case "Windows.UI.Color.G":
-                userType = (global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType)GetXamlTypeByName("Windows.UI.Color");
-                xamlMember = new global::RDO.app.RDO_app_XamlTypeInfo.XamlMember(this, "G", "Byte");
-                xamlMember.Getter = get_2_Color_G;
-                xamlMember.Setter = set_2_Color_G;
-                break;
-            case "Windows.UI.Color.B":
-                userType = (global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType)GetXamlTypeByName("Windows.UI.Color");
-                xamlMember = new global::RDO.app.RDO_app_XamlTypeInfo.XamlMember(this, "B", "Byte");
-                xamlMember.Getter = get_3_Color_B;
-                xamlMember.Setter = set_3_Color_B;
-                break;
             case "Microsoft.UI.Xaml.Controls.XamlControlsResources.UseCompactResources":
                 userType = (global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType)GetXamlTypeByName("Microsoft.UI.Xaml.Controls.XamlControlsResources");
                 xamlMember = new global::RDO.app.RDO_app_XamlTypeInfo.XamlMember(this, "UseCompactResources", "Boolean");
                 xamlMember.SetIsDependencyProperty();
-                xamlMember.Getter = get_4_XamlControlsResources_UseCompactResources;
-                xamlMember.Setter = set_4_XamlControlsResources_UseCompactResources;
+                xamlMember.Getter = get_0_XamlControlsResources_UseCompactResources;
+                xamlMember.Setter = set_0_XamlControlsResources_UseCompactResources;
                 break;
             case "Microsoft.UI.Xaml.Controls.TreeViewNode.Children":
                 userType = (global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType)GetXamlTypeByName("Microsoft.UI.Xaml.Controls.TreeViewNode");
                 xamlMember = new global::RDO.app.RDO_app_XamlTypeInfo.XamlMember(this, "Children", "System.Collections.Generic.IList`1<Microsoft.UI.Xaml.Controls.TreeViewNode>");
-                xamlMember.Getter = get_5_TreeViewNode_Children;
+                xamlMember.Getter = get_1_TreeViewNode_Children;
                 xamlMember.SetIsReadOnly();
                 break;
             case "Microsoft.UI.Xaml.Controls.TreeViewNode.Content":
                 userType = (global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType)GetXamlTypeByName("Microsoft.UI.Xaml.Controls.TreeViewNode");
                 xamlMember = new global::RDO.app.RDO_app_XamlTypeInfo.XamlMember(this, "Content", "Object");
                 xamlMember.SetIsDependencyProperty();
-                xamlMember.Getter = get_6_TreeViewNode_Content;
-                xamlMember.Setter = set_6_TreeViewNode_Content;
+                xamlMember.Getter = get_2_TreeViewNode_Content;
+                xamlMember.Setter = set_2_TreeViewNode_Content;
                 break;
             case "Microsoft.UI.Xaml.Controls.TreeViewNode.Depth":
                 userType = (global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType)GetXamlTypeByName("Microsoft.UI.Xaml.Controls.TreeViewNode");
                 xamlMember = new global::RDO.app.RDO_app_XamlTypeInfo.XamlMember(this, "Depth", "Int32");
                 xamlMember.SetIsDependencyProperty();
-                xamlMember.Getter = get_7_TreeViewNode_Depth;
+                xamlMember.Getter = get_3_TreeViewNode_Depth;
                 xamlMember.SetIsReadOnly();
                 break;
             case "Microsoft.UI.Xaml.Controls.TreeViewNode.HasChildren":
                 userType = (global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType)GetXamlTypeByName("Microsoft.UI.Xaml.Controls.TreeViewNode");
                 xamlMember = new global::RDO.app.RDO_app_XamlTypeInfo.XamlMember(this, "HasChildren", "Boolean");
                 xamlMember.SetIsDependencyProperty();
-                xamlMember.Getter = get_8_TreeViewNode_HasChildren;
+                xamlMember.Getter = get_4_TreeViewNode_HasChildren;
                 xamlMember.SetIsReadOnly();
                 break;
             case "Microsoft.UI.Xaml.Controls.TreeViewNode.HasUnrealizedChildren":
                 userType = (global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType)GetXamlTypeByName("Microsoft.UI.Xaml.Controls.TreeViewNode");
                 xamlMember = new global::RDO.app.RDO_app_XamlTypeInfo.XamlMember(this, "HasUnrealizedChildren", "Boolean");
-                xamlMember.Getter = get_9_TreeViewNode_HasUnrealizedChildren;
-                xamlMember.Setter = set_9_TreeViewNode_HasUnrealizedChildren;
+                xamlMember.Getter = get_5_TreeViewNode_HasUnrealizedChildren;
+                xamlMember.Setter = set_5_TreeViewNode_HasUnrealizedChildren;
                 break;
             case "Microsoft.UI.Xaml.Controls.TreeViewNode.IsExpanded":
                 userType = (global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType)GetXamlTypeByName("Microsoft.UI.Xaml.Controls.TreeViewNode");
                 xamlMember = new global::RDO.app.RDO_app_XamlTypeInfo.XamlMember(this, "IsExpanded", "Boolean");
                 xamlMember.SetIsDependencyProperty();
-                xamlMember.Getter = get_10_TreeViewNode_IsExpanded;
-                xamlMember.Setter = set_10_TreeViewNode_IsExpanded;
+                xamlMember.Getter = get_6_TreeViewNode_IsExpanded;
+                xamlMember.Setter = set_6_TreeViewNode_IsExpanded;
                 break;
             case "Microsoft.UI.Xaml.Controls.TreeViewNode.Parent":
                 userType = (global::RDO.app.RDO_app_XamlTypeInfo.XamlUserType)GetXamlTypeByName("Microsoft.UI.Xaml.Controls.TreeViewNode");
                 xamlMember = new global::RDO.app.RDO_app_XamlTypeInfo.XamlMember(this, "Parent", "Microsoft.UI.Xaml.Controls.TreeViewNode");
-                xamlMember.Getter = get_11_TreeViewNode_Parent;
+                xamlMember.Getter = get_7_TreeViewNode_Parent;
                 xamlMember.SetIsReadOnly();
                 break;
             }

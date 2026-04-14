@@ -78,7 +78,7 @@ namespace RDO.App.Views
         private void FiltrarObras(string termo)
         {
             using var db = new RdoDbContext(DbContextHelper.GetOptions());
-            var lista = db.Obras.Where(o => o.Ativo).ToList();
+            var lista = db.Obras.Where(o => o.IsActive).ToList();
             if (!string.IsNullOrWhiteSpace(termo))
             {
                 var t = termo.ToLower();

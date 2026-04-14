@@ -17,7 +17,7 @@ namespace RDO.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.0")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -484,25 +484,15 @@ namespace RDO.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<bool>("Ativo")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Client")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ClientManager")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("ContractType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Contratante")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("DataInicio")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Endereco")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -513,14 +503,7 @@ namespace RDO.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Grupo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("ImagePath")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ImagemPath")
                         .HasColumnType("text");
 
                     b.Property<bool>("IsActive")
@@ -537,25 +520,10 @@ namespace RDO.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("PrevisaoTermino")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Responsavel")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("TipoContrato")
                         .IsRequired()
                         .HasColumnType("text");
 

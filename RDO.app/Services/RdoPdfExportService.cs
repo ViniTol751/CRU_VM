@@ -40,7 +40,7 @@ namespace RDO.App.Services
                 .Include(r => r.ReportCompanions).ThenInclude(ra => ra.Companion!)
                 .FirstOrDefault(r => r.Id == relatorioId);
 
-            if (rel == null) return null;
+            if (rel == null || rel.Obra == null) return null;
 
             var pasta = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
@@ -66,9 +66,9 @@ namespace RDO.App.Services
                         col.Item().Element(c => SecaoIdentificacao(c, rel));
                         col.Item().Element(c => SecaoClima(c, rel));
                         // Acompanhantes: prioriza join-table; fallback para campo legado
-                        var acomps = rel.RelatorioAcompanhantes.Select(ra => ra.Acompanhante).ToList();
-                        if (acomps.Count == 0 && rel.Acompanhante != null)
-                            acomps.Add(rel.Acompanhante);
+                        var acomps = rel.RelatorioAcompanhantes.Select(ra => ra.Companion).Where(a => a != null).Select(a => a!).ToList();
+                        if (acomps.Count == 0 && rel.Companion != null)
+                            acomps.Add(rel.Companion);
                         if (acomps.Count > 0)
                             col.Item().Element(c => SecaoAcompanhantes(c, acomps));
                         if (rel.Equipamentos.Any())
@@ -154,9 +154,9 @@ namespace RDO.App.Services
                         table.Cell().Padding(5).Text(v2);
                     }
 
-                    Linha("Obra:", rel.Obra.Nome, "Grupo/Cliente:", rel.Obra.Grupo);
-                    Linha("Endereço:", rel.Obra.Endereco, "ART/RRT:", rel.Obra.ART);
-                    Linha("Responsável:", rel.Obra.Responsavel, "Contratante:", rel.Obra.Contratante);
+                    Linha("Obra:", rel.Obra!.Nome, "Grupo/Cliente:", rel.Obra!.Grupo);
+                    Linha("Endereço:", rel.Obra!.Endereco, "ART/RRT:", rel.Obra!.ART);
+                    Linha("Responsável:", rel.Obra!.Responsavel, "Contratante:", rel.Obra!.Contratante);
                     Linha("Data:", rel.Data.ToString("dd/MM/yyyy"), "Status:", rel.Status);
                 });
             });
@@ -263,7 +263,8 @@ namespace RDO.App.Services
                     for (int i = 0; i < equipamentos.Count; i++)
                     {
                         var bg = i % 2 == 0 ? "#FFFFFF" : "#f0f4f8";
-                        var eq = equipamentos[i].EquipamentoCadastrado;
+                        var eq = equipamentos[i].Equipment;
+                        if (eq == null) continue;
                         table.Cell().Background(bg).Padding(5).Text(eq.NumeroSerie).Bold().FontColor("#0052cc");
                         table.Cell().Background(bg).Padding(5).Text(eq.Nome);
                         table.Cell().Background(bg).Padding(5).Text($"{eq.Fabricante} — {eq.Modelo}").FontColor("#5a6f8a");

@@ -20,10 +20,14 @@ namespace RDO.App
         {
             using var db = new RdoDbContext(DbContextHelper.GetOptions());
 
-            // 1. PRIMEIRO: cria o banco e aplica todas as migrations pendentes
+            // 1. PRIMEIRO: remove colunas alias órfãs que podem ter sido criadas antes das migrations
+            // (banco criado com EnsureCreated quando esses aliases ainda eram colunas mapeadas)
+            LimparColunasOrfas(db);
+
+            // 2. Cria o banco e aplica todas as migrations pendentes
             db.Database.Migrate();
 
-            // 2. DEPOIS: registra migrations antigas como já aplicadas
+            // 3. Registra migrations antigas como já aplicadas
             var applied = db.Database.GetAppliedMigrations().ToList();
 
             if (!applied.Contains("20260409180159_InitialCreate"))
@@ -46,6 +50,20 @@ namespace RDO.App
                     Ativo = true
                 });
                 db.SaveChanges();
+            }
+        }
+
+        private static void LimparColunasOrfas(DbContext db)
+        {
+            // Colunas alias PT que existiam no banco antes das migrations (criado via EnsureCreated)
+            // e que agora são [NotMapped]. O EF não as inclui no INSERT, quebrando a constraint NOT NULL.
+            var colunasProject = new[] { "Ativo", "Nome", "Endereco", "Grupo", "Responsavel",
+                                         "TipoContrato", "Contratante", "DataInicio",
+                                         "PrevisaoTermino", "ImagemPath" };
+            foreach (var col in colunasProject)
+            {
+                try { db.Database.ExecuteSqlRaw("ALTER TABLE \"Project\" DROP COLUMN \"" + col + "\""); }
+                catch { /* coluna não existe ou SQLite não suporta — ignora */ }
             }
         }
 

@@ -181,7 +181,7 @@ namespace RDO.App.Views
         private void CarregarObras()
         {
             using var db = new RdoDbContext(DbContextHelper.GetOptions());
-            var obras = db.Obras.Where(o => o.Ativo).ToList();
+            var obras = db.Obras.Where(o => o.IsActive).ToList();
 
             _todasObras = obras.Select(o => new ObraViewModel
             {

@@ -94,10 +94,11 @@
               VerticalAlignment="Center">
 
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="300"/>
-                                <ColumnDefinition Width="220"/>
                                 <ColumnDefinition Width="200"/>
-                                <ColumnDefinition Width="180"/>
+                                <ColumnDefinition Width="250"/>
+                                <ColumnDefinition Width="250"/>
+                                <ColumnDefinition Width="160"/>
+                                <ColumnDefinition Width="160"/>
                             </Grid.ColumnDefinitions>
 
                             <!-- Data -->
@@ -167,27 +168,46 @@
                            Foreground="{ThemeResource TextSecondaryBrush}"
                            CharacterSpacing="100"/>
 
-                                <ComboBox x:Name="ResponsavelBox"
-                          Height="38"
-                          HorizontalAlignment="Stretch"
-                          VerticalAlignment="Center"
-                          Background="{ThemeResource AppBgBrush}"
-                          BorderBrush="{ThemeResource AppBorderBrush}"
-                          Foreground="{ThemeResource TextPrimaryBrush}"
-                          PlaceholderText="Selecione"
-                          SelectionChanged="ResponsavelBox_SelectionChanged">
-                                    <ComboBoxItem Content="Bruno Pires"/>
-                                    <ComboBoxItem Content="Felipe Prado"/>
-                                    <ComboBoxItem Content="Juliana Bertoni"/>
-                                    <ComboBoxItem Content="Maicon Salomão"/>
-                                    <ComboBoxItem Content="Murilo Franco"/>
-                                    <ComboBoxItem Content="Wellington Bortolozo"/>
-                                    <ComboBoxItem Content="Wesley Gregório"/>
-                                </ComboBox>
+                                <Button x:Name="ResponsavelBox"
+                                        Height="38"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Left"
+                                        VerticalAlignment="Center"
+                                        Background="{ThemeResource AppBgBrush}"
+                                        BorderBrush="{ThemeResource AppBorderBrush}"
+                                        Foreground="{ThemeResource TextPrimaryBrush}"
+                                        BorderThickness="1"
+                                        Click="Responsaveis_Click">
+                                    <TextBlock x:Name="ResponsavelText" Text="Carregando..." />
+                                </Button>
+                            </StackPanel>
+
+                            <!-- Responsável Cliente -->
+                            <StackPanel Grid.Column="2"
+                                        Spacing="6"
+                                        VerticalAlignment="Center">
+                                <TextBlock Text="RESPONSÁVEL CLIENTE"
+                                           FontSize="9"
+                                           FontWeight="SemiBold"
+                                           Foreground="{ThemeResource TextSecondaryBrush}"
+                                           CharacterSpacing="100"/>
+                                
+                                <Button x:Name="ResponsavelClienteBox"
+                                        Height="38"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Left"
+                                        VerticalAlignment="Center"
+                                        Background="{ThemeResource AppBgBrush}"
+                                        BorderBrush="{ThemeResource AppBorderBrush}"
+                                        Foreground="{ThemeResource TextPrimaryBrush}"
+                                        BorderThickness="1"
+                                        Click="Responsaveis_Click">
+                                    <TextBlock x:Name="ResponsavelClienteText" Text="Carregando..." />
+                                </Button>
                             </StackPanel>
 
                             <!-- CREA -->
-                            <StackPanel Grid.Column="2"
+                            <StackPanel Grid.Column="3"
                         Spacing="6"
                         VerticalAlignment="Center">
                                 <TextBlock Text="CREA"
@@ -212,7 +232,7 @@
                             </StackPanel>
 
                             <!-- Status -->
-                            <StackPanel Grid.Column="3"
+                            <StackPanel Grid.Column="4"
                         Spacing="6"
                         VerticalAlignment="Center">
                                 <TextBlock Text="STATUS"
@@ -259,6 +279,7 @@
 
                             <StackPanel Spacing="0">
 
+                                <!-- Cabeçalho: apenas clima -->
                                 <Border BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="18,12">
                                     <Grid ColumnSpacing="14">
                                         <Grid.ColumnDefinitions>
@@ -266,43 +287,30 @@
                                             <ColumnDefinition Width="110"/>
                                             <ColumnDefinition Width="110"/>
                                             <ColumnDefinition Width="110"/>
-                                            <ColumnDefinition Width="125"/>
-                                            <ColumnDefinition Width="135"/>
                                         </Grid.ColumnDefinitions>
-
                                         <TextBlock Grid.Column="0" Text="PERÍODO" FontSize="9" FontWeight="SemiBold" Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="100" VerticalAlignment="Center"/>
-
                                         <Border Grid.Column="1" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
                                             <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center" VerticalAlignment="Center">
                                                 <TextBlock Text="☀" FontSize="11"/>
                                                 <TextBlock Text="ENSOLARADO" FontSize="9" FontWeight="SemiBold" Foreground="{ThemeResource TextTertiaryBrush}" CharacterSpacing="40"/>
                                             </StackPanel>
                                         </Border>
-
                                         <Border Grid.Column="2" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
                                             <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center" VerticalAlignment="Center">
                                                 <TextBlock Text="⛅" FontSize="11"/>
                                                 <TextBlock Text="NUBLADO" FontSize="9" FontWeight="SemiBold" Foreground="{ThemeResource TextTertiaryBrush}" CharacterSpacing="40"/>
                                             </StackPanel>
                                         </Border>
-
                                         <Border Grid.Column="3" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
                                             <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center" VerticalAlignment="Center">
                                                 <TextBlock Text="🌧" FontSize="11"/>
                                                 <TextBlock Text="CHUVOSO" FontSize="9" FontWeight="SemiBold" Foreground="{ThemeResource TextTertiaryBrush}" CharacterSpacing="40"/>
                                             </StackPanel>
                                         </Border>
-
-                                        <Border Grid.Column="4" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
-                                            <TextBlock Text="PRATICÁVEL" FontSize="9" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" CharacterSpacing="40" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-
-                                        <Border Grid.Column="5" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
-                                            <TextBlock Text="IMPRATICÁVEL" FontSize="9" FontWeight="SemiBold" Foreground="#ff7a7a" CharacterSpacing="40" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
                                     </Grid>
                                 </Border>
 
+                                <!-- Manhã -->
                                 <Border BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="18,14">
                                     <Grid ColumnSpacing="14">
                                         <Grid.ColumnDefinitions>
@@ -310,8 +318,6 @@
                                             <ColumnDefinition Width="110"/>
                                             <ColumnDefinition Width="110"/>
                                             <ColumnDefinition Width="110"/>
-                                            <ColumnDefinition Width="125"/>
-                                            <ColumnDefinition Width="135"/>
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                                             <TextBlock Text="MANHÃ" FontSize="11" FontWeight="SemiBold" Foreground="{ThemeResource TextTertiaryBrush}" CharacterSpacing="60"/>
@@ -326,15 +332,10 @@
                                         <Border Grid.Column="3" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
                                             <CheckBox x:Name="ManhaChuvoso" HorizontalAlignment="Center" MinWidth="32" Width="32" Padding="0"/>
                                         </Border>
-                                        <Border Grid.Column="4" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
-                                            <CheckBox x:Name="ManhaPraticavel" HorizontalAlignment="Center" MinWidth="32" Width="32" Padding="0"/>
-                                        </Border>
-                                        <Border Grid.Column="5" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
-                                            <CheckBox x:Name="ManhaImpraticavel" HorizontalAlignment="Center" MinWidth="32" Width="32" Padding="0"/>
-                                        </Border>
                                     </Grid>
                                 </Border>
 
+                                <!-- Tarde -->
                                 <Border BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="18,14">
                                     <Grid ColumnSpacing="14">
                                         <Grid.ColumnDefinitions>
@@ -342,8 +343,6 @@
                                             <ColumnDefinition Width="110"/>
                                             <ColumnDefinition Width="110"/>
                                             <ColumnDefinition Width="110"/>
-                                            <ColumnDefinition Width="125"/>
-                                            <ColumnDefinition Width="135"/>
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                                             <TextBlock Text="TARDE" FontSize="11" FontWeight="SemiBold" Foreground="{ThemeResource TextTertiaryBrush}" CharacterSpacing="60"/>
@@ -358,15 +357,10 @@
                                         <Border Grid.Column="3" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
                                             <CheckBox x:Name="TardeChuvoso" HorizontalAlignment="Center" MinWidth="32" Width="32" Padding="0"/>
                                         </Border>
-                                        <Border Grid.Column="4" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
-                                            <CheckBox x:Name="TardePraticavel" HorizontalAlignment="Center" MinWidth="32" Width="32" Padding="0"/>
-                                        </Border>
-                                        <Border Grid.Column="5" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
-                                            <CheckBox x:Name="TardeImpraticavel" HorizontalAlignment="Center" MinWidth="32" Width="32" Padding="0"/>
-                                        </Border>
                                     </Grid>
                                 </Border>
 
+                                <!-- Noite -->
                                 <Border Padding="18,14">
                                     <Grid ColumnSpacing="14">
                                         <Grid.ColumnDefinitions>
@@ -374,8 +368,6 @@
                                             <ColumnDefinition Width="110"/>
                                             <ColumnDefinition Width="110"/>
                                             <ColumnDefinition Width="110"/>
-                                            <ColumnDefinition Width="125"/>
-                                            <ColumnDefinition Width="135"/>
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                                             <TextBlock Text="NOITE" FontSize="11" FontWeight="SemiBold" Foreground="{ThemeResource TextTertiaryBrush}" CharacterSpacing="60"/>
@@ -390,10 +382,98 @@
                                         <Border Grid.Column="3" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
                                             <CheckBox x:Name="NoiteChuvoso" HorizontalAlignment="Center" MinWidth="32" Width="32" Padding="0"/>
                                         </Border>
-                                        <Border Grid.Column="4" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- ── CONDIÇÃO DE TRABALHO ── -->
+                <Border Background="{ThemeResource PanelBgBrush}"
+                        BorderBrush="{ThemeResource AppBorderBrush}"
+                        BorderThickness="1" CornerRadius="6" Padding="24">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="CONDIÇÃO DE TRABALHO"
+                                   FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{ThemeResource AccentBrush}" CharacterSpacing="150"/>
+                        <Border Background="{ThemeResource AppBgBrush}"
+                                BorderBrush="{ThemeResource AppBorderBrush}"
+                                BorderThickness="1" CornerRadius="6" HorizontalAlignment="Center">
+                            <StackPanel Spacing="0">
+                                <!-- Cabeçalho -->
+                                <Border BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="18,12">
+                                    <Grid ColumnSpacing="14">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="170"/>
+                                            <ColumnDefinition Width="125"/>
+                                            <ColumnDefinition Width="135"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="PERÍODO" FontSize="9" FontWeight="SemiBold" Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="100" VerticalAlignment="Center"/>
+                                        <Border Grid.Column="1" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
+                                            <TextBlock Text="PRATICÁVEL" FontSize="9" FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}" CharacterSpacing="40" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <Border Grid.Column="2" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
+                                            <TextBlock Text="IMPRATICÁVEL" FontSize="9" FontWeight="SemiBold" Foreground="#ff7a7a" CharacterSpacing="40" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                                <!-- Manhã -->
+                                <Border BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="18,14">
+                                    <Grid ColumnSpacing="14">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="170"/>
+                                            <ColumnDefinition Width="125"/>
+                                            <ColumnDefinition Width="135"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                            <TextBlock Text="MANHÃ" FontSize="11" FontWeight="SemiBold" Foreground="{ThemeResource TextTertiaryBrush}" CharacterSpacing="60"/>
+                                            <TextBlock Text="06h–12h" FontSize="10" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <Border Grid.Column="1" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
+                                            <CheckBox x:Name="ManhaPraticavel" HorizontalAlignment="Center" MinWidth="32" Width="32" Padding="0"/>
+                                        </Border>
+                                        <Border Grid.Column="2" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
+                                            <CheckBox x:Name="ManhaImpraticavel" HorizontalAlignment="Center" MinWidth="32" Width="32" Padding="0"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                                <!-- Tarde -->
+                                <Border BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="18,14">
+                                    <Grid ColumnSpacing="14">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="170"/>
+                                            <ColumnDefinition Width="125"/>
+                                            <ColumnDefinition Width="135"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                            <TextBlock Text="TARDE" FontSize="11" FontWeight="SemiBold" Foreground="{ThemeResource TextTertiaryBrush}" CharacterSpacing="60"/>
+                                            <TextBlock Text="12h–18h" FontSize="10" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <Border Grid.Column="1" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
+                                            <CheckBox x:Name="TardePraticavel" HorizontalAlignment="Center" MinWidth="32" Width="32" Padding="0"/>
+                                        </Border>
+                                        <Border Grid.Column="2" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
+                                            <CheckBox x:Name="TardeImpraticavel" HorizontalAlignment="Center" MinWidth="32" Width="32" Padding="0"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                                <!-- Noite -->
+                                <Border Padding="18,14">
+                                    <Grid ColumnSpacing="14">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="170"/>
+                                            <ColumnDefinition Width="125"/>
+                                            <ColumnDefinition Width="135"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                            <TextBlock Text="NOITE" FontSize="11" FontWeight="SemiBold" Foreground="{ThemeResource TextTertiaryBrush}" CharacterSpacing="60"/>
+                                            <TextBlock Text="18h–06h" FontSize="10" Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <Border Grid.Column="1" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
                                             <CheckBox x:Name="NoitePraticavel" HorizontalAlignment="Center" MinWidth="32" Width="32" Padding="0"/>
                                         </Border>
-                                        <Border Grid.Column="5" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
+                                        <Border Grid.Column="2" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1,0,0,0">
                                             <CheckBox x:Name="NoiteImpraticavel" HorizontalAlignment="Center" MinWidth="32" Width="32" Padding="0"/>
                                         </Border>
                                     </Grid>
@@ -620,6 +700,30 @@
                         </Grid>
                         <StackPanel x:Name="FotosWrapPanel" Orientation="Horizontal"
                                     Spacing="12"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- ── DOCUMENTOS ANEXADOS ── -->
+                <Border Background="{ThemeResource PanelBgBrush}" BorderBrush="{ThemeResource AppBorderBrush}"
+                        BorderThickness="1" CornerRadius="6" Padding="24">
+                    <StackPanel Spacing="12">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <TextBlock Text="DOCUMENTOS ANEXADOS" FontSize="11"
+                                           FontWeight="SemiBold" Foreground="{ThemeResource AccentBrush}"
+                                           CharacterSpacing="150"/>
+                                <Border Background="{ThemeResource AppBorderBrush}" CornerRadius="10" Padding="8,2">
+                                    <TextBlock x:Name="ContadorDocumentos" Text="0"
+                                               FontSize="11" Foreground="{ThemeResource TextTertiaryBrush}"/>
+                                </Border>
+                            </StackPanel>
+                            <Button Content="+ Adicionar documento"
+                                    HorizontalAlignment="Right" Height="34" Padding="14,0"
+                                    Background="{ThemeResource AccentBrush}" BorderThickness="0"
+                                    Foreground="{ThemeResource AccentFgBrush}" FontWeight="SemiBold"
+                                    Click="AdicionarDocumento_Click"/>
+                        </Grid>
+                        <StackPanel x:Name="DocumentosPanel" Spacing="6"/>
                     </StackPanel>
                 </Border>
 

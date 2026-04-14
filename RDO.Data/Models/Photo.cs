@@ -10,6 +10,7 @@ public class Photo : ILocalSyncEntity
     public string RelatedActivity { get; set; } = string.Empty;
     public DateTime TakenAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public string Type { get; set; } = "photo";   // "photo" | "document"
     public bool IsDeleted { get; set; } = false;
     [JsonIgnore] public Report? Report { get; set; }
     public int RelatorioId { get => ReportId; set => ReportId = value; }

@@ -8,6 +8,11 @@ public class RdoDbContext : DbContext
     public RdoDbContext(DbContextOptions<RdoDbContext> options)
         : base(options) { }
 
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        base.OnConfiguring(optionsBuilder);
+    }
+
     // ── Entidades de negócio ─────────────────────────────────────────────────
     public DbSet<Project> Projects { get; set; }
     public DbSet<User> Users { get; set; }

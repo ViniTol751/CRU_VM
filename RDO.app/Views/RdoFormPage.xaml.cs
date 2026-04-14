@@ -1,4 +1,4 @@
-﻿using Microsoft.UI;
+using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -34,6 +34,7 @@ namespace RDO.App.Views
         private readonly List<Atividade> _atividades = new();
         private readonly List<Ocorrencia> _ocorrencias = new();
         private readonly List<Foto> _fotos = new();
+        private readonly List<Foto> _documentos = new();
         private readonly List<int> _funcionarioIds = new();
         private readonly List<int> _equipamentoIds = new();
         private readonly List<int> _acompanhanteIds = new();
@@ -120,11 +121,9 @@ namespace RDO.App.Views
                     var numero = db.Relatorios.Count(r => r.ObraId == obraId && !r.Rascunho) + 1;
                     NumeroRdoTexto.Text = $"Nº {numero:D3}";
                 }
-                for (int i = 0; i < ResponsavelBox.Items.Count; i++)
-                {
-                    if ((ResponsavelBox.Items[i] as ComboBoxItem)?.Content.ToString() == obra.Responsavel)
-                    { ResponsavelBox.SelectedIndex = i; break; }
-                }
+                ResponsavelText.Text = string.IsNullOrEmpty(obra.Responsavel) ? "Não definido" : obra.Responsavel;
+                ResponsavelClienteText.Text = string.IsNullOrEmpty(obra.ResponsavelCliente) ? "Não definido" : obra.ResponsavelCliente;
+                AtualizarCrea(obra.Responsavel);
             }
 
             if (_editRelatorioId > 0)
@@ -221,11 +220,18 @@ namespace RDO.App.Views
                 if (eq != null) AdicionarLinhaEquipamento(eq);
             }
 
-            foreach (var f in rel.Fotos)
+            foreach (var f in rel.Fotos.Where(f => f.Type != "document"))
             {
                 var fotoExistente = new Foto { CaminhoArquivo = f.CaminhoArquivo, Legenda = f.Legenda, TiradaEm = f.TiradaEm };
                 _fotos.Add(fotoExistente);
                 AdicionarFotoExistente(fotoExistente);
+            }
+
+            foreach (var d in rel.Fotos.Where(f => f.Type == "document"))
+            {
+                var docExistente = new Foto { CaminhoArquivo = d.CaminhoArquivo, Legenda = d.Legenda, TiradaEm = d.TiradaEm };
+                _documentos.Add(docExistente);
+                AdicionarDocumentoExistente(docExistente);
             }
 
             // Carrega acompanhantes via join-table (novo) com fallback para o campo legado
@@ -389,10 +395,22 @@ namespace RDO.App.Views
             { "Wesley Gregório",      "5070948640" }
         };
 
-        private void ResponsavelBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void AtualizarCrea(string? nome)
         {
-            var nome = (ResponsavelBox.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "";
-            CreaTexto.Text = _creaMap.TryGetValue(nome, out var crea) ? crea : "—";
+            var nomeStr = nome ?? "";
+            CreaTexto.Text = _creaMap.TryGetValue(nomeStr, out var crea) ? crea : "—";
+        }
+
+        private async void Responsaveis_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new ContentDialog
+            {
+                Title = "Campo bloqueado",
+                Content = "Para alterar os responsáveis do relatório, altere os responsáveis no cadastro da Obra correspondente. As informações são preenchidas automaticamente a partir do cadastro da obra.",
+                CloseButtonText = "OK",
+                XamlRoot = this.XamlRoot
+            };
+            await dialog.ShowAsync();
         }
 
         private void StatusBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -483,7 +501,7 @@ namespace RDO.App.Views
             {
                 Content = "Não encontrou? Cadastrar novo funcionário →",
                 FontSize = 12,
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 200, 160))
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 37, 99, 235))
             };
 
             var form = new StackPanel { Spacing = 12, Width = 420 };
@@ -523,7 +541,7 @@ namespace RDO.App.Views
             var border = new Border
             {
                 Background = TR("AppBgBrush"),
-                BorderBrush = new SolidColorBrush(Color.FromArgb(255, 0, 200, 160)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(255, 37, 99, 235)),
                 BorderThickness = new Thickness(3, 0, 0, 0),
                 Padding = new Thickness(12, 10, 12, 10)
             };
@@ -638,7 +656,7 @@ namespace RDO.App.Views
             {
                 Content = "Não encontrou? Cadastrar novo equipamento →",
                 FontSize = 12,
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 200, 160))
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 37, 99, 235))
             };
 
             var form = new StackPanel { Spacing = 12, Width = 420 };
@@ -678,7 +696,7 @@ namespace RDO.App.Views
             var border = new Border
             {
                 Background = TR("AppBgBrush"),
-                BorderBrush = new SolidColorBrush(Color.FromArgb(255, 0, 200, 160)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(255, 37, 99, 235)),
                 BorderThickness = new Thickness(3, 0, 0, 0),
                 Padding = new Thickness(12, 10, 12, 10)
             };
@@ -755,7 +773,7 @@ namespace RDO.App.Views
             {
                 Content = "Não encontrou? Cadastrar novo acompanhante →",
                 FontSize = 12,
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 200, 160))
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 37, 99, 235))
             };
 
             var form = new StackPanel { Spacing = 12, Width = 420 };
@@ -796,7 +814,7 @@ namespace RDO.App.Views
             var border = new Border
             {
                 Background = TR("AppBgBrush"),
-                BorderBrush = new SolidColorBrush(Color.FromArgb(255, 0, 200, 160)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(255, 37, 99, 235)),
                 BorderThickness = new Thickness(3, 0, 0, 0),
                 Padding = new Thickness(12, 10, 12, 10)
             };
@@ -891,7 +909,7 @@ namespace RDO.App.Views
             var border = new Border
             {
                 Background = TR("PanelBgBrush"),
-                BorderBrush = new SolidColorBrush(Color.FromArgb(255, 0, 200, 160)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(255, 37, 99, 235)),
                 BorderThickness = new Thickness(3, 0, 0, 0),
                 CornerRadius = new Microsoft.UI.Xaml.CornerRadius(4),
                 Padding = new Thickness(12, 10, 12, 10)
@@ -909,7 +927,7 @@ namespace RDO.App.Views
             {
                 Width = 24, Height = 24,
                 CornerRadius = new Microsoft.UI.Xaml.CornerRadius(12),
-                Background = new SolidColorBrush(Color.FromArgb(255, 0, 200, 160)),
+                Background = new SolidColorBrush(Color.FromArgb(255, 37, 99, 235)),
                 VerticalAlignment = VerticalAlignment.Top
             };
             numBadge.Child = new TextBlock
@@ -1024,7 +1042,7 @@ namespace RDO.App.Views
                     saveBtn.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 0, 180, 80));
                     saveBtn.Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 220, 100));
                     ToolTipService.SetToolTip(saveBtn, "Confirmar atividade");
-                    border.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 0, 200, 160));
+                    border.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 37, 99, 235));
                     upBtn.Visibility = Visibility.Collapsed;
                     downBtn.Visibility = Visibility.Collapsed;
                 }
@@ -1273,8 +1291,10 @@ namespace RDO.App.Views
             fimStack.Children.Add(new TextBlock { Text = "FIM", FontSize = 9, FontWeight = new Windows.UI.Text.FontWeight { Weight = 600 }, Foreground = TR("TextSecondaryBrush"), CharacterSpacing = 80 });
             fimStack.Children.Add(fimBox);
 
-
+            sRow.Children.Add(inicioStack);
+            sRow.Children.Add(fimStack);
             mainStack.Children.Add(topRow);
+            mainStack.Children.Add(sRow);
             border.Child = mainStack;
 
             OcorrenciasPanel.Children.Add(border);

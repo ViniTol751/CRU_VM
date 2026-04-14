@@ -267,6 +267,7 @@ public class SyncService
         total += await UpsertLocal(db.Projects, payload.Projects, db,
             (e, i) => { e.Name = i.Name; e.Address = i.Address; e.ART = i.ART;
                 e.Group = i.Group; e.Status = i.Status; e.Manager = i.Manager;
+                e.ClientManager = i.ClientManager;
                 e.ContractType = i.ContractType; e.Client = i.Client;
                 e.StartDate = i.StartDate; e.ExpectedEndDate = i.ExpectedEndDate;
                 e.ImagePath = i.ImagePath; e.IsActive = i.IsActive;
@@ -361,9 +362,19 @@ public class SyncService
             (e, i) => { e.ReportId = i.ReportId; e.CompanionId = i.CompanionId;
                 e.IsDeleted = i.IsDeleted; });
 
+        _currentEntity = "SaveChangesAsync";
         await db.SaveChangesAsync();
         } catch (Exception ex) {
-            var error = $"Erro ao salvar {_currentEntity} localmente: {ex.Message}";
+            // Constrói cadeia completa de mensagens para diagnóstico
+            var innerChain = new System.Text.StringBuilder();
+            var inner = ex.InnerException;
+            while (inner != null)
+            {
+                innerChain.Append(" → ").Append(inner.Message);
+                inner = inner.InnerException;
+            }
+            var fullMessage = ex.Message + (innerChain.Length > 0 ? innerChain.ToString() : "");
+            var error = $"Erro ao salvar {_currentEntity} localmente: {fullMessage}";
             SyncLogger.LogError(new SyncLogEntry
             {
                 Operation       = $"Pull — Upsert {_currentEntity}",
@@ -371,7 +382,7 @@ public class SyncService
                 ErrorType       = ex.GetType().Name,
                 ApiUrl          = pullUrl,
                 UserMessage     = error,
-                TechnicalDetail = ex.Message,
+                TechnicalDetail = fullMessage,
                 StackTrace      = ex.StackTrace ?? "",
                 Diagnosis       = $"• Erro ao persistir entidade '{_currentEntity}' no banco local\n" +
                                   $"• Verifique se as migrations do SQLite estão atualizadas\n" +

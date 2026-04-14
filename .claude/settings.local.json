@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"C:/RDO/RDO\" log --oneline -5)",
+      "Bash(git -C \"C:/RDO/RDO\" stash list)",
+      "Bash(git -C \"C:/RDO/RDO\" show be897a0 --stat)",
+      "Bash(Select-String -Path \"C:/dev/TesteAPI/RDO.Data/Migrations/20260409180159_InitialCreate.cs\" -Pattern \"ClientManager|Project\")",
+      "Bash(Select-Object -First 20)"
+    ],
+    "additionalDirectories": [
+      "C:\\dev\\TesteAPI\\RDO.Data\\Migrations"
+    ]
+  }
+}
