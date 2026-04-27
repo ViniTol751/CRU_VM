@@ -287,26 +287,67 @@ namespace RDO.App.Views
 
         private async void RegistrarBtn_Click(object sender, RoutedEventArgs e)
         {
-            var nomeBox = new TextBox
+            var passo = 1;
+            var criouConta = false;
+
+            // ── Passo 1: Identificação ─────────────────────────────────────────
+            var nomeBox = new TextBox { PlaceholderText = "Nome completo", Header = "NOME COMPLETO" };
+            var loginBox = new TextBox { PlaceholderText = "Ex: vinicius.toledo", Header = "USUÁRIO / LOGIN" };
+            nomeBox.TextChanged += (s, ev) => loginBox.Text = GerarLogin(nomeBox.Text);
+
+            var panel1 = new StackPanel { Spacing = 14 };
+            panel1.Children.Add(nomeBox);
+            panel1.Children.Add(loginBox);
+
+            // ── Passo 2: Dados profissionais ───────────────────────────────────
+            var funcaoBox = new TextBox { PlaceholderText = "Ex: Eletricista, Engenheiro...", Header = "FUNÇÃO" };
+            var emailContatoBox = new TextBox { PlaceholderText = "Ex: nome@focuseng.com.br", Header = "E-MAIL DE CONTATO (opcional)" };
+
+            var panel2 = new StackPanel { Spacing = 14, Visibility = Visibility.Collapsed };
+            panel2.Children.Add(funcaoBox);
+            panel2.Children.Add(emailContatoBox);
+
+            // ── Passo 3: Segurança ─────────────────────────────────────────────
+            var senhaBox = new PasswordBox { PlaceholderText = "Mínimo 6 caracteres", Header = "SENHA" };
+            var confirmarBox = new PasswordBox { PlaceholderText = "Confirme a senha", Header = "CONFIRMAR SENHA" };
+
+            var panel3 = new StackPanel { Spacing = 14, Visibility = Visibility.Collapsed };
+            panel3.Children.Add(senhaBox);
+            panel3.Children.Add(confirmarBox);
+
+            // ── Indicador de passos ────────────────────────────────────────────
+            Border MakeDot() => new Border
             {
-                PlaceholderText = "Nome completo",
-                Header = "NOME COMPLETO"
+                Width = 9, Height = 9,
+                CornerRadius = new CornerRadius(5),
+                Background = new SolidColorBrush(Color.FromArgb(255, 160, 165, 190))
             };
-            var loginBox = new TextBox
+            var dot1 = MakeDot(); var dot2 = MakeDot(); var dot3 = MakeDot();
+            var passoTexto = new TextBlock
             {
-                PlaceholderText = "Ex: vinicius.toledo",
-                Header = "USUÁRIO / LOGIN"
+                FontSize = 11,
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 120, 125, 150)),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center
             };
-            var senhaBox = new PasswordBox
+            var dotsPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 7, VerticalAlignment = VerticalAlignment.Center };
+            dotsPanel.Children.Add(dot1); dotsPanel.Children.Add(dot2); dotsPanel.Children.Add(dot3);
+            var indicatorGrid = new Grid { Margin = new Thickness(0, 0, 0, 6) };
+            indicatorGrid.Children.Add(dotsPanel);
+            indicatorGrid.Children.Add(passoTexto);
+
+            var accent = Color.FromArgb(255, 37, 99, 235);
+            var muted  = Color.FromArgb(255, 160, 165, 190);
+            void AtualizarIndicador(int p)
             {
-                PlaceholderText = "Mínimo 6 caracteres",
-                Header = "SENHA"
-            };
-            var confirmarBox = new PasswordBox
-            {
-                PlaceholderText = "Confirme a senha",
-                Header = "CONFIRMAR SENHA"
-            };
+                dot1.Background = new SolidColorBrush(p >= 1 ? accent : muted);
+                dot2.Background = new SolidColorBrush(p >= 2 ? accent : muted);
+                dot3.Background = new SolidColorBrush(p >= 3 ? accent : muted);
+                passoTexto.Text = $"Passo {p} de 3";
+            }
+            AtualizarIndicador(1);
+
+            // ── Mensagem de erro ───────────────────────────────────────────────
             var erroMsg = new TextBlock
             {
                 Foreground = new SolidColorBrush(Color.FromArgb(255, 230, 80, 80)),
@@ -315,84 +356,177 @@ namespace RDO.App.Views
                 Visibility = Visibility.Collapsed
             };
 
-            nomeBox.TextChanged += (s, ev) =>
-                loginBox.Text = GerarLogin(nomeBox.Text);
-
             var form = new StackPanel { Spacing = 14, Width = 360 };
-            form.Children.Add(nomeBox);
-            form.Children.Add(loginBox);
-            form.Children.Add(senhaBox);
-            form.Children.Add(confirmarBox);
+            form.Children.Add(indicatorGrid);
+            form.Children.Add(panel1);
+            form.Children.Add(panel2);
+            form.Children.Add(panel3);
             form.Children.Add(erroMsg);
 
             var dialog = new ContentDialog
             {
                 Title = "Registrar Conta",
                 Content = form,
-                PrimaryButtonText = "Criar conta",
+                PrimaryButtonText = "Próximo",
+                SecondaryButtonText = "Voltar",
                 CloseButtonText = "Cancelar",
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = this.XamlRoot
             };
+            dialog.IsSecondaryButtonEnabled = false;
 
-            while (true)
+            dialog.PrimaryButtonClick += (s, args) =>
             {
-                var result = await dialog.ShowAsync();
-                if (result != ContentDialogResult.Primary) break;
+                args.Cancel = true;
+                erroMsg.Visibility = Visibility.Collapsed;
 
-                var nome     = nomeBox.Text.Trim();
+                if (passo == 1)
+                {
+                    var nome  = nomeBox.Text.Trim();
+                    var login = loginBox.Text.Trim();
+                    if (string.IsNullOrEmpty(nome) || string.IsNullOrEmpty(login))
+                    {
+                        erroMsg.Text = "Preencha o nome e o usuário.";
+                        erroMsg.Visibility = Visibility.Visible;
+                        return;
+                    }
+                    using var db = new RdoDbContext(DbContextHelper.GetOptions());
+                    if (db.Usuarios.Any(u => u.Email == login))
+                    {
+                        erroMsg.Text = $"O usuário \"{login}\" já existe.";
+                        erroMsg.Visibility = Visibility.Visible;
+                        return;
+                    }
+                    passo = 2;
+                    panel1.Visibility = Visibility.Collapsed;
+                    panel2.Visibility = Visibility.Visible;
+                    dialog.IsSecondaryButtonEnabled = true;
+                    AtualizarIndicador(2);
+                }
+                else if (passo == 2)
+                {
+                    if (string.IsNullOrEmpty(funcaoBox.Text.Trim()))
+                    {
+                        erroMsg.Text = "Informe a função.";
+                        erroMsg.Visibility = Visibility.Visible;
+                        return;
+                    }
+                    passo = 3;
+                    panel2.Visibility = Visibility.Collapsed;
+                    panel3.Visibility = Visibility.Visible;
+                    dialog.PrimaryButtonText = "Criar conta";
+                    AtualizarIndicador(3);
+                }
+                else
+                {
+                    var senha    = senhaBox.Password;
+                    var confirma = confirmarBox.Password;
+                    if (string.IsNullOrEmpty(senha))
+                    {
+                        erroMsg.Text = "Informe a senha.";
+                        erroMsg.Visibility = Visibility.Visible;
+                        return;
+                    }
+                    if (senha != confirma)
+                    {
+                        erroMsg.Text = "As senhas não coincidem.";
+                        erroMsg.Visibility = Visibility.Visible;
+                        return;
+                    }
+                    if (senha.Length < 6)
+                    {
+                        erroMsg.Text = "A senha deve ter ao menos 6 caracteres.";
+                        erroMsg.Visibility = Visibility.Visible;
+                        return;
+                    }
+                    try
+                    {
+                        using var db = new RdoDbContext(DbContextHelper.GetOptions());
+                        var loginVal = loginBox.Text.Trim();
+                        var nome     = nomeBox.Text.Trim();
+                        var funcao   = funcaoBox.Text.Trim();
+                        var contato  = emailContatoBox.Text.Trim();
+
+                        db.Usuarios.Add(new RDO.Data.Models.User
+                        {
+                            Nome      = nome,
+                            Email     = loginVal,
+                            SenhaHash = PasswordHasher.Hash(senha),
+                            Perfil    = "Technician",
+                            Ativo     = true
+                        });
+                        db.Funcionarios.Add(new Funcionario
+                        {
+                            Nome    = nome,
+                            Funcao  = funcao,
+                            Tipo    = "Próprio",
+                            Empresa = "Focus Engenharia Elétrica",
+                            Contato = contato,
+                            Ativo   = true
+                        });
+                        db.SaveChanges();
+                        criouConta = true;
+                        args.Cancel = false;
+                    }
+                    catch (Exception)
+                    {
+                        erroMsg.Text = "Não foi possível criar a conta. Tente novamente.";
+                        erroMsg.Visibility = Visibility.Visible;
+                    }
+                }
+            };
+
+            dialog.SecondaryButtonClick += (s, args) =>
+            {
+                args.Cancel = true;
+                erroMsg.Visibility = Visibility.Collapsed;
+                if (passo == 2)
+                {
+                    passo = 1;
+                    panel2.Visibility = Visibility.Collapsed;
+                    panel1.Visibility = Visibility.Visible;
+                    dialog.PrimaryButtonText = "Próximo";
+                    dialog.IsSecondaryButtonEnabled = false;
+                    AtualizarIndicador(1);
+                }
+                else if (passo == 3)
+                {
+                    passo = 2;
+                    panel3.Visibility = Visibility.Collapsed;
+                    panel2.Visibility = Visibility.Visible;
+                    dialog.PrimaryButtonText = "Próximo";
+                    AtualizarIndicador(2);
+                }
+            };
+
+            await dialog.ShowAsync();
+
+            if (criouConta)
+            {
                 var loginVal = loginBox.Text.Trim();
-                var senha    = senhaBox.Password;
-                var confirma = confirmarBox.Password;
-
-                if (string.IsNullOrEmpty(nome) || string.IsNullOrEmpty(loginVal) || string.IsNullOrEmpty(senha))
-                {
-                    erroMsg.Text = "Preencha todos os campos.";
-                    erroMsg.Visibility = Visibility.Visible;
-                    continue;
-                }
-                if (senha != confirma)
-                {
-                    erroMsg.Text = "As senhas não coincidem.";
-                    erroMsg.Visibility = Visibility.Visible;
-                    continue;
-                }
-                if (senha.Length < 6)
-                {
-                    erroMsg.Text = "A senha deve ter ao menos 6 caracteres.";
-                    erroMsg.Visibility = Visibility.Visible;
-                    continue;
-                }
-
-                using var db = new RdoDbContext(DbContextHelper.GetOptions());
-                if (db.Usuarios.Any(u => u.Email == loginVal))
-                {
-                    erroMsg.Text = $"O usuário \"{loginVal}\" já existe.";
-                    erroMsg.Visibility = Visibility.Visible;
-                    continue;
-                }
-
-                db.Usuarios.Add(new RDO.Data.Models.User
-                {
-                    Nome      = nome,
-                    Email     = loginVal,
-                    SenhaHash = PasswordHasher.Hash(senha),
-                    Perfil    = "Technician",
-                    Ativo     = true
-                });
-                db.SaveChanges();
-
                 var ok = new ContentDialog
                 {
                     Title = "Conta criada",
-                    Content = $"Conta \"{loginVal}\" criada com sucesso. Faça login para entrar.",
+                    Content = new StackPanel
+                    {
+                        Spacing = 6,
+                        Children =
+                        {
+                            new TextBlock { Text = $"Conta \"{loginVal}\" criada com sucesso.", TextWrapping = Microsoft.UI.Xaml.TextWrapping.Wrap },
+                            new TextBlock
+                            {
+                                Text = "Funcionário registrado automaticamente nos cadastros como colaborador da Focus Engenharia Elétrica.",
+                                FontSize = 12,
+                                TextWrapping = Microsoft.UI.Xaml.TextWrapping.Wrap,
+                                Foreground = new SolidColorBrush(Color.FromArgb(255, 100, 180, 100))
+                            }
+                        }
+                    },
                     CloseButtonText = "OK",
                     XamlRoot = this.XamlRoot
                 };
                 await ok.ShowAsync();
-
                 EmailBox.Text = loginVal;
-                break;
             }
         }
 
