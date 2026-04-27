@@ -16,313 +16,760 @@ namespace RDO.App.Services
 {
     public static class RdoPdfExportService
     {
+        // Paleta PROFISSIONAL EM TONS DE CINZA para relatórios de obra
+        private const string CorPreta = "#000000";
+        private const string CorTexto = "#212529";  // Cinza muito escuro (quase preto)
+        private const string CorLabelCinza = "#495057";  // Cinza médio escuro para labels
+        private const string CorBorda = "#343a40";  // Cinza escuro para bordas principais
+        private const string CorBordaInterna = "#dee2e6";  // Cinza claro para divisórias internas
+        private const string CorCabecalhoSec = "#e9ecef";  // Cinza claro para cabeçalhos
+        private const string CorLinhaAltern = "#f8f9fa";  // Cinza muito claro para linhas alternadas
+        private const string CorBranco = "#FFFFFF";
+        private const string CorAprovado = "#28a745";  // Verde profissional
+        private const string CorRascunho = "#6c757d";  // Cinza médio
+        private const string CorVermelho = "#dc3545";  // Vermelho profissional
+        private const string CorAmarelo = "#ffc107";  // Amarelo
+        private const string CorDestaque = "#007bff";  // Azul para destaques
+
+        // Mapeamento de responsáveis Focus para CREA
+        private static readonly Dictionary<string, string> CreaMap = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Bruno Pires",          "5063435630" },
+            { "Felipe Prado",         "5063687510" },
+            { "Juliana Bertoni",      "5063687927" },
+            { "Maicon Salomão",       "5070334847" },
+            { "Murilo Franco",        "5068975820" },
+            { "Wellington Bortolozo", "5070173544" },
+            { "Wesley Gregório",      "5070948640" }
+        };
+
+        private static string ObterCrea(string? responsavelFocus)
+        {
+            if (string.IsNullOrWhiteSpace(responsavelFocus))
+                return "—";
+
+            return CreaMap.TryGetValue(responsavelFocus.Trim(), out var crea) ? crea : "—";
+        }
+
         static RdoPdfExportService()
         {
             QuestPDF.Settings.License = LicenseType.Community;
         }
 
-        public static Task<string?> ExportAsync(int relatorioId)
-            => Task.Run(() => Export(relatorioId));
-
-        private static string? Export(int relatorioId)
+        public static async Task<string?> ExportAsync(int relatorioId)
         {
-            using var db = new RdoDbContext(DbContextHelper.GetOptions());
-
-            var rel = db.Relatorios
-                .Include(r => r.Project)
-                .Include(r => r.WeatherDetails)
-                .Include(r => r.Activities)
-                .Include(r => r.Occurrences)
-                .Include(r => r.Photos)
-                .Include(r => r.Companion)
-                .Include(r => r.Signatures)
-                .Include(r => r.Equipments).ThenInclude(re => re.Equipment)
-                .Include(r => r.ReportCompanions).ThenInclude(ra => ra.Companion!)
-                .FirstOrDefault(r => r.Id == relatorioId);
-
-            if (rel == null || rel.Obra == null) return null;
-
-            var pasta = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                "Downloads");
-            Directory.CreateDirectory(pasta);
-
-            var nomeSeguro = Regex.Replace(rel.Obra.Nome, @"[\\/:*?""<>|]", "_").Trim();
-            var nomeArquivo = $"{rel.Data:yy-MM-dd}_{nomeSeguro}.pdf";
-            var caminho = Path.Combine(pasta, nomeArquivo);
-
-            var pdfBytes = Document.Create(container =>
+            // Resolve client logo path before entering Task.Run so WinRT async is available
+            string? clientLogoPath = null;
+            using (var db = new RdoDbContext(DbContextHelper.GetOptions()))
             {
-                container.Page(page =>
+                var relLight = db.Relatorios
+                    .Include(r => r.Project)
+                    .FirstOrDefault(r => r.Id == relatorioId);
+                var grupo = relLight?.Obra?.Grupo;
+                if (!string.IsNullOrEmpty(grupo))
                 {
-                    page.Size(PageSizes.A4);
-                    page.Margin(1.5f, Unit.Centimetre);
-                    page.DefaultTextStyle(t => t.FontFamily("Arial").FontSize(9).FontColor("#1a2a3a"));
+                    var cfg = LogosConfig.Load();
+                    var empresa = db.Empresas.Where(e => e.IsActive).AsEnumerable()
+                        .FirstOrDefault(e => LogoService.GetBaseNome(e.Nome)
+                            .Equals(grupo, StringComparison.OrdinalIgnoreCase));
+                    if (empresa != null)
+                        clientLogoPath = LogoService.ResolveLogoUrl(cfg, empresa.ImagemPath, empresa.Nome);
+                }
+            }
 
-                    page.Header().Element(c => DesenharCabecalho(c, rel));
-                    page.Content().PaddingTop(12).Column(col =>
-                    {
-                        col.Spacing(10);
-                        col.Item().Element(c => SecaoIdentificacao(c, rel));
-                        col.Item().Element(c => SecaoClima(c, rel));
-                        // Acompanhantes: prioriza join-table; fallback para campo legado
-                        var acomps = rel.RelatorioAcompanhantes.Select(ra => ra.Companion).Where(a => a != null).Select(a => a!).ToList();
-                        if (acomps.Count == 0 && rel.Companion != null)
-                            acomps.Add(rel.Companion);
-                        if (acomps.Count > 0)
-                            col.Item().Element(c => SecaoAcompanhantes(c, acomps));
-                        if (rel.Equipamentos.Any())
-                            col.Item().Element(c => SecaoEquipamentos(c, rel));
-                        col.Item().Element(c => SecaoEquipe(c, rel));
-                        col.Item().Element(c => SecaoAtividades(c, rel));
-                        col.Item().Element(c => SecaoOcorrencias(c, rel));
-                        if (rel.Fotos.Any())
-                            col.Item().Element(c => SecaoFotos(c, rel));
-                    });
-                    page.Footer().AlignCenter().Text(t =>
-                    {
-                        t.Span("Focus Engenharia Elétrica  |  Página ").FontSize(8).FontColor("#6080a0");
-                        t.CurrentPageNumber().FontSize(8).FontColor("#6080a0");
-                        t.Span(" de ").FontSize(8).FontColor("#6080a0");
-                        t.TotalPages().FontSize(8).FontColor("#6080a0");
-                    });
-                });
-            }).GeneratePdf();
+            // Flatten logos to white via WinRT (guaranteed to work in MSIX — no System.Drawing)
+            var focusLogoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "focus_logo.png");
+            var flatFocus = await LogoService.FlattenToWhiteAsync(focusLogoPath);
+            var flatClient = await LogoService.FlattenToWhiteAsync(clientLogoPath);
 
-            // Tenta sobrescrever; se o arquivo estiver aberto/bloqueado, salva com sufixo de hora
+            byte[]? focusBytes = flatFocus != null && File.Exists(flatFocus) ? File.ReadAllBytes(flatFocus) : null;
+            byte[]? clientBytes = flatClient != null && File.Exists(flatClient) ? File.ReadAllBytes(flatClient) : null;
+
+            return await Task.Run(() => Export(relatorioId, focusBytes, clientBytes));
+        }
+
+        private static string? Export(int relatorioId, byte[]? focusBytes, byte[]? clientBytes)
+        {
             try
             {
-                File.WriteAllBytes(caminho, pdfBytes);
-            }
-            catch (IOException)
-            {
-                var altNome = $"{rel.Data:yy-MM-dd}_{nomeSeguro}_{DateTime.Now:HHmmss}.pdf";
-                caminho = Path.Combine(pasta, altNome);
-                File.WriteAllBytes(caminho, pdfBytes);
-            }
+                using var db = new RdoDbContext(DbContextHelper.GetOptions());
 
-            return caminho;
+                var rel = db.Relatorios
+                    .Include(r => r.Project)
+                    .Include(r => r.WeatherDetails)
+                    .Include(r => r.Activities)
+                    .Include(r => r.Occurrences)
+                    .Include(r => r.Photos)
+                    .Include(r => r.Companion)
+                    .Include(r => r.Signatures)
+                    .Include(r => r.Equipments).ThenInclude(re => re.Equipment)
+                    .Include(r => r.ReportCompanions).ThenInclude(ra => ra.Companion!)
+                    .FirstOrDefault(r => r.Id == relatorioId);
+
+                if (rel == null || rel.Obra == null) return null;
+
+                var pasta = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    "Downloads");
+                Directory.CreateDirectory(pasta);
+
+                var nomeSeguro = Regex.Replace(rel.Obra.Nome, @"[\\/:*?""<>|]", "_").Trim();
+                var nomeArquivo = $"{rel.Data:yy-MM-dd}_{nomeSeguro}.pdf";
+                var caminho = Path.Combine(pasta, nomeArquivo);
+
+                var fotos = rel.Fotos.Where(f => f.Type != "document").ToList();
+                var docs = rel.Fotos.Where(f => f.Type == "document").ToList();
+                var pastaAnexos = docs.Any()
+                    ? Path.Combine(pasta, Path.GetFileNameWithoutExtension(nomeArquivo) + "_Anexos")
+                    : null;
+
+                var pdfBytes = Document.Create(container =>
+                {
+                    container.Page(page =>
+                    {
+                        page.Size(PageSizes.A4);
+                        page.Margin(1.5f, Unit.Centimetre);
+                        page.DefaultTextStyle(t => t
+                            .FontFamily("Segoe UI", "Arial", "Helvetica")
+                            .FontSize(9)
+                            .FontColor(CorTexto)
+                            .LineHeight(1.4f));
+
+                        page.Header().Element(c => DesenharCabecalho(c, rel, focusBytes, clientBytes));
+                        page.Content().PaddingTop(10).Column(col =>
+                        {
+                            try
+                            {
+                                col.Spacing(6);
+
+                                System.Diagnostics.Debug.WriteLine("[PDF] Renderizando Identificação...");
+                                col.Item().Element(c => SecaoIdentificacao(c, rel));
+
+                                System.Diagnostics.Debug.WriteLine("[PDF] Renderizando Clima...");
+                                col.Item().Element(c => SecaoClima(c, rel));
+
+                                var acomps = rel.RelatorioAcompanhantes
+                                    .Select(ra => ra.Companion).Where(a => a != null).Select(a => a!).ToList();
+                                if (acomps.Count == 0 && rel.Companion != null)
+                                    acomps.Add(rel.Companion);
+                                if (acomps.Count > 0)
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"[PDF] Renderizando Acompanhantes ({acomps.Count})...");
+                                    col.Item().Element(c => SecaoAcompanhantes(c, acomps));
+                                }
+
+                                System.Diagnostics.Debug.WriteLine("[PDF] Renderizando Equipe...");
+                                col.Item().Element(c => SecaoEquipe(c, rel));
+
+                                if (rel.Equipamentos.Any())
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"[PDF] Renderizando Equipamentos ({rel.Equipamentos.Count})...");
+                                    col.Item().Element(c => SecaoEquipamentos(c, rel));
+                                }
+
+                                System.Diagnostics.Debug.WriteLine($"[PDF] Renderizando Atividades ({rel.Activities.Count})...");
+                                col.Item().Element(c => SecaoAtividades(c, rel));
+
+                                System.Diagnostics.Debug.WriteLine($"[PDF] Renderizando Ocorrências ({rel.Occurrences.Count})...");
+                                col.Item().Element(c => SecaoOcorrencias(c, rel));
+
+                                // Limita a 20 fotos para evitar problemas de layout
+                                const int MAX_FOTOS = 20;
+                                if (fotos.Count > MAX_FOTOS)
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"[PDF] Limitando fotos de {fotos.Count} para {MAX_FOTOS}");
+                                    col.Item().Border(1).BorderColor("#ff9800").Background("#fff3e0")
+                                        .Padding(8).Text($"⚠️ Este relatório tem {fotos.Count} fotos. " +
+                                        $"Apenas as primeiras {MAX_FOTOS} serão incluídas no PDF para evitar problemas de layout.")
+                                        .FontSize(8).FontColor("#e65100");
+                                    fotos = fotos.Take(MAX_FOTOS).ToList();
+                                }
+
+                                if (fotos.Any())
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"[PDF] Renderizando Fotos ({fotos.Count})...");
+                                    col.Item().Element(c => SecaoFotos(c, fotos));
+                                }
+
+                                if (docs.Any())
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"[PDF] Renderizando Documentos ({docs.Count})...");
+                                    col.Item().Element(c => SecaoDocumentos(c, docs, pastaAnexos));
+                                }
+
+                                System.Diagnostics.Debug.WriteLine("[PDF] ✓ Todas as seções renderizadas com sucesso");
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[PDF] ✗ Erro ao renderizar seção: {ex.Message}");
+                                throw;
+                            }
+                        });
+
+                        page.Footer().BorderTop(1).BorderColor(CorBorda).PaddingTop(4).Row(row =>
+                        {
+                            row.RelativeItem().Text($"Relatório {rel.Data:dd/MM/yyyy} n° {rel.Numero:D3} · Rev. {rel.Revisao:D2}")
+                                .FontSize(8).FontColor(CorLabelCinza);
+                            row.ConstantItem(60).AlignRight().Text(t =>
+                            {
+                                t.CurrentPageNumber().FontSize(8).FontColor(CorLabelCinza);
+                                t.Span(" / ").FontSize(8).FontColor(CorLabelCinza);
+                                t.TotalPages().FontSize(8).FontColor(CorLabelCinza);
+                            });
+                        });
+                    });
+                }).GeneratePdf();
+
+                try
+                {
+                    File.WriteAllBytes(caminho, pdfBytes);
+                }
+                catch (IOException)
+                {
+                    var altNome = $"{rel.Data:yy-MM-dd}_{nomeSeguro}_{DateTime.Now:HHmmss}.pdf";
+                    caminho = Path.Combine(pasta, altNome);
+                    if (pastaAnexos != null)
+                        pastaAnexos = Path.Combine(pasta, Path.GetFileNameWithoutExtension(altNome) + "_Anexos");
+                    File.WriteAllBytes(caminho, pdfBytes);
+                }
+
+                // Copia documentos para pasta _Anexos ao lado do PDF
+                if (pastaAnexos != null && docs.Any())
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(pastaAnexos);
+                        foreach (var d in docs)
+                        {
+                            if (File.Exists(d.CaminhoArquivo))
+                            {
+                                var destino = Path.Combine(pastaAnexos, Path.GetFileName(d.CaminhoArquivo));
+                                File.Copy(d.CaminhoArquivo, destino, overwrite: true);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[PDF] Aviso: erro ao copiar anexos — {ex.Message}");
+                    }
+                }
+
+                return caminho;
+            }
+            catch (QuestPDF.Drawing.Exceptions.DocumentLayoutException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PDF] Erro de layout: {ex.Message}");
+                // Expõe o detalhe QuestPDF para facilitar diagnóstico
+                var detalhe = ex.Message.Length > 400 ? ex.Message[..400] : ex.Message;
+                throw new Exception($"Erro de layout PDF:\n{detalhe}", ex);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PDF] Erro inesperado: {ex.Message}");
+                throw new Exception($"Erro ao gerar PDF: {ex.Message}", ex);
+            }
+        }
+
+        // Achata a transparência de um PNG para fundo branco (evita xadrez no PDF)
+        private static byte[]? AchatarLogoParaBranco(string? path)
+        {
+            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return null;
+            try
+            {
+                using var src = System.Drawing.Image.FromFile(path);
+                using var bmp = new System.Drawing.Bitmap(src.Width, src.Height,
+                    System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+                using var g = System.Drawing.Graphics.FromImage(bmp);
+                g.Clear(System.Drawing.Color.White);
+                g.DrawImage(src, 0, 0, src.Width, src.Height);
+                using var ms = new MemoryStream();
+                bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                return ms.ToArray();
+            }
+            catch { return null; }
         }
 
         // ── CABEÇALHO ─────────────────────────────────────────────────────────
-        private static void DesenharCabecalho(IContainer c, Data.Models.Report rel)
+        // Modelo: logo Focus + logo empresa (esquerda) | metadados + badge Aprovado (direita)
+        private static void DesenharCabecalho(IContainer c, Data.Models.Report rel, byte[]? focusBytes, byte[]? clientBytes)
         {
-            c.BorderBottom(1).BorderColor("#0052cc").PaddingBottom(8).Row(row =>
+
+            c.Column(outer =>
             {
-                row.RelativeItem().Column(col =>
+                outer.Item().Row(row =>
                 {
-                    col.Item().Text("FOCUS ENGENHARIA ELÉTRICA")
-                        .FontSize(16).Bold().FontColor("#0052cc");
-                    col.Item().Text("RELATÓRIO DIÁRIO DE OBRA — RDO")
-                        .FontSize(10).FontColor("#5a6f8a");
+                    // ── Logos à esquerda ──────────────────────────────────────
+                    row.RelativeItem().AlignMiddle().Row(logoRow =>
+                    {
+                        // Logo Focus Engenharia Elétrica
+                        if (focusBytes != null)
+                            logoRow.RelativeItem(3).Padding(6).MaxHeight(60).Image(focusBytes).FitArea();
+                        else
+                            logoRow.RelativeItem(3).AlignCenter()
+                                .Text("focus").FontSize(10).Bold().FontColor(CorPreta);
+
+                        logoRow.ConstantItem(16);
+
+                        // Logo do cliente (empresa da obra)
+                        if (clientBytes != null)
+                            logoRow.RelativeItem(2).Padding(6).MaxHeight(60).Image(clientBytes).FitArea();
+                        else
+                            logoRow.RelativeItem(2).AlignMiddle()
+                                .Text(rel.Obra?.Grupo ?? "").FontSize(9).FontColor(CorLabelCinza);
+                    });
+
+                    // ── Metadados + badge à direita ───────────────────────────
+                    row.ConstantItem(230).Column(rightCol =>
+                    {
+                        rightCol.Item().Row(topRow =>
+                        {
+                            topRow.RelativeItem();
+                            topRow.ConstantItem(85).AlignRight().AlignMiddle()
+                                .Border(0)
+                                .Background(CorAprovado)
+                                .PaddingVertical(4).PaddingHorizontal(6)
+                                .Text("PUBLICADO")
+                                .FontSize(9).Bold()
+                                .FontColor(CorBranco);
+                        });
+
+                        rightCol.Item().PaddingTop(5).Border(1).BorderColor(CorBorda).Table(table =>
+                        {
+                            table.ColumnsDefinition(cols =>
+                            {
+                                cols.RelativeColumn(2);
+                                cols.RelativeColumn(3);
+                            });
+
+                            void MetaLinha(string label, string valor, bool ultimaLinha = false)
+                            {
+                                var bordaBottom = ultimaLinha ? 0 : 1;
+                                table.Cell()
+                                    .BorderBottom(bordaBottom).BorderRight(1).BorderColor(CorBordaInterna)
+                                    .Background(CorCabecalhoSec)
+                                    .Padding(6).Text(label).Bold().FontSize(8).FontColor(CorLabelCinza);
+                                table.Cell()
+                                    .BorderBottom(bordaBottom).BorderColor(CorBordaInterna)
+                                    .Padding(6).Text(valor).FontSize(9).FontColor(CorTexto);
+                            }
+
+                            MetaLinha("Relatório n°", rel.Numero.ToString("D3"));
+                            MetaLinha("Data do relatório", rel.Data.ToString("dd/MM/yyyy"));
+                            MetaLinha("Dia da semana", rel.Data.DayOfWeek switch
+                            {
+                                DayOfWeek.Sunday => "Domingo",
+                                DayOfWeek.Monday => "Segunda-feira",
+                                DayOfWeek.Tuesday => "Terça-feira",
+                                DayOfWeek.Wednesday => "Quarta-feira",
+                                DayOfWeek.Thursday => "Quinta-feira",
+                                DayOfWeek.Friday => "Sexta-feira",
+                                _ => "Sábado"
+                            });
+                            MetaLinha("Revisão", $"Rev. {rel.Revisao:D2}", ultimaLinha: true);
+                        });
+                    });
                 });
-                row.ConstantItem(160).AlignRight().Column(col =>
-                {
-                    col.Item().Text($"Nº {rel.Numero:D3}").FontSize(20).Bold().FontColor("#0052cc").AlignRight();
-                    col.Item().Text(rel.Data.ToString("dd/MM/yyyy")).FontSize(11).FontColor("#1a2a3a").AlignRight();
-                    if (rel.Status == "Publicado")
-                        col.Item().AlignRight().Text(t =>
-                            t.Span(" ✓  PUBLICADO ").FontSize(9).Bold()
-                             .FontColor("#00dd77").BackgroundColor("#0a3a1a"));
-                    else
-                        col.Item().Text(rel.Status).FontSize(9).FontColor("#5a6f8a").AlignRight();
-                });
+
+                outer.Item().PaddingTop(8).LineHorizontal(1).LineColor(CorBorda);
             });
         }
 
         // ── IDENTIFICAÇÃO DA OBRA ─────────────────────────────────────────────
+        // Sem campo "Contratante" (= Resp. Cliente). CREA do responsável Focus exibido.
         private static void SecaoIdentificacao(IContainer c, Data.Models.Report rel)
         {
-            c.Column(col =>
+            c.Border(1).BorderColor(CorBorda).Column(bloco =>
             {
-                col.Item().Element(CabecalhoSecao("IDENTIFICAÇÃO DA OBRA"));
-                col.Item().Border(1).BorderColor("#d0dce8").Table(table =>
-                {
-                    table.ColumnsDefinition(cols =>
-                    {
-                        cols.ConstantColumn(120);
-                        cols.RelativeColumn();
-                        cols.ConstantColumn(120);
-                        cols.RelativeColumn();
-                    });
+                // Cabeçalho da seção
+                bloco.Item()
+                    .Background(CorCabecalhoSec)
+                    .BorderBottom(2).BorderColor(CorBorda)
+                    .Padding(8)
+                    .Text("Relatório Diário de Obra (RDO)")
+                    .FontSize(11).Bold().FontColor(CorLabelCinza);
 
-                    void Linha(string l1, string v1, string l2, string v2)
-                    {
-                        table.Cell().Background("#f0f4f8").Padding(5).Text(l1).Bold().FontColor("#0052cc");
-                        table.Cell().Padding(5).Text(v1);
-                        table.Cell().Background("#f0f4f8").Padding(5).Text(l2).Bold().FontColor("#0052cc");
-                        table.Cell().Padding(5).Text(v2);
-                    }
-
-                    Linha("Obra:", rel.Obra!.Nome, "Grupo/Cliente:", rel.Obra!.Grupo);
-                    Linha("Endereço:", rel.Obra!.Endereco, "ART/RRT:", rel.Obra!.ART);
-                    Linha("Responsável:", rel.Obra!.Responsavel, "Contratante:", rel.Obra!.Contratante);
-                    Linha("Data:", rel.Data.ToString("dd/MM/yyyy"), "Status:", rel.Status);
-                });
-            });
-        }
-
-        // ── CONDIÇÕES CLIMÁTICAS ──────────────────────────────────────────────
-        private static void SecaoClima(IContainer c, Data.Models.Report rel)
-        {
-            static string Marcador(bool marcado) => marcado ? "✓" : "○";
-
-            var manha = rel.Climas.FirstOrDefault(x => x.Periodo == "Manhã");
-            var tarde = rel.Climas.FirstOrDefault(x => x.Periodo == "Tarde");
-            var noite = rel.Climas.FirstOrDefault(x => x.Periodo == "Noite");
-
-            c.Column(col =>
-            {
-                col.Item().Element(CabecalhoSecao("CONDIÇÕES CLIMÁTICAS"));
-                col.Item().Border(1).BorderColor("#d0dce8").Table(table =>
-                {
-                    table.ColumnsDefinition(cols =>
-                    {
-                        cols.ConstantColumn(80);
-                        cols.RelativeColumn();
-                        cols.RelativeColumn();
-                        cols.RelativeColumn();
-                        cols.RelativeColumn();
-                        cols.RelativeColumn();
-                    });
-
-                    table.Cell().Background("#0052cc").Padding(5).AlignCenter().Text("PERÍODO").FontColor("#FFFFFF").Bold();
-                    table.Cell().Background("#0052cc").Padding(5).AlignCenter().Text("ENSOLARADO").FontColor("#FFFFFF").Bold();
-                    table.Cell().Background("#0052cc").Padding(5).AlignCenter().Text("NUBLADO").FontColor("#FFFFFF").Bold();
-                    table.Cell().Background("#0052cc").Padding(5).AlignCenter().Text("CHUVOSO").FontColor("#FFFFFF").Bold();
-                    table.Cell().Background("#1a4a1a").Padding(5).AlignCenter().Text("PRATICÁVEL").FontColor("#FFFFFF").Bold();
-                    table.Cell().Background("#4a1a1a").Padding(5).AlignCenter().Text("IMPRATICÁVEL").FontColor("#FFFFFF").Bold();
-
-                    void LinhaClima(string periodo, Data.Models.WeatherDetail? clima)
-                    {
-                        table.Cell().Background("#f0f4f8").Padding(5).AlignCenter().Text(periodo).Bold();
-                        table.Cell().Padding(5).AlignCenter().Text(Marcador(clima?.Tempo == "Ensolarado")).FontSize(14).FontColor(clima?.Tempo == "Ensolarado" ? "#0052cc" : "#aabbcc");
-                        table.Cell().Padding(5).AlignCenter().Text(Marcador(clima?.Tempo == "Nublado")).FontSize(14).FontColor(clima?.Tempo == "Nublado" ? "#0052cc" : "#aabbcc");
-                        table.Cell().Padding(5).AlignCenter().Text(Marcador(clima?.Tempo == "Chuvoso")).FontSize(14).FontColor(clima?.Tempo == "Chuvoso" ? "#0052cc" : "#aabbcc");
-                        table.Cell().Padding(5).AlignCenter().Text(Marcador(clima?.Condicao == "Praticável")).FontSize(14).FontColor(clima?.Condicao == "Praticável" ? "#008800" : "#aabbcc");
-                        table.Cell().Padding(5).AlignCenter().Text(Marcador(clima?.Condicao == "Impraticável")).FontSize(14).FontColor(clima?.Condicao == "Impraticável" ? "#cc0000" : "#aabbcc");
-                    }
-
-                    LinhaClima("Manhã", manha);
-                    LinhaClima("Tarde", tarde);
-                    LinhaClima("Noite", noite);
-                });
-            });
-        }
-
-        // ── ACOMPANHANTES TÉCNICOS ────────────────────────────────────────────
-        private static void SecaoAcompanhantes(IContainer c, System.Collections.Generic.List<Data.Models.Companion> acomps)
-        {
-            c.Column(col =>
-            {
-                col.Item().Element(CabecalhoSecao($"ACOMPANHANTES TÉCNICOS ({acomps.Count})"));
-                col.Item().Border(1).BorderColor("#d0dce8").Table(table =>
-                {
-                    table.ColumnsDefinition(cols =>
-                    {
-                        cols.RelativeColumn(2);
-                        cols.RelativeColumn();
-                        cols.RelativeColumn();
-                        cols.RelativeColumn();
-                    });
-                    table.Cell().Background("#0052cc").Padding(5).Text("NOME").FontColor("#FFFFFF").Bold();
-                    table.Cell().Background("#0052cc").Padding(5).Text("CARGO").FontColor("#FFFFFF").Bold();
-                    table.Cell().Background("#0052cc").Padding(5).Text("GRUPO / CLIENTE").FontColor("#FFFFFF").Bold();
-                    table.Cell().Background("#0052cc").Padding(5).Text("CONTATO").FontColor("#FFFFFF").Bold();
-                    for (int i = 0; i < acomps.Count; i++)
-                    {
-                        var bg = i % 2 == 0 ? "#FFFFFF" : "#f0f4f8";
-                        var ac = acomps[i];
-                        table.Cell().Background(bg).Padding(5).Text(ac.Nome);
-                        table.Cell().Background(bg).Padding(5).Text(ac.Cargo);
-                        table.Cell().Background(bg).Padding(5).Text(ac.Grupo);
-                        table.Cell().Background(bg).Padding(5).Text(string.IsNullOrEmpty(ac.Contato) ? "—" : ac.Contato);
-                    }
-                });
-            });
-        }
-
-        // ── EQUIPAMENTOS UTILIZADOS ───────────────────────────────────────────
-        private static void SecaoEquipamentos(IContainer c, Data.Models.Report rel)
-        {
-            var equipamentos = rel.Equipamentos.ToList();
-            c.Column(col =>
-            {
-                col.Item().Element(CabecalhoSecao($"EQUIPAMENTOS UTILIZADOS ({equipamentos.Count})"));
-                col.Item().Border(1).BorderColor("#d0dce8").Table(table =>
+                // Tabela de identificação
+                bloco.Item().Table(table =>
                 {
                     table.ColumnsDefinition(cols =>
                     {
                         cols.ConstantColumn(90);
                         cols.RelativeColumn(2);
-                        cols.RelativeColumn(2);
+                        cols.ConstantColumn(90);
+                        cols.RelativeColumn();
                     });
-                    table.Cell().Background("#0052cc").Padding(5).Text("PATRIMÔNIO").FontColor("#FFFFFF").Bold().FontSize(8);
-                    table.Cell().Background("#0052cc").Padding(5).Text("EQUIPAMENTO").FontColor("#FFFFFF").Bold();
-                    table.Cell().Background("#0052cc").Padding(5).Text("FABRICANTE / MODELO").FontColor("#FFFFFF").Bold();
-                    for (int i = 0; i < equipamentos.Count; i++)
+
+                    void Linha(string l1, string v1, string l2, string v2, bool ultima = false)
                     {
-                        var bg = i % 2 == 0 ? "#FFFFFF" : "#f0f4f8";
-                        var eq = equipamentos[i].Equipment;
-                        if (eq == null) continue;
-                        table.Cell().Background(bg).Padding(5).Text(eq.NumeroSerie).Bold().FontColor("#0052cc");
-                        table.Cell().Background(bg).Padding(5).Text(eq.Nome);
-                        table.Cell().Background(bg).Padding(5).Text($"{eq.Fabricante} — {eq.Modelo}").FontColor("#5a6f8a");
+                        var borda = ultima ? 0 : 1;
+                        table.Cell().BorderBottom(borda).BorderRight(1).BorderColor(CorBordaInterna)
+                             .Background(CorCabecalhoSec)
+                             .Padding(7).Text(l1).Bold().FontSize(8).FontColor(CorLabelCinza);
+                        table.Cell().BorderBottom(borda).BorderRight(1).BorderColor(CorBordaInterna)
+                             .Padding(7).Text(v1).FontSize(9).FontColor(CorTexto);
+                        table.Cell().BorderBottom(borda).BorderRight(1).BorderColor(CorBordaInterna)
+                             .Background(CorCabecalhoSec)
+                             .Padding(7).Text(l2).Bold().FontSize(8).FontColor(CorLabelCinza);
+                        table.Cell().BorderBottom(borda).BorderColor(CorBordaInterna)
+                             .Padding(7).Text(v2).FontSize(9).FontColor(CorTexto);
                     }
+
+                    Linha("Obra", rel.Obra!.Nome,
+                          "Número ART", rel.Obra!.ART);
+                    Linha("Local", rel.Obra!.Endereco,
+                          "Resp. Cliente", string.IsNullOrEmpty(rel.Obra!.ResponsavelCliente)
+                                            ? rel.Obra!.Contratante : rel.Obra!.ResponsavelCliente);
+                    Linha("Resp. Focus", rel.Obra!.Responsavel,
+                          "CREA", ObterCrea(rel.Obra!.Responsavel));
+                    Linha("Grupo", rel.Obra!.Grupo,
+                          "Data", rel.Data.ToString("dd/MM/yyyy"), ultima: true);
                 });
             });
         }
 
-        // ── EQUIPE ────────────────────────────────────────────────────────────
-        private static void SecaoEquipe(IContainer c, Data.Models.Report rel)
+        // ── HORÁRIO DE TRABALHO ───────────────────────────────────────────────
+        // Registro fixo conforme CLT: Entrada/Saída, Intervalo, Horas trabalhadas
+        private static void SecaoHorarioTrabalho(IContainer c, Data.Models.Report rel)
         {
-            var assinaturas = rel.Assinaturas.ToList();
-            var count = assinaturas.Count;
-            c.Column(col =>
+            TimeSpan.TryParse(rel.HoraEntrada, out var entrada);
+            TimeSpan.TryParse(rel.HoraSaida, out var saida);
+            TimeSpan.TryParse(rel.HoraIntervalo, out var intervalo);
+            var trab = saida - entrada - intervalo;
+            var hsTrab = trab.TotalMinutes > 0
+                ? $"{(int)trab.TotalHours:D2}:{trab.Minutes:D2}"
+                : "—";
+
+            c.Border(1).BorderColor(CorBorda).Column(bloco =>
             {
-                col.Item().Element(CabecalhoSecao($"EQUIPE DE CAMPO ({count})"));
-                if (count == 0)
+                bloco.Item()
+                    .Background(CorCabecalhoSec)
+                    .BorderBottom(1).BorderColor(CorBorda)
+                    .Padding(5)
+                    .Text("Horário de trabalho")
+                    .FontSize(11).Bold().FontColor(CorPreta);
+
+                bloco.Item().Table(table =>
                 {
-                    col.Item().Border(1).BorderColor("#d0dce8").Padding(8)
-                        .Text("Nenhum membro registrado.").FontColor("#6080a0").Italic();
-                    return;
-                }
-                col.Item().Border(1).BorderColor("#d0dce8").Table(table =>
+                    table.ColumnsDefinition(cols =>
+                    {
+                        cols.RelativeColumn();
+                        cols.RelativeColumn();
+                        cols.RelativeColumn();
+                    });
+
+                    void Th(string txt) => table.Cell()
+                        .Background(CorCabecalhoSec)
+                        .BorderBottom(1).BorderColor(CorBorda)
+                        .Padding(4).AlignCenter()
+                        .Text(txt).Bold().FontSize(8);
+
+                    Th("Entrada / Saída"); Th("Horas trabalhadas"); Th("Intervalo");
+
+                    void Td(string v) => table.Cell()
+                        .Padding(5).AlignCenter().Text(v).FontSize(8);
+
+                    var entSaida = (!string.IsNullOrEmpty(rel.HoraEntrada) && !string.IsNullOrEmpty(rel.HoraSaida))
+                        ? $"{rel.HoraEntrada} - {rel.HoraSaida}"
+                        : rel.HoraEntrada ?? "—";
+
+                    Td(entSaida);
+                    Td(hsTrab);
+                    Td(string.IsNullOrEmpty(rel.HoraIntervalo) ? "—" : rel.HoraIntervalo);
+                });
+            });
+        }
+
+        // ── CONDIÇÕES CLIMÁTICAS ──────────────────────────────────────────────
+        // Colunas: Período | Tempo (ícone + texto) | Condição | Índice pluviométrico
+        // "Impraticável" em vermelho
+        private static void SecaoClima(IContainer c, Data.Models.Report rel)
+        {
+            var manha = rel.Climas.FirstOrDefault(x => x.Periodo == "Manhã");
+            var tarde = rel.Climas.FirstOrDefault(x => x.Periodo == "Tarde");
+            var noite = rel.Climas.FirstOrDefault(x => x.Periodo == "Noite");
+
+            c.Border(1).BorderColor(CorBorda).Column(bloco =>
+            {
+                bloco.Item()
+                    .Background(CorCabecalhoSec)
+                    .BorderBottom(2).BorderColor(CorBorda)
+                    .Padding(8)
+                    .Text("Condição climática")
+                    .FontSize(11).Bold().FontColor(CorLabelCinza);
+
+                bloco.Item().Table(table =>
+                {
+                    table.ColumnsDefinition(cols =>
+                    {
+                        cols.ConstantColumn(60);
+                        cols.RelativeColumn(2);
+                        cols.RelativeColumn(2);
+                    });
+
+                    void Th(string txt, bool ultima = false)
+                    {
+                        if (!ultima)
+                            table.Cell()
+                                .Background(CorCabecalhoSec)
+                                .BorderBottom(1).BorderRight(1).BorderColor(CorBordaInterna)
+                                .Padding(5).AlignCenter()
+                                .Text(txt).Bold().FontSize(8).FontColor(CorLabelCinza);
+                        else
+                            table.Cell()
+                                .Background(CorCabecalhoSec)
+                                .BorderBottom(1).BorderColor(CorBordaInterna)
+                                .Padding(5).AlignCenter()
+                                .Text(txt).Bold().FontSize(8).FontColor(CorLabelCinza);
+                    }
+
+                    Th("Período"); Th("Tempo"); Th("Condição", ultima: true);
+
+                    void LinhaClima(string periodo, Data.Models.WeatherDetail? clima, bool ultima = false)
+                    {
+                        var borda = ultima ? 0 : 1;
+                        string tempo = clima?.Tempo ?? "—";
+                        string condicao = clima?.Condicao ?? "—";
+                        bool impraticavel = condicao.ToLowerInvariant().Contains("impratic");
+
+                        table.Cell().BorderBottom(borda).BorderRight(1).BorderColor(CorBordaInterna)
+                             .Padding(5).Text(periodo).Bold().FontSize(8).FontColor(CorLabelCinza);
+
+                        table.Cell().BorderBottom(borda).BorderRight(1).BorderColor(CorBordaInterna)
+                             .Padding(5).AlignCenter()
+                             .Text($"{IconeTempo(tempo)} {tempo}").FontSize(9).FontColor(CorTexto);
+
+                        var condCell = table.Cell().BorderBottom(borda).BorderColor(CorBordaInterna)
+                             .Padding(5).AlignCenter();
+                        var condTxt = condCell.Text(condicao).FontSize(9)
+                             .FontColor(impraticavel ? CorVermelho : CorTexto);
+                        if (impraticavel) condTxt.Bold();
+                    }
+
+                    LinhaClima("Manhã", manha);
+                    LinhaClima("Tarde", tarde);
+                    LinhaClima("Noite", noite, ultima: true);
+                });
+            });
+        }
+
+        // ── ACOMPANHANTES TÉCNICOS ────────────────────────────────────────────
+        private static void SecaoAcompanhantes(IContainer c, List<Data.Models.Companion> acomps)
+        {
+            c.Border(1).BorderColor(CorBorda).Column(bloco =>
+            {
+                bloco.Item()
+                    .Background(CorCabecalhoSec)
+                    .BorderBottom(2).BorderColor(CorBorda)
+                    .Padding(8)
+                    .Text($"Acompanhantes técnicos ({acomps.Count})")
+                    .FontSize(11).Bold().FontColor(CorLabelCinza);
+
+                bloco.Item().Table(table =>
                 {
                     table.ColumnsDefinition(cols =>
                     {
                         cols.RelativeColumn(2);
                         cols.RelativeColumn();
-                        cols.ConstantColumn(50);
-                        cols.ConstantColumn(50);
-                        cols.ConstantColumn(55);
-                        cols.ConstantColumn(55);
+                        cols.RelativeColumn();
+                        cols.RelativeColumn();
                     });
 
-                    table.Cell().Background("#0052cc").Padding(5).Text("NOME").FontColor("#FFFFFF").Bold();
-                    table.Cell().Background("#0052cc").Padding(5).Text("FUNÇÃO / CARGO").FontColor("#FFFFFF").Bold();
-                    table.Cell().Background("#0052cc").Padding(5).AlignCenter().Text("ENTRADA").FontColor("#FFFFFF").Bold().FontSize(8);
-                    table.Cell().Background("#0052cc").Padding(5).AlignCenter().Text("SAÍDA").FontColor("#FFFFFF").Bold().FontSize(8);
-                    table.Cell().Background("#0052cc").Padding(5).AlignCenter().Text("INTERV.").FontColor("#FFFFFF").Bold().FontSize(8);
-                    table.Cell().Background("#0052cc").Padding(5).AlignCenter().Text("HS TRAB.").FontColor("#FFFFFF").Bold().FontSize(8);
+                    void Th(string txt, bool ultima = false)
+                    {
+                        if (!ultima)
+                            table.Cell()
+                                .Background(CorCabecalhoSec)
+                                .BorderBottom(1).BorderRight(1).BorderColor(CorBordaInterna)
+                                .Padding(5)
+                                .Text(txt).Bold().FontSize(8).FontColor(CorLabelCinza);
+                        else
+                            table.Cell()
+                                .Background(CorCabecalhoSec)
+                                .BorderBottom(1).BorderColor(CorBordaInterna)
+                                .Padding(5)
+                                .Text(txt).Bold().FontSize(8).FontColor(CorLabelCinza);
+                    }
+
+                    Th("Nome"); Th("Cargo"); Th("Grupo / Cliente"); Th("Contato", ultima: true);
+
+                    for (int i = 0; i < acomps.Count; i++)
+                    {
+                        var bg = i % 2 == 0 ? CorBranco : CorLinhaAltern;
+                        var borda = i < acomps.Count - 1 ? 1 : 0;
+                        var ac = acomps[i];
+                        void Td(string v, bool ultima = false)
+                        {
+                            if (!ultima)
+                                table.Cell().Background(bg)
+                                    .BorderBottom(borda).BorderRight(1).BorderColor(CorBordaInterna)
+                                    .Padding(5).Text(v).FontSize(9).FontColor(CorTexto);
+                            else
+                                table.Cell().Background(bg)
+                                    .BorderBottom(borda).BorderColor(CorBordaInterna)
+                                    .Padding(5).Text(v).FontSize(9).FontColor(CorTexto);
+                        }
+                        Td(ac.Nome); Td(ac.Cargo); Td(ac.Grupo);
+                        Td(string.IsNullOrEmpty(ac.Contato) ? "—" : ac.Contato, ultima: true);
+                    }
+                });
+            });
+        }
+
+        // ── EQUIPE DE CAMPO (MÃO DE OBRA) ─────────────────────────────────────
+        private static void SecaoEquipe(IContainer c, Data.Models.Report rel)
+        {
+            var assinaturas = rel.Assinaturas.ToList();
+            int count = assinaturas.Count;
+
+            c.Border(1).BorderColor(CorBorda).Column(bloco =>
+            {
+                bloco.Item()
+                    .Background(CorCabecalhoSec)
+                    .BorderBottom(2).BorderColor(CorBorda)
+                    .Padding(8)
+                    .Text($"Mão de obra ({count})")
+                    .FontSize(11).Bold().FontColor(CorLabelCinza);
+
+                if (count == 0)
+                {
+                    bloco.Item().Padding(8)
+                        .Text("Nenhum membro registrado.").FontColor(CorLabelCinza).Italic().FontSize(8);
+                    return;
+                }
+
+                bloco.Item().Table(table =>
+                {
+                    table.ColumnsDefinition(cols =>
+                    {
+                        cols.RelativeColumn(2);
+                        cols.RelativeColumn(1.5f);
+                        cols.RelativeColumn(2);
+                        cols.RelativeColumn();
+                        cols.RelativeColumn();
+                    });
+
+                    void Th(string txt, bool ultima = false)
+                    {
+                        if (!ultima)
+                            table.Cell()
+                                .Background(CorCabecalhoSec)
+                                .BorderBottom(1).BorderRight(1).BorderColor(CorBordaInterna)
+                                .Padding(5)
+                                .Text(txt).Bold().FontSize(8).FontColor(CorLabelCinza);
+                        else
+                            table.Cell()
+                                .Background(CorCabecalhoSec)
+                                .BorderBottom(1).BorderColor(CorBordaInterna)
+                                .Padding(5)
+                                .Text(txt).Bold().FontSize(8).FontColor(CorLabelCinza);
+                    }
+
+                    Th("Nome"); Th("Função"); Th("Entrada / Saída"); Th("Intervalo"); Th("Horas", ultima: true);
 
                     for (int i = 0; i < assinaturas.Count; i++)
                     {
-                        var bg = i % 2 == 0 ? "#FFFFFF" : "#f0f4f8";
+                        var bg = i % 2 == 0 ? CorBranco : CorLinhaAltern;
+                        var borda = i < assinaturas.Count - 1 ? 1 : 0;
                         var a = assinaturas[i];
-                        TimeSpan.TryParse(a.HoraEntrada, out var entrada);
-                        TimeSpan.TryParse(a.HoraSaida, out var saida);
-                        TimeSpan.TryParse(a.HoraIntervalo, out var intervalo);
-                        var trabalhado = saida - entrada - intervalo;
-                        var hsTrab = trabalhado.TotalMinutes > 0
-                            ? $"{(int)trabalhado.TotalHours:D2}:{trabalhado.Minutes:D2}"
+                        TimeSpan.TryParse(a.HoraEntrada, out var ent);
+                        TimeSpan.TryParse(a.HoraSaida, out var sai);
+                        TimeSpan.TryParse(a.HoraIntervalo, out var inv);
+                        var trab = sai - ent - inv;
+                        var hsTrab = trab.TotalMinutes > 0
+                            ? $"{(int)trab.TotalHours:D2}:{trab.Minutes:D2}"
                             : "—";
-                        table.Cell().Background(bg).Padding(5).Text(a.NomeAssinante);
-                        table.Cell().Background(bg).Padding(5).Text(a.Cargo);
-                        table.Cell().Background(bg).Padding(5).AlignCenter().Text(a.HoraEntrada).FontSize(8);
-                        table.Cell().Background(bg).Padding(5).AlignCenter().Text(a.HoraSaida).FontSize(8);
-                        table.Cell().Background(bg).Padding(5).AlignCenter().Text(string.IsNullOrEmpty(a.HoraIntervalo) ? "—" : a.HoraIntervalo).FontSize(8);
-                        table.Cell().Background(bg).Padding(5).AlignCenter().Text(hsTrab).FontSize(8).Bold().FontColor("#0052cc");
+                        string entSaida = (!string.IsNullOrEmpty(a.HoraEntrada) && !string.IsNullOrEmpty(a.HoraSaida))
+                            ? $"{a.HoraEntrada} - {a.HoraSaida}"
+                            : a.HoraEntrada ?? "—";
+
+                        void Td(string v, bool negrito = false, bool ultima = false)
+                        {
+                            IContainer cell;
+                            if (!ultima)
+                                cell = table.Cell().Background(bg)
+                                    .BorderBottom(borda).BorderRight(1).BorderColor(CorBordaInterna).Padding(5);
+                            else
+                                cell = table.Cell().Background(bg)
+                                    .BorderBottom(borda).BorderColor(CorBordaInterna).Padding(5);
+
+                            var txt = cell.Text(v).FontSize(9).FontColor(CorTexto);
+                            if (negrito) txt.Bold();
+                        }
+
+                        Td(a.NomeAssinante); Td(a.Cargo); Td(entSaida);
+                        Td(string.IsNullOrEmpty(a.HoraIntervalo) ? "—" : a.HoraIntervalo);
+                        Td(hsTrab, negrito: true, ultima: true);
+                    }
+                });
+            });
+        }
+
+        // ── EQUIPAMENTOS ──────────────────────────────────────────────────────
+        // Tabela com Nº Série | Descrição | Modelo (mesma estrutura da Mão de Obra)
+        private static void SecaoEquipamentos(IContainer c, Data.Models.Report rel)
+        {
+            var equipamentos = rel.Equipamentos
+                .Where(re => re.Equipment != null)
+                .Select(re => re.Equipment!)
+                .ToList();
+
+            c.Border(1).BorderColor(CorBorda).Column(bloco =>
+            {
+                bloco.Item()
+                    .Background(CorCabecalhoSec)
+                    .BorderBottom(2).BorderColor(CorBorda)
+                    .Padding(8)
+                    .Text($"Equipamentos ({equipamentos.Count})")
+                    .FontSize(11).Bold().FontColor(CorLabelCinza);
+
+                bloco.Item().Table(table =>
+                {
+                    table.ColumnsDefinition(cols =>
+                    {
+                        cols.ConstantColumn(90);
+                        cols.RelativeColumn(2);
+                        cols.RelativeColumn();
+                    });
+
+                    void Th(string txt, bool ultima = false)
+                    {
+                        if (!ultima)
+                            table.Cell()
+                                .Background(CorCabecalhoSec)
+                                .BorderBottom(1).BorderRight(1).BorderColor(CorBordaInterna)
+                                .Padding(5)
+                                .Text(txt).Bold().FontSize(8).FontColor(CorLabelCinza);
+                        else
+                            table.Cell()
+                                .Background(CorCabecalhoSec)
+                                .BorderBottom(1).BorderColor(CorBordaInterna)
+                                .Padding(5)
+                                .Text(txt).Bold().FontSize(8).FontColor(CorLabelCinza);
+                    }
+
+                    Th("Nº Série"); Th("Descrição"); Th("Modelo", ultima: true);
+
+                    for (int i = 0; i < equipamentos.Count; i++)
+                    {
+                        var bg = i % 2 == 0 ? CorBranco : CorLinhaAltern;
+                        var borda = i < equipamentos.Count - 1 ? 1 : 0;
+                        var eq = equipamentos[i];
+
+                        void Td(string v, bool ultima = false)
+                        {
+                            if (!ultima)
+                                table.Cell().Background(bg)
+                                    .BorderBottom(borda).BorderRight(1).BorderColor(CorBordaInterna)
+                                    .Padding(5).Text(v).FontSize(9).FontColor(CorTexto);
+                            else
+                                table.Cell().Background(bg)
+                                    .BorderBottom(borda).BorderColor(CorBordaInterna)
+                                    .Padding(5).Text(v).FontSize(9).FontColor(CorTexto);
+                        }
+
+                        Td(string.IsNullOrEmpty(eq.NumeroSerie) ? "—" : eq.NumeroSerie);
+                        Td(eq.Nome);
+                        Td(string.IsNullOrEmpty(eq.Modelo) ? "—" : eq.Modelo, ultima: true);
                     }
                 });
             });
@@ -331,26 +778,39 @@ namespace RDO.App.Services
         // ── ATIVIDADES ────────────────────────────────────────────────────────
         private static void SecaoAtividades(IContainer c, Data.Models.Report rel)
         {
-            c.Column(col =>
+            c.Border(1).BorderColor(CorBorda).Column(bloco =>
             {
-                col.Item().Element(CabecalhoSecao($"ATIVIDADES REALIZADAS ({rel.Atividades.Count})"));
+                bloco.Item()
+                    .Background(CorCabecalhoSec)
+                    .BorderBottom(2).BorderColor(CorBorda)
+                    .Padding(8)
+                    .Text($"Atividades ({rel.Atividades.Count})")
+                    .FontSize(11).Bold().FontColor(CorLabelCinza);
+
                 if (!rel.Atividades.Any())
                 {
-                    col.Item().Border(1).BorderColor("#d0dce8").Padding(8)
-                        .Text("Nenhuma atividade registrada.").FontColor("#6080a0").Italic();
+                    bloco.Item().Padding(8)
+                        .Text("Nenhuma atividade registrada.").FontColor(CorLabelCinza).Italic().FontSize(8);
                     return;
                 }
-                col.Item().Border(1).BorderColor("#d0dce8").Column(inner =>
+
+                bloco.Item().Column(inner =>
                 {
-                    var atividades = rel.Atividades.ToList();
-                    for (int i = 0; i < atividades.Count; i++)
+                    var lista = rel.Atividades.ToList();
+                    for (int i = 0; i < lista.Count; i++)
                     {
-                        var bg = i % 2 == 0 ? "#FFFFFF" : "#f0f4f8";
-                        inner.Item().Background(bg).Padding(6).Row(row =>
-                        {
-                            row.ConstantItem(20).Text($"{i + 1}.").Bold().FontColor("#0052cc");
-                            row.RelativeItem().Text(atividades[i].Descricao);
-                        });
+                        var bg = i % 2 == 0 ? CorBranco : CorLinhaAltern;
+                        var borda = i < lista.Count - 1 ? 1 : 0;
+                        var at = lista[i];
+
+                        inner.Item().Background(bg)
+                             .BorderBottom(borda).BorderColor(CorBorda)
+                             .Padding(5).Row(row =>
+                             {
+                                 row.ConstantItem(18).Text($"{i + 1}.").Bold().FontSize(8)
+                                     .FontColor(CorLabelCinza);
+                                 row.RelativeItem().Text(at.Descricao).FontSize(8);
+                             });
                     }
                 });
             });
@@ -359,83 +819,239 @@ namespace RDO.App.Services
         // ── OCORRÊNCIAS ───────────────────────────────────────────────────────
         private static void SecaoOcorrencias(IContainer c, Data.Models.Report rel)
         {
-            c.Column(col =>
+            c.Border(1).BorderColor(CorBorda).Column(bloco =>
             {
-                col.Item().Element(CabecalhoSecao($"OCORRÊNCIAS / OBSERVAÇÕES ({rel.Ocorrencias.Count})"));
+                bloco.Item()
+                    .Background(CorCabecalhoSec)
+                    .BorderBottom(2).BorderColor(CorBorda)
+                    .Padding(8)
+                    .Text($"Ocorrências ({rel.Ocorrencias.Count})")
+                    .FontSize(11).Bold().FontColor(CorLabelCinza);
+
                 if (!rel.Ocorrencias.Any())
                 {
-                    col.Item().Border(1).BorderColor("#d0dce8").Padding(8)
-                        .Text("Nenhuma ocorrência registrada.").FontColor("#6080a0").Italic();
+                    bloco.Item().Padding(8)
+                        .Text("Nenhuma ocorrência registrada.").FontColor(CorLabelCinza).Italic().FontSize(8);
                     return;
                 }
-                col.Item().Border(1).BorderColor("#d0dce8").Column(inner =>
+
+                bloco.Item().Column(inner =>
                 {
-                    var ocorrencias = rel.Ocorrencias.ToList();
-                    for (int i = 0; i < ocorrencias.Count; i++)
+                    var lista = rel.Ocorrencias.ToList();
+                    for (int i = 0; i < lista.Count; i++)
                     {
-                        var bg = i % 2 == 0 ? "#FFFFFF" : "#f0f4f8";
-                        inner.Item().Background(bg).Padding(6).Row(row =>
+                        var bg = i % 2 == 0 ? "#FFFFFF" : "#EEF2F7";
+                        var borda = i < lista.Count - 1 ? 1 : 0;
+                        var oc = lista[i];
+                        inner.Item().Background(bg)
+                             .BorderBottom(borda).BorderColor(CorBorda)
+                             .Padding(5).Column(ocol =>
+                             {
+                                 // Número + descrição
+                                 ocol.Item().Row(row =>
+                                 {
+                                     row.ConstantItem(18).Text($"{i + 1}.").Bold().FontSize(8)
+                                         .FontColor(CorLabelCinza);
+                                     row.RelativeItem().Text(oc.Descricao).FontSize(8);
+                                 });
+
+                                 // Tags (ex: "Retrabalho", "Solicitação fora do escopo")
+                                 if (!string.IsNullOrEmpty(oc.Tags))
+                                 {
+                                     ocol.Item().PaddingTop(2).PaddingLeft(18).Row(tagRow =>
+                                     {
+                                         foreach (var tag in oc.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                                         {
+                                             tagRow.AutoItem().PaddingRight(4)
+                                                 .Border(1).BorderColor(CorLabelCinza)
+                                                 .Padding(2)
+                                                 .Text(tag.Trim()).FontSize(7).FontColor(CorLabelCinza);
+                                         }
+                                     });
+                                 }
+
+                                 // Horário com ícone de relógio
+                                 if (!string.IsNullOrEmpty(oc.HoraInicio))
+                                     ocol.Item().PaddingTop(2).PaddingLeft(18)
+                                         .Text(t =>
+                                         {
+                                             t.Span("⏱ ").FontSize(8).FontColor(CorLabelCinza);
+                                             t.Span($"{oc.HoraInicio} até {oc.HoraFim}")
+                                                 .FontSize(7).FontColor(CorLabelCinza).Italic();
+                                         });
+                             });
+                    }
+                });
+            });
+        }
+
+        // ── REGISTRO FOTOGRÁFICO ──────────────────────────────────────────────
+        // Grade 2 colunas com legenda centralizada abaixo
+        // Renderiza no máximo 2 fotos por página para evitar problemas de layout
+        private static void SecaoFotos(IContainer c, List<Data.Models.Photo> fotos)
+        {
+            var comArquivo = fotos.Where(f => File.Exists(f.CaminhoArquivo)).ToList();
+            if (!comArquivo.Any()) return;
+
+            c.Border(1).BorderColor(CorBorda).Column(bloco =>
+            {
+                bloco.Item()
+                    .Background(CorCabecalhoSec)
+                    .BorderBottom(2).BorderColor(CorBorda)
+                    .Padding(8)
+                    .Text($"Fotos ({comArquivo.Count})")
+                    .FontSize(11).Bold().FontColor(CorLabelCinza);
+
+                // Renderiza cada par de fotos em uma nova página se necessário
+                bloco.Item().Padding(6).Column(col =>
+                {
+                    for (int i = 0; i < comArquivo.Count; i += 2)
+                    {
+                        var foto1 = comArquivo[i];
+                        var foto2 = i + 1 < comArquivo.Count ? comArquivo[i + 1] : null;
+
+                        // Adiciona quebra de página antes de cada par (exceto o primeiro)
+                        if (i > 0)
+                            col.Item().PageBreak();
+
+                        col.Item().Row(row =>
                         {
-                            row.ConstantItem(20).Text($"{i + 1}.").Bold().FontColor("#0052cc");
-                            row.RelativeItem().Column(ocol =>
+                            // Primeira foto da linha
+                            row.RelativeItem().Padding(4).Column(inner =>
                             {
-                                ocol.Item().Text(ocorrencias[i].Descricao);
-                                if (!string.IsNullOrEmpty(ocorrencias[i].HoraInicio))
-                                    ocol.Item().Text($"⏱ {ocorrencias[i].HoraInicio} – {ocorrencias[i].HoraFim}")
-                                        .FontSize(8).FontColor("#6080a0");
+                                try
+                                {
+                                    var imageBytes = CropCenterToStandard(foto1.CaminhoArquivo);
+                                    inner.Item().Height(8f, Unit.Centimetre) // Aumentado para 8cm
+                                         .Border(1).BorderColor(CorBorda)
+                                         .Image(imageBytes).FitArea();
+                                    if (!string.IsNullOrEmpty(foto1.Legenda))
+                                        inner.Item().PaddingTop(3)
+                                             .Text(foto1.Legenda).FontSize(7)
+                                             .FontColor(CorLabelCinza).Italic().AlignCenter();
+                                }
+                                catch (Exception ex)
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"[PDF] Erro ao carregar foto: {ex.Message}");
+                                    inner.Item().Height(8f, Unit.Centimetre)
+                                        .Border(1).BorderColor(CorBorda)
+                                        .Background(CorLinhaAltern).AlignCenter().AlignMiddle()
+                                        .Text("Foto indisponível").FontSize(8).FontColor("#aaaaaa");
+                                }
                             });
+
+                            // Segunda foto da linha (se existir)
+                            if (foto2 != null)
+                            {
+                                row.RelativeItem().Padding(4).Column(inner =>
+                                {
+                                    try
+                                    {
+                                        var imageBytes = CropCenterToStandard(foto2.CaminhoArquivo);
+                                        inner.Item().Height(8f, Unit.Centimetre)
+                                             .Border(1).BorderColor(CorBorda)
+                                             .Image(imageBytes).FitArea();
+                                        if (!string.IsNullOrEmpty(foto2.Legenda))
+                                            inner.Item().PaddingTop(3)
+                                                 .Text(foto2.Legenda).FontSize(7)
+                                                 .FontColor(CorLabelCinza).Italic().AlignCenter();
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        System.Diagnostics.Debug.WriteLine($"[PDF] Erro ao carregar foto: {ex.Message}");
+                                        inner.Item().Height(8f, Unit.Centimetre)
+                                            .Border(1).BorderColor(CorBorda)
+                                            .Background(CorLinhaAltern).AlignCenter().AlignMiddle()
+                                            .Text("Foto indisponível").FontSize(8).FontColor("#aaaaaa");
+                                    }
+                                });
+                            }
+                            else
+                            {
+                                // Espaço vazio se número ímpar de fotos
+                                row.RelativeItem();
+                            }
                         });
                     }
                 });
             });
         }
 
-        // ── FOTOS ─────────────────────────────────────────────────────────────
-        private static void SecaoFotos(IContainer c, Data.Models.Report rel)
+        // ── DOCUMENTOS ANEXADOS ───────────────────────────────────────────────
+        // Lista com nome (link clicável via file://) + tamanho
+        private static void SecaoDocumentos(IContainer c, List<Data.Models.Photo> docs, string? pastaAnexos)
         {
-            var fotos = rel.Fotos.Where(f => File.Exists(f.CaminhoArquivo)).ToList();
-            if (!fotos.Any()) return;
-
-            c.Column(col =>
+            c.Border(1).BorderColor(CorBorda).Column(bloco =>
             {
-                col.Item().Element(CabecalhoSecao($"REGISTRO FOTOGRÁFICO ({fotos.Count})"));
-                col.Item().Border(1).BorderColor("#d0dce8").Padding(8).Table(table =>
-                {
-                    table.ColumnsDefinition(cols =>
-                    {
-                        cols.RelativeColumn();
-                        cols.RelativeColumn();
-                    });
+                bloco.Item()
+                    .Background(CorCabecalhoSec)
+                    .BorderBottom(2).BorderColor(CorBorda)
+                    .Padding(8)
+                    .Text($"Anexos ({docs.Count})")
+                    .FontSize(11).Bold().FontColor(CorLabelCinza);
 
-                    foreach (var foto in fotos)
+                bloco.Item().Column(inner =>
+                {
+                    for (int i = 0; i < docs.Count; i++)
                     {
+                        var doc = docs[i];
+                        var nomeArq = Path.GetFileName(doc.CaminhoArquivo);
+                        var bg = i % 2 == 0 ? CorBranco : CorLinhaAltern;
+                        var borda = i < docs.Count - 1 ? 1 : 0;
+
+                        string tamanho = "—";
                         try
                         {
-                            var imageBytes = CropCenterToStandard(foto.CaminhoArquivo);
-                            table.Cell().Padding(4).Column(inner =>
+                            if (File.Exists(doc.CaminhoArquivo))
                             {
-                                inner.Item().Height(5, Unit.Centimetre).Image(imageBytes).FitArea();
-                                if (!string.IsNullOrEmpty(foto.Legenda))
-                                    inner.Item().PaddingTop(2).Text(foto.Legenda)
-                                        .FontSize(8).FontColor("#5a6f8a").AlignCenter();
-                            });
+                                var bytes = new FileInfo(doc.CaminhoArquivo).Length;
+                                tamanho = bytes >= 1_048_576
+                                    ? $"{bytes / 1_048_576.0:F1} MB"
+                                    : $"{bytes / 1024} KB";
+                            }
                         }
-                        catch
-                        {
-                            table.Cell().Padding(4).Height(5, Unit.Centimetre)
-                                .Background("#f0f4f8").AlignCenter()
-                                .Text("Foto indisponível").FontColor("#aabbcc");
-                        }
-                    }
+                        catch { }
 
-                    // Pad to even number of cells
-                    if (fotos.Count % 2 != 0)
-                        table.Cell().Padding(4);
+                        var label = string.IsNullOrEmpty(doc.Legenda) ? nomeArq : doc.Legenda;
+                        var caminhoLink = pastaAnexos != null
+                            ? Path.Combine(pastaAnexos, nomeArq)
+                            : doc.CaminhoArquivo;
+                        var uri = $"file:///{caminhoLink.Replace('\\', '/')}";
+
+                        inner.Item().Background(bg)
+                             .BorderBottom(borda).BorderColor(CorBorda)
+                             .Padding(5).Row(row =>
+                             {
+                                 row.ConstantItem(16).AlignMiddle()
+                                    .Text("📎").FontSize(9).FontColor(CorLabelCinza);
+
+                                 row.RelativeItem().AlignMiddle()
+                                    .Hyperlink(uri)
+                                    .Text(label)
+                                    .FontSize(8).FontColor("#1565c0").Underline();
+
+                                 row.ConstantItem(55).AlignMiddle().AlignRight()
+                                    .Text(tamanho).FontSize(7).FontColor(CorLabelCinza);
+                             });
+                    }
                 });
             });
         }
 
-        // ── IMAGE PROCESSING ─────────────────────────────────────────────────
+        // ── HELPERS ───────────────────────────────────────────────────────────
+
+        // Ícone unicode para o tempo (compatível com fonte Arial)
+        private static string IconeTempo(string tempo)
+        {
+            var t = tempo.ToLowerInvariant();
+            if (t.Contains("claro") || t.Contains("sol") || t.Contains("ensol")) return "☀";
+            if (t.Contains("parcial") || t.Contains("variav")) return "⛅";
+            if (t.Contains("nublado") || t.Contains("nuvem")) return "☁";
+            if (t.Contains("chuv") || t.Contains("rain")) return "☂";
+            if (t.Contains("tempestade") || t.Contains("trovoada")) return "⚡";
+            return "";
+        }
+
         private static byte[] CropCenterToStandard(string imagePath, int targetW = 800, int targetH = 600)
         {
             using var src = System.Drawing.Image.FromFile(imagePath);
@@ -470,16 +1086,5 @@ namespace RDO.App.Services
             bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
             return ms.ToArray();
         }
-
-        // ── HELPER: cabeçalho de seção ────────────────────────────────────────
-        private static Action<IContainer> CabecalhoSecao(string titulo)
-            => c => c.Background("#1a2a4a").Padding(6).Text(titulo)
-                     .FontSize(9).Bold().FontColor("#FFFFFF");
     }
 }
-
-
-
-
-
-

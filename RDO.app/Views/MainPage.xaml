@@ -12,7 +12,7 @@
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
     </Page.Resources>
 
-    <Grid>
+    <Grid Margin="0,44,0,0">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="220"/>
             <ColumnDefinition Width="*"/>
@@ -23,21 +23,12 @@
                 BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="0,0,1,0">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="72"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- Logo -->
-                <StackPanel Grid.Row="0" VerticalAlignment="Center" Margin="24,0">
-                    <TextBlock Text="RDO" FontSize="24" FontWeight="Bold"
-                               Foreground="{ThemeResource AccentBrush}"/>
-                    <TextBlock Text="Relatório de Obra" FontSize="11"
-                               Foreground="{ThemeResource TextSecondaryBrush}"/>
-                </StackPanel>
-
                 <!-- Navegação -->
-                <StackPanel Grid.Row="1" Margin="0,8,0,0" Spacing="2">
+                <StackPanel Grid.Row="0" Margin="0,8,0,0" Spacing="2">
                     <Button x:Name="BtnInicio"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Left"
@@ -60,7 +51,7 @@
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <FontIcon Glyph="&#xE734;" FontSize="16"
                                       Foreground="{ThemeResource TextPrimaryBrush}"/>
-                            <TextBlock Text="Meus relatórios" FontSize="14"
+                            <TextBlock Text="Relatórios" FontSize="14"
                                        Foreground="{ThemeResource TextPrimaryBrush}"/>
                         </StackPanel>
                     </Button>
@@ -97,54 +88,68 @@
                 </StackPanel>
 
                 <!-- Usuário + Tema -->
-                <Border Grid.Row="2" Padding="16,14"
+                <Border Grid.Row="1" Padding="14,12"
                         BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="0,1,0,0">
-                    <StackPanel Spacing="10">
-                        <Grid>
-                            <StackPanel>
-                                <TextBlock x:Name="NomeUsuarioTexto"
-                                           Text="Usuário"
-                                           FontSize="13" FontWeight="SemiBold"
-                                           Foreground="{ThemeResource TextPrimaryBrush}"/>
-                                <TextBlock x:Name="PerfilUsuarioTexto"
-                                           Text="Sem vínculo"
-                                           FontSize="11"
-                                           Foreground="{ThemeResource TextSecondaryBrush}"/>
-                            </StackPanel>
-                            <Button Content="Sair" HorizontalAlignment="Right"
-                                    FontSize="12" Padding="10,4"
-                                    Background="Transparent"
-                                    BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
-                                    Foreground="{ThemeResource AccentBrush}"
-                                    Click="SairBtn_Click"/>
-                        </Grid>
-                        <!-- Vincular perfil + botão de tema -->
-                        <Grid ColumnSpacing="8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <Button Grid.Column="0"
-                                    Content="Vincular perfil"
-                                    HorizontalAlignment="Stretch"
-                                    FontSize="11" Padding="8,4"
-                                    Background="Transparent"
-                                    BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
-                                    Foreground="{ThemeResource TextSecondaryBrush}"
-                                    Click="BtnVincularPerfil_Click"/>
-                            <!-- Botão de alternância de tema (sol / lua) -->
-                            <Button x:Name="BtnTema"
-                                    Grid.Column="1"
-                                    Content="&#xE706;"
-                                    FontFamily="Segoe MDL2 Assets"
-                                    Width="34" Height="34" Padding="0"
-                                    Background="Transparent"
-                                    BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
-                                    Foreground="{ThemeResource AccentBrush}"
-                                    ToolTipService.ToolTip="Alternar tema"
-                                    Click="BtnTema_Click"/>
-                        </Grid>
-                    </StackPanel>
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Avatar / ícone de perfil -->
+                        <Button Grid.Column="0"
+                                x:Name="BtnPerfil"
+                                Width="36" Height="36" Padding="0"
+                                Background="{ThemeResource AccentSubtleBgBrush}"
+                                BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                CornerRadius="18"
+                                ToolTipService.ToolTip="Ver perfil"
+                                Click="BtnPerfil_Click">
+                            <FontIcon x:Name="IconePerfil"
+                                      Glyph="&#xE77B;"
+                                      FontSize="16"
+                                      Foreground="{ThemeResource IconBrush}"/>
+                        </Button>
+
+                        <!-- Nome + cargo -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                            <TextBlock x:Name="NomeUsuarioTexto"
+                                       Text="Usuário"
+                                       FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource TextPrimaryBrush}"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <TextBlock x:Name="PerfilUsuarioTexto"
+                                       Text="—"
+                                       FontSize="10"
+                                       Foreground="{ThemeResource TextSecondaryBrush}"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+
+                        <!-- Tema -->
+                        <Button x:Name="BtnTema"
+                                Grid.Column="2"
+                                Content="&#xE706;"
+                                FontFamily="Segoe MDL2 Assets"
+                                Width="32" Height="32" Padding="0"
+                                Background="Transparent"
+                                BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                Foreground="{ThemeResource AccentBrush}"
+                                ToolTipService.ToolTip="Alternar tema"
+                                Click="BtnTema_Click"/>
+
+                        <!-- Sair -->
+                        <Button Grid.Column="3"
+                                Content="&#xE7E8;"
+                                FontFamily="Segoe MDL2 Assets"
+                                Width="32" Height="32" Padding="0"
+                                Background="Transparent"
+                                BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                Foreground="{ThemeResource TextSecondaryBrush}"
+                                ToolTipService.ToolTip="Sair"
+                                Click="SairBtn_Click"/>
+                    </Grid>
                 </Border>
             </Grid>
         </Border>
@@ -197,6 +202,34 @@
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                         </Border>
+
+                        <!-- Botão Ver Logs (só visível em erro) -->
+                        <Button x:Name="BtnVerLogs"
+                                Visibility="Collapsed"
+                                Height="34" Padding="10,0"
+                                Background="Transparent"
+                                BorderBrush="#5A1E1E" BorderThickness="1"
+                                CornerRadius="6"
+                                ToolTipService.ToolTip="Abrir pasta de logs"
+                                Click="BtnVerLogs_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <FontIcon Glyph="&#xE8B7;" FontSize="11" Foreground="#E65050"/>
+                                <TextBlock Text="Ver logs" FontSize="11" Foreground="#E65050"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Botão Guia de Erros (só visível em erro) -->
+                        <Button x:Name="BtnGuiaErros"
+                                Visibility="Collapsed"
+                                Width="34" Height="34" Padding="0"
+                                Background="Transparent"
+                                BorderBrush="#5A1E1E" BorderThickness="1"
+                                Foreground="#E65050"
+                                ToolTipService.ToolTip="Como resolver erros de sincronização"
+                                Click="BtnGuiaErros_Click">
+                            <FontIcon Glyph="&#xE897;" FontSize="14" Foreground="#E65050"/>
+                        </Button>
 
                         <!-- Botão de sync manual -->
                         <Button x:Name="BtnSync"
@@ -300,19 +333,53 @@
                 <ItemsControl x:Name="ObrasItemsControl">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <ItemsWrapGrid Orientation="Horizontal"
-                                           ItemWidth="296"
-                                           MaximumRowsOrColumns="10"/>
+                            <StackPanel Orientation="Vertical" Spacing="8"/>
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Width="280"
-                                    Background="{ThemeResource PanelBgBrush}"
-                                    BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
-                                    CornerRadius="8"
-                                    Tapped="ObraCard_Tapped"
-                                    Tag="{Binding}">
+                            <StackPanel Margin="0,8,0,8">
+
+                                <!-- Cabeçalho do grupo -->
+                                <TextBlock Text="{Binding Grupo}"
+                                           FontSize="15" FontWeight="SemiBold"
+                                           Foreground="{ThemeResource TextPrimaryBrush}"
+                                           Margin="0,0,0,6"/>
+                                <Rectangle Height="1"
+                                           Fill="{ThemeResource AppBorderBrush}"
+                                           Margin="0,0,0,14"/>
+
+                                <!-- Estado vazio -->
+                                <StackPanel Visibility="{Binding SemObras, Converter={StaticResource BoolToVisibilityConverter}}"
+                                            Orientation="Horizontal" Spacing="10"
+                                            Padding="4,0,0,8">
+                                    <FontIcon Glyph="&#xE74D;" FontSize="16"
+                                              Foreground="{ThemeResource AppBorderBrush}"/>
+                                    <TextBlock Text="Nenhuma obra"
+                                               FontSize="13"
+                                               Foreground="{ThemeResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <!-- Grid de obras -->
+                                <ItemsControl ItemsSource="{Binding Obras}"
+                                              Visibility="{Binding TemObras, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <ItemsWrapGrid Orientation="Horizontal"
+                                                           ItemWidth="296"
+                                                           MaximumRowsOrColumns="10"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Width="280"
+                                                    Margin="0,0,0,12"
+                                                    Background="{ThemeResource PanelBgBrush}"
+                                                    BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                                    CornerRadius="8"
+                                                    Tapped="ObraCard_Tapped"
+                                                    Tag="{Binding}">
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="160"/>
@@ -334,22 +401,17 @@
                                             </StackPanel>
                                         </Border>
 
+                                        <!-- Logo da empresa: fundo branco so aparece quando ha logo -->
+                                        <Border CornerRadius="8,8,0,0" Padding="16" Background="White"
+                                                Visibility="{Binding HasEmpresaLogo, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <Image Source="{Binding EmpresaLogoUrl, Converter={StaticResource ImagePathConverter}}"
+                                                   Stretch="Uniform"/>
+                                        </Border>
+
+                                        <!-- Foto da obra (cobre o logo quando disponivel) -->
                                         <Border CornerRadius="8,8,0,0">
                                             <Image Source="{Binding ImagemPath, Converter={StaticResource ImagePathConverter}}"
                                                    Stretch="UniformToFill"/>
-                                        </Border>
-
-                                        <!-- Badge status -->
-                                        <Border HorizontalAlignment="Left"
-                                                VerticalAlignment="Top"
-                                                Margin="10,10,0,0"
-                                                CornerRadius="4" Padding="8,4"
-                                                Background="{Binding StatusBackground}"
-                                                Opacity="0.92">
-                                            <TextBlock Text="{Binding Status}"
-                                                       FontSize="11"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="White"/>
                                         </Border>
 
                                         <!-- Badge rascunho -->
@@ -370,9 +432,9 @@
                                         </Border>
 
                                         <!-- Quantidade RDOs -->
-                                        <Border HorizontalAlignment="Right"
+                                        <Border HorizontalAlignment="Left"
                                                 VerticalAlignment="Bottom"
-                                                Margin="0,0,10,10"
+                                                Margin="10,0,0,10"
                                                 Background="{ThemeResource InputBgBrush}"
                                                 BorderBrush="{ThemeResource AppBorderBrush}"
                                                 BorderThickness="1"
@@ -386,17 +448,37 @@
                                                            Foreground="{ThemeResource TextTertiaryBrush}"/>
                                             </StackPanel>
                                         </Border>
+
                                     </Grid>
 
                                     <!-- Informações -->
                                     <StackPanel Grid.Row="1" Spacing="6"
                                                 Padding="14,12,14,14">
-                                        <TextBlock Text="{Binding Nome}"
-                                                   FontSize="14"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{ThemeResource TextPrimaryBrush}"
-                                                   TextWrapping="Wrap"
-                                                   MaxLines="2"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0"
+                                                       Text="{Binding Nome}"
+                                                       FontSize="14"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{ThemeResource TextPrimaryBrush}"
+                                                       TextWrapping="Wrap"
+                                                       MaxLines="2"
+                                                       VerticalAlignment="Center"
+                                                       Margin="0,0,8,0"/>
+                                            <Border Grid.Column="1"
+                                                    CornerRadius="4" Padding="8,4"
+                                                    VerticalAlignment="Center"
+                                                    Background="{Binding StatusBackground}"
+                                                    Opacity="0.92">
+                                                <TextBlock Text="{Binding Status}"
+                                                           FontSize="10"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="White"/>
+                                            </Border>
+                                        </Grid>
                                         <TextBlock Text="{Binding Grupo}"
                                                    FontSize="12"
                                                    Foreground="{ThemeResource AccentBrush}"
@@ -432,8 +514,13 @@
                                             </StackPanel>
                                         </Grid>
                                     </StackPanel>
-                                </Grid>
-                            </Border>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                            </StackPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -446,10 +533,88 @@
                           Padding="28"
                           VerticalScrollBarVisibility="Auto">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="MEUS RELATÓRIOS" FontSize="11"
+                    <TextBlock Text="RELATÓRIOS" FontSize="11"
                                FontWeight="SemiBold"
                                Foreground="{ThemeResource AccentBrush}"
                                CharacterSpacing="150" Margin="0,0,0,4"/>
+
+                    <!-- Filtros de relatórios -->
+                    <StackPanel Spacing="8" Margin="0,0,0,4">
+                        <!-- Linha 1: busca textual -->
+                        <Border Background="{ThemeResource InputBgBrush}"
+                                BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                CornerRadius="6" Height="36">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="&#xE721;"
+                                           FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                           Foreground="{ThemeResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center" Margin="10,0,8,0"/>
+                                <TextBox x:Name="BuscaRelBox" Grid.Column="1"
+                                         PlaceholderText="Buscar por obra, número do RDO..."
+                                         Background="Transparent" BorderThickness="0"
+                                         Foreground="{ThemeResource TextPrimaryBrush}"
+                                         VerticalAlignment="Center"
+                                         TextChanged="BuscaRel_TextChanged"/>
+                            </Grid>
+                        </Border>
+                        <!-- Linha 2: filtros de dropdown -->
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="FiltroGrupoRelBox" Grid.Column="0"
+                                      PlaceholderText="Grupo"
+                                      HorizontalAlignment="Stretch" Height="36"
+                                      Background="{ThemeResource InputBgBrush}"
+                                      BorderBrush="{ThemeResource AppBorderBrush}"
+                                      Foreground="{ThemeResource TextPrimaryBrush}"
+                                      SelectionChanged="FiltroRel_Changed"/>
+                            <ComboBox x:Name="FiltroObraRelBox" Grid.Column="1"
+                                      PlaceholderText="Obra"
+                                      HorizontalAlignment="Stretch" Height="36"
+                                      Background="{ThemeResource InputBgBrush}"
+                                      BorderBrush="{ThemeResource AppBorderBrush}"
+                                      Foreground="{ThemeResource TextPrimaryBrush}"
+                                      SelectionChanged="FiltroRel_Changed"/>
+                            <ComboBox x:Name="FiltroStatusObraRelBox" Grid.Column="2"
+                                      PlaceholderText="Status obra"
+                                      HorizontalAlignment="Stretch" Height="36"
+                                      Background="{ThemeResource InputBgBrush}"
+                                      BorderBrush="{ThemeResource AppBorderBrush}"
+                                      Foreground="{ThemeResource TextPrimaryBrush}"
+                                      SelectionChanged="FiltroRel_Changed"/>
+                            <ComboBox x:Name="FiltroResponsavelRelBox" Grid.Column="3"
+                                      PlaceholderText="Responsável"
+                                      HorizontalAlignment="Stretch" Height="36"
+                                      Background="{ThemeResource InputBgBrush}"
+                                      BorderBrush="{ThemeResource AppBorderBrush}"
+                                      Foreground="{ThemeResource TextPrimaryBrush}"
+                                      SelectionChanged="FiltroRel_Changed"/>
+                            <ComboBox x:Name="FiltroFuncRelBox" Grid.Column="4"
+                                      PlaceholderText="Funcionário"
+                                      HorizontalAlignment="Stretch" Height="36"
+                                      Background="{ThemeResource InputBgBrush}"
+                                      BorderBrush="{ThemeResource AppBorderBrush}"
+                                      Foreground="{ThemeResource TextPrimaryBrush}"
+                                      SelectionChanged="FiltroRel_Changed"/>
+                            <Button Grid.Column="5" Content="Limpar" Height="36"
+                                    Background="Transparent"
+                                    BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                    Foreground="{ThemeResource TextSecondaryBrush}"
+                                    FontSize="12" Padding="14,0"
+                                    Click="LimparFiltrosRel_Click"/>
+                        </Grid>
+                    </StackPanel>
+
                     <ListView x:Name="MeusRelatoriosListView"
                               SelectionMode="None" Background="Transparent">
                         <ListView.ItemContainerStyle>
@@ -471,6 +636,8 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <Rectangle Grid.Column="0"
                                                    Fill="{ThemeResource AccentBrush}"
@@ -480,12 +647,22 @@
                                             <TextBlock Text="{Binding ObraNome}"
                                                        FontSize="14" FontWeight="SemiBold"
                                                        Foreground="{ThemeResource TextPrimaryBrush}"/>
-                                            <TextBlock Text="{Binding NumeroFormatado}"
-                                                       FontSize="12"
-                                                       Foreground="{ThemeResource AccentBrush}"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="{Binding NumeroFormatado}"
+                                                           FontSize="12"
+                                                           Foreground="{ThemeResource AccentBrush}"/>
+                                                <TextBlock Text="{Binding RevisaoFormatada}"
+                                                           FontSize="11"
+                                                           Foreground="#C896FF"
+                                                           FontWeight="SemiBold"/>
+                                            </StackPanel>
                                             <TextBlock Text="{Binding DataFormatada}"
                                                        FontSize="11"
                                                        Foreground="{ThemeResource TextTertiaryBrush}"/>
+                                            <TextBlock Text="{Binding FuncionariosPresentes}"
+                                                       FontSize="11"
+                                                       Foreground="{ThemeResource TextSecondaryBrush}"
+                                                       TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
                                         <Border Grid.Column="2"
                                                 Background="{ThemeResource AccentSubtleBgBrush}"
@@ -496,7 +673,22 @@
                                                        FontSize="11"
                                                        Foreground="{ThemeResource AccentBrush}"/>
                                         </Border>
+                                        <!-- Botão Editar -->
                                         <Button Grid.Column="3"
+                                                Tag="{Binding}"
+                                                Content="&#xE70F;"
+                                                FontFamily="Segoe MDL2 Assets"
+                                                FontSize="14"
+                                                Width="36" Height="36" Padding="0"
+                                                Background="{ThemeResource EditBtnBgBrush}"
+                                                BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                                Foreground="{ThemeResource AccentBrush}"
+                                                VerticalAlignment="Center"
+                                                Margin="0,0,4,0"
+                                                ToolTipService.ToolTip="Editar relatório"
+                                                Click="BtnEditarRelatorio_Click"/>
+                                        <!-- Botão Exportar -->
+                                        <Button Grid.Column="4"
                                                 Tag="{Binding Id}"
                                                 Content="&#xE8C8;"
                                                 FontFamily="Segoe MDL2 Assets"
@@ -506,14 +698,204 @@
                                                 BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
                                                 Foreground="{ThemeResource AccentBrush}"
                                                 VerticalAlignment="Center"
+                                                Margin="0,0,4,0"
                                                 ToolTipService.ToolTip="Exportar PDF"
                                                 Click="BtnExportarPdfItem_Click"/>
+                                        <!-- Botão Excluir -->
+                                        <Button Grid.Column="5"
+                                                Tag="{Binding Id}"
+                                                Content="&#xE74D;"
+                                                FontFamily="Segoe MDL2 Assets"
+                                                FontSize="13"
+                                                Width="36" Height="36" Padding="0"
+                                                Background="#261010"
+                                                BorderBrush="#5A1E1E" BorderThickness="1"
+                                                Foreground="#E65050"
+                                                VerticalAlignment="Center"
+                                                ToolTipService.ToolTip="Excluir relatório"
+                                                Click="BtnExcluirRelatorio_Click"/>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
                         </ListView.ItemTemplate>
                     </ListView>
                 </StackPanel>
+            </ScrollViewer>
+
+            <!-- Painel de Rascunhos (integrado na MainPage) -->
+            <ScrollViewer x:Name="RascunhosPanel"
+                          Grid.Row="2"
+                          Visibility="Collapsed"
+                          VerticalScrollBarVisibility="Auto"
+                          Padding="28">
+                <Grid>
+                <StackPanel Spacing="12">
+                    <TextBlock Text="RASCUNHOS" FontSize="11"
+                               FontWeight="SemiBold"
+                               Foreground="{ThemeResource AccentBrush}"
+                               CharacterSpacing="150" Margin="0,0,0,4"/>
+
+                    <!-- Filtros de rascunhos -->
+                    <StackPanel Spacing="8" Margin="0,0,0,4">
+                        <!-- Busca textual -->
+                        <Border Background="{ThemeResource InputBgBrush}"
+                                BorderBrush="{ThemeResource AppBorderBrush}"
+                                BorderThickness="1" CornerRadius="6"
+                                Padding="10,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <FontIcon Grid.Column="0" Glyph="&#xE721;" FontSize="13"
+                                          Foreground="{ThemeResource TextTertiaryBrush}"
+                                          VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBox Grid.Column="1" x:Name="BuscaRascBox"
+                                         PlaceholderText="Buscar por obra ou responsável..."
+                                         Height="36" Background="Transparent" BorderThickness="0"
+                                         Foreground="{ThemeResource TextPrimaryBrush}"
+                                         VerticalAlignment="Center"
+                                         TextChanged="BuscaRasc_TextChanged"/>
+                            </Grid>
+                        </Border>
+                        <!-- Dropdowns -->
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="FiltroObraRascBox" Grid.Column="0"
+                                      PlaceholderText="Todas as obras"
+                                      HorizontalAlignment="Stretch" Height="36"
+                                      Background="{ThemeResource InputBgBrush}"
+                                      BorderBrush="{ThemeResource AppBorderBrush}"
+                                      Foreground="{ThemeResource TextPrimaryBrush}"
+                                      SelectionChanged="FiltroRasc_Changed"/>
+                            <ComboBox x:Name="FiltroRespRascBox" Grid.Column="1"
+                                      PlaceholderText="Todos os responsáveis"
+                                      HorizontalAlignment="Stretch" Height="36"
+                                      Background="{ThemeResource InputBgBrush}"
+                                      BorderBrush="{ThemeResource AppBorderBrush}"
+                                      Foreground="{ThemeResource TextPrimaryBrush}"
+                                      SelectionChanged="FiltroRasc_Changed"/>
+                            <Button Grid.Column="2" Content="Limpar" Height="36"
+                                    Background="Transparent"
+                                    BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                    Foreground="{ThemeResource TextSecondaryBrush}"
+                                    FontSize="12" Padding="14,0"
+                                    Click="LimparFiltrosRasc_Click"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <ListView x:Name="RascunhosListView"
+                              SelectionMode="None" Background="Transparent">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0,0,0,8"/>
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{ThemeResource PanelBgBrush}"
+                                        BorderBrush="{ThemeResource AppBorderBrush}"
+                                        BorderThickness="1" CornerRadius="6"
+                                        Padding="20,14">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="4"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <!-- Barra lateral amarela -->
+                                        <Rectangle Grid.Column="0" Fill="#f59e0b"
+                                                   RadiusX="2" RadiusY="2"/>
+                                        <!-- Informações -->
+                                        <StackPanel Grid.Column="1" Spacing="4" Margin="12,0,0,0">
+                                            <TextBlock Text="{Binding ObraNome}"
+                                                       FontSize="14" FontWeight="SemiBold"
+                                                       Foreground="{ThemeResource TextPrimaryBrush}"/>
+                                            <TextBlock Text="{Binding NumeroFormatado}"
+                                                       FontSize="12"
+                                                       Foreground="{ThemeResource AccentBrush}"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="{Binding DataRelatorio}"
+                                                           FontSize="11"
+                                                           Foreground="{ThemeResource TextTertiaryBrush}"/>
+                                                <TextBlock Text="·" FontSize="11"
+                                                           Foreground="{ThemeResource TextTertiaryBrush}"/>
+                                                <TextBlock Text="{Binding CriadoPor}"
+                                                           FontSize="11"
+                                                           Foreground="{ThemeResource TextTertiaryBrush}"/>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding SalvoEm}"
+                                                       FontSize="11"
+                                                       Foreground="{ThemeResource TextTertiaryBrush}"/>
+                                        </StackPanel>
+                                        <!-- Badge Rascunho -->
+                                        <Border Grid.Column="2"
+                                                Background="#3D2E00"
+                                                BorderBrush="#f59e0b" BorderThickness="1"
+                                                CornerRadius="4" Padding="10,4"
+                                                VerticalAlignment="Center" Margin="0,0,8,0">
+                                            <TextBlock Text="Rascunho" FontSize="11"
+                                                       Foreground="#f59e0b"/>
+                                        </Border>
+                                        <!-- Botão Continuar -->
+                                        <Button Grid.Column="3"
+                                                Content="&#xE70F;"
+                                                FontFamily="Segoe MDL2 Assets"
+                                                FontSize="14" Width="36" Height="36" Padding="0"
+                                                Background="{ThemeResource EditBtnBgBrush}"
+                                                BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                                Foreground="{ThemeResource AccentBrush}"
+                                                VerticalAlignment="Center" Margin="0,0,4,0"
+                                                ToolTipService.ToolTip="Continuar editando"
+                                                Tag="{Binding ObraId}"
+                                                Click="ContinuarRascunho_Click"/>
+                                        <!-- Botão Excluir -->
+                                        <Button Grid.Column="4"
+                                                Content="&#xE74D;"
+                                                FontFamily="Segoe MDL2 Assets"
+                                                FontSize="13" Width="36" Height="36" Padding="0"
+                                                Background="#261010"
+                                                BorderBrush="#5A1E1E" BorderThickness="1"
+                                                Foreground="#E65050"
+                                                VerticalAlignment="Center"
+                                                ToolTipService.ToolTip="Excluir rascunho"
+                                                Tag="{Binding Id}"
+                                                Click="ExcluirRascunho_Click"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <!-- Contador oculto (usado no code-behind) -->
+                    <TextBlock x:Name="TotalRascunhosTexto" Text="0" Visibility="Collapsed"/>
+                </StackPanel>
+
+                <!-- Estado vazio (sobreposto via Grid) -->
+                <StackPanel x:Name="RascunhosEmptyState" Visibility="Collapsed"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Spacing="12">
+                    <FontIcon Glyph="&#xE70B;" FontSize="48"
+                              Foreground="{ThemeResource TextTertiaryBrush}"
+                              HorizontalAlignment="Center"/>
+                    <TextBlock Text="Nenhum rascunho encontrado"
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="{ThemeResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Os relatórios salvos como rascunho aparecerão aqui."
+                               FontSize="13"
+                               Foreground="{ThemeResource TextTertiaryBrush}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
             </ScrollViewer>
         </Grid>
 
