@@ -25,7 +25,9 @@ public static class LogoService
             return _nasReachable.Value;
         try
         {
-            _nasReachable = Directory.Exists(cfg.NasPath);
+            // Timeout de 1s: Directory.Exists em UNC inacessível pode bloquear até 30s
+            var check = Task.Run(() => Directory.Exists(cfg.NasPath));
+            _nasReachable = check.Wait(1000) && check.Result;
         }
         catch
         {

@@ -39,6 +39,13 @@ namespace RDO.App.Views
         private string _abaAtual = "Obras";
         private readonly HashSet<string> _abasCarregadas = new();
 
+        // Direção de ordenação por aba (true = A→Z)
+        private bool _sortAscEmpresas     = true;
+        private bool _sortAscObras        = true;
+        private bool _sortAscFuncionarios = true;
+        private bool _sortAscEquipamentos = true;
+        private bool _sortAscAcomp        = true;
+
         public CadastrosPage()
         {
             this.InitializeComponent();
@@ -134,16 +141,17 @@ namespace RDO.App.Views
         private async Task FiltrarEmpresasAsync(string termo)
         {
             var cfg = LogosConfig.Load();
+            var asc = _sortAscEmpresas;
             var lista = await Task.Run(() =>
             {
                 using var db = new RdoDbContext(DbContextHelper.GetOptions());
-                var q = db.Empresas.Where(e => e.IsActive).OrderBy(e => e.Nome).ToList();
+                var q = db.Empresas.Where(e => e.IsActive).ToList();
                 if (!string.IsNullOrWhiteSpace(termo))
                 {
                     var t = termo.ToLower();
                     q = q.Where(e => e.Nome.ToLower().Contains(t)).ToList();
                 }
-                return q;
+                return asc ? q.OrderBy(e => e.Nome).ToList() : q.OrderByDescending(e => e.Nome).ToList();
             });
 
             EmpresasListView.ItemsSource = lista;
@@ -172,6 +180,14 @@ namespace RDO.App.Views
         {
             BuscaEmpresasBox.Text = "";
             LimparBuscaEmpresasBtn.Visibility = Visibility.Collapsed;
+        }
+
+        private async void SortEmpresas_Click(object sender, RoutedEventArgs e)
+        {
+            _sortAscEmpresas = !_sortAscEmpresas;
+            SortEmpresasBtn.Content = _sortAscEmpresas ? "A↑" : "Z↓";
+            ToolTipService.SetToolTip(SortEmpresasBtn, _sortAscEmpresas ? "Ordenar A → Z" : "Ordenar Z → A");
+            await FiltrarEmpresasAsync(BuscaEmpresasBox?.Text ?? "");
         }
 
         private async void AdicionarEmpresa_Click(object sender, RoutedEventArgs e)
@@ -402,6 +418,7 @@ namespace RDO.App.Views
         // ── OBRAS ─────────────────────────────────────────────────────────────────
         private async Task FiltrarObrasAsync(string termo)
         {
+            var asc = _sortAscObras;
             var lista = await Task.Run(() =>
             {
                 using var db = new RdoDbContext(DbContextHelper.GetOptions());
@@ -415,7 +432,7 @@ namespace RDO.App.Views
                         o.Contratante.ToLower().Contains(t) ||
                         o.Responsavel.ToLower().Contains(t)).ToList();
                 }
-                return q;
+                return asc ? q.OrderBy(o => o.Nome).ToList() : q.OrderByDescending(o => o.Nome).ToList();
             });
             ObrasListViewCadastro.ItemsSource = lista;
             ObrasCountText.Text = $"{lista.Count} registro(s)";
@@ -433,6 +450,14 @@ namespace RDO.App.Views
         {
             BuscaObrasBox.Text = "";
             LimparBuscaObrasBtn.Visibility = Visibility.Collapsed;
+        }
+
+        private async void SortObras_Click(object sender, RoutedEventArgs e)
+        {
+            _sortAscObras = !_sortAscObras;
+            SortObrasBtn.Content = _sortAscObras ? "A↑" : "Z↓";
+            ToolTipService.SetToolTip(SortObrasBtn, _sortAscObras ? "Ordenar A → Z" : "Ordenar Z → A");
+            await FiltrarObrasAsync(BuscaObrasBox?.Text ?? "");
         }
 
         private void AdicionarObra_Click(object sender, RoutedEventArgs e)
@@ -467,6 +492,7 @@ namespace RDO.App.Views
         // ── FUNCIONÁRIOS ──────────────────────────────────────────────────────
         private async Task FiltrarFuncionariosAsync(string termo)
         {
+            var asc = _sortAscFuncionarios;
             var lista = await Task.Run(() =>
             {
                 using var db = new RdoDbContext(DbContextHelper.GetOptions());
@@ -480,7 +506,7 @@ namespace RDO.App.Views
                         f.Empresa.ToLower().Contains(t) ||
                         f.Contato.ToLower().Contains(t)).ToList();
                 }
-                return q;
+                return asc ? q.OrderBy(f => f.Nome).ToList() : q.OrderByDescending(f => f.Nome).ToList();
             });
             FuncionariosListView.ItemsSource = lista;
             FuncionariosCountText.Text = $"{lista.Count} registro(s)";
@@ -498,6 +524,14 @@ namespace RDO.App.Views
         {
             BuscaFuncionariosBox.Text = "";
             LimparBuscaFuncionariosBtn.Visibility = Visibility.Collapsed;
+        }
+
+        private async void SortFuncionarios_Click(object sender, RoutedEventArgs e)
+        {
+            _sortAscFuncionarios = !_sortAscFuncionarios;
+            SortFuncionariosBtn.Content = _sortAscFuncionarios ? "A↑" : "Z↓";
+            ToolTipService.SetToolTip(SortFuncionariosBtn, _sortAscFuncionarios ? "Ordenar A → Z" : "Ordenar Z → A");
+            await FiltrarFuncionariosAsync(BuscaFuncionariosBox?.Text ?? "");
         }
 
         private async void AdicionarFuncionario_Click(object sender, RoutedEventArgs e)
@@ -665,6 +699,7 @@ namespace RDO.App.Views
         // ── EQUIPAMENTOS ─────────────────────────────────────────────────────
         private async Task FiltrarEquipamentosAsync(string termo)
         {
+            var asc = _sortAscEquipamentos;
             var lista = await Task.Run(() =>
             {
                 using var db = new RdoDbContext(DbContextHelper.GetOptions());
@@ -689,7 +724,7 @@ namespace RDO.App.Views
                         e.NumeroSerie.ToLower().Contains(t) ||
                         e.Modelo.ToLower().Contains(t)).ToList();
                 }
-                return q;
+                return asc ? q.OrderBy(e => e.Nome).ToList() : q.OrderByDescending(e => e.Nome).ToList();
             });
             EquipamentosListView.ItemsSource = lista;
             EquipamentosCountText.Text = $"{lista.Count} registro(s)";
@@ -707,6 +742,14 @@ namespace RDO.App.Views
         {
             BuscaEquipamentosBox.Text = "";
             LimparBuscaEquipamentosBtn.Visibility = Visibility.Collapsed;
+        }
+
+        private async void SortEquipamentos_Click(object sender, RoutedEventArgs e)
+        {
+            _sortAscEquipamentos = !_sortAscEquipamentos;
+            SortEquipamentosBtn.Content = _sortAscEquipamentos ? "A↑" : "Z↓";
+            ToolTipService.SetToolTip(SortEquipamentosBtn, _sortAscEquipamentos ? "Ordenar A → Z" : "Ordenar Z → A");
+            await FiltrarEquipamentosAsync(BuscaEquipamentosBox?.Text ?? "");
         }
 
         private async void AdicionarEquipamento_Click(object sender, RoutedEventArgs e)
@@ -855,6 +898,7 @@ namespace RDO.App.Views
         // ── ACOMPANHANTES ────────────────────────────────────────────────────
         private async Task FiltrarAcompanhantesAsync(string termo)
         {
+            var asc = _sortAscAcomp;
             var lista = await Task.Run(() =>
             {
                 using var db = new RdoDbContext(DbContextHelper.GetOptions());
@@ -869,12 +913,13 @@ namespace RDO.App.Views
                         a.Cargo.ToLower().Contains(t) ||
                         a.Grupo.ToLower().Contains(t)).ToList();
                 }
-                return acomps.Select(a => new AcompanhanteListItem
+                var items = acomps.Select(a => new AcompanhanteListItem
                 {
                     Id = a.Id, Nome = a.Nome, Cargo = a.Cargo, Grupo = a.Grupo,
                     Contato = a.Contato, Ativo = a.Ativo, EmpresaId = a.EmpresaId,
                     EmpresaNome = a.EmpresaId.HasValue && empDict.TryGetValue(a.EmpresaId.Value, out var en) ? en : null
-                }).ToList();
+                });
+                return asc ? items.OrderBy(a => a.Nome).ToList() : items.OrderByDescending(a => a.Nome).ToList();
             });
             AcompanhantesListView.ItemsSource = lista;
             AcompanhantesCountText.Text = $"{lista.Count} registro(s)";
@@ -892,6 +937,14 @@ namespace RDO.App.Views
         {
             BuscaAcompanhantesBox.Text = "";
             LimparBuscaAcompanhantesBtn.Visibility = Visibility.Collapsed;
+        }
+
+        private async void SortAcompanhantes_Click(object sender, RoutedEventArgs e)
+        {
+            _sortAscAcomp = !_sortAscAcomp;
+            SortAcompanhantesBtn.Content = _sortAscAcomp ? "A↑" : "Z↓";
+            ToolTipService.SetToolTip(SortAcompanhantesBtn, _sortAscAcomp ? "Ordenar A → Z" : "Ordenar Z → A");
+            await FiltrarAcompanhantesAsync(BuscaAcompanhantesBox?.Text ?? "");
         }
 
         private async void AdicionarAcompanhante_Click(object sender, RoutedEventArgs e)

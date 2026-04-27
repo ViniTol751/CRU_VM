@@ -438,36 +438,34 @@ namespace RDO.App.Views
 
         private async void CarregarObras()
         {
-            List<RDO.Data.Models.Project> obras;
-            Dictionary<string, RDO.Data.Models.Empresa> empPorGrupo;
-            Dictionary<int, int> rdoCounts;
-            Dictionary<int, bool> rascunhoCounts;
-
             try
             {
-            // Todas as queries síncronas feitas dentro do using antes de qualquer await
-            using (var db = new RdoDbContext(DbContextHelper.GetOptions()))
+            // DB em background — libera a UI thread imediatamente
+            var (obras, empPorGrupo, rdoCounts, rascunhoCounts) = await Task.Run(() =>
             {
-                obras = db.Obras.Where(o => o.IsActive).ToList();
+                using var db = new RdoDbContext(DbContextHelper.GetOptions());
+                var o = db.Obras.Where(x => x.IsActive).ToList();
 
                 var empresas = db.Empresas.Where(e => e.IsActive).ToList();
-                empPorGrupo = new Dictionary<string, RDO.Data.Models.Empresa>(StringComparer.OrdinalIgnoreCase);
+                var epg = new Dictionary<string, RDO.Data.Models.Empresa>(StringComparer.OrdinalIgnoreCase);
                 foreach (var e in empresas)
                 {
                     var key = RDO.App.Services.LogoService.GetBaseNome(e.Nome);
-                    if (!empPorGrupo.ContainsKey(key)) empPorGrupo[key] = e;
+                    if (!epg.ContainsKey(key)) epg[key] = e;
                 }
 
-                var obraIds = obras.Select(o => o.Id).ToList();
-                rdoCounts = db.Relatorios
+                var obraIds = o.Select(x => x.Id).ToList();
+                var rdc = db.Relatorios
                     .Where(r => !r.Rascunho && obraIds.Contains(r.ObraId))
                     .GroupBy(r => r.ObraId)
                     .ToDictionary(g => g.Key, g => g.Count());
-                rascunhoCounts = db.Relatorios
+                var rsc = db.Relatorios
                     .Where(r => r.Rascunho && obraIds.Contains(r.ObraId))
                     .GroupBy(r => r.ObraId)
                     .ToDictionary(g => g.Key, g => true);
-            }
+
+                return (o, epg, rdc, rsc);
+            });
 
             var cfg = RDO.App.Services.LogosConfig.Load();
             var nasFiles = await RDO.App.Services.LogoService.GetNasFilesAsync(cfg);
@@ -536,55 +534,61 @@ namespace RDO.App.Views
             }
         }
 
-        private void CarregarMeusRelatorios()
+        private async void CarregarMeusRelatorios()
         {
             try
             {
-            using var db = new RdoDbContext(DbContextHelper.GetOptions());
-
-            // Apenas publicados E cuja obra está ativa (não excluída nem desativada)
-            var obraIds = db.Obras
-                .Where(o => o.IsActive && !o.IsDeleted)
-                .Select(o => o.Id)
-                .ToHashSet();
-
-            var relatorios = db.Relatorios
-                .Where(r => !r.Rascunho && r.Status != "Rascunho")
-                .OrderByDescending(r => r.Data)
-                .ToList()
-                .Where(r => obraIds.Contains(r.ObraId))
-                .ToList();
-
-            // Carrega presenças em lote para evitar N+1
-            var relIds = relatorios.Select(r => r.Id).ToList();
-            var presencasPorRel = db.PresencasFuncionarios
-                .Where(p => relIds.Contains(p.ReportId))
-                .GroupBy(p => p.ReportId)
-                .ToDictionary(g => g.Key, g => g.Select(p => p.EmployeeName).Distinct().ToList());
-
-            _todosRelatorios = relatorios.Select(r =>
+            _todosRelatorios = await Task.Run(() =>
             {
-                var obra = db.Obras.Find(r.ObraId);
-                var funcNomes = presencasPorRel.TryGetValue(r.Id, out var nomes) ? nomes : new List<string>();
-                var statusNorm = r.Status == "Enviado" ? "Publicado" : r.Status;
-                return new MeuRelatorioViewModel
+                using var db = new RdoDbContext(DbContextHelper.GetOptions());
+
+                var obraIds = db.Obras
+                    .Where(o => o.IsActive && !o.IsDeleted)
+                    .Select(o => o.Id)
+                    .ToHashSet();
+
+                var relatorios = db.Relatorios
+                    .Where(r => !r.Rascunho && r.Status != "Rascunho")
+                    .OrderByDescending(r => r.Data)
+                    .ToList()
+                    .Where(r => obraIds.Contains(r.ObraId))
+                    .ToList();
+
+                var relIds = relatorios.Select(r => r.Id).ToList();
+                var presencasPorRel = db.PresencasFuncionarios
+                    .Where(p => relIds.Contains(p.ReportId))
+                    .GroupBy(p => p.ReportId)
+                    .ToDictionary(g => g.Key, g => g.Select(p => p.EmployeeName).Distinct().ToList());
+
+                // Carrega obras em lote para evitar N+1
+                var obrasDict = db.Obras
+                    .Where(o => relatorios.Select(r => r.ObraId).Contains(o.Id))
+                    .ToDictionary(o => o.Id);
+
+                return relatorios.Select(r =>
                 {
-                    Id = r.Id,
-                    ObraId = r.ObraId,
-                    ObraNome = obra?.Nome ?? "—",
-                    ObraGrupo = obra?.Grupo ?? "",
-                    ObraStatus = obra?.Status ?? "",
-                    Responsavel = obra?.Responsavel ?? "",
-                    DataFormatada = r.Data.ToString("dd/MM/yyyy"),
-                    NumeroFormatado = $"RDO nº {r.Numero:D3}",
-                    Status = statusNorm,
-                    Revisao = r.Revisao,
-                    FuncionariosNomes = funcNomes,
-                    FuncionariosPresentes = funcNomes.Count > 0
-                        ? string.Join(", ", funcNomes.Take(3)) + (funcNomes.Count > 3 ? $" +{funcNomes.Count - 3}" : "")
-                        : ""
-                };
-            }).ToList();
+                    obrasDict.TryGetValue(r.ObraId, out var obra);
+                    var funcNomes = presencasPorRel.TryGetValue(r.Id, out var nomes) ? nomes : new List<string>();
+                    var statusNorm = r.Status == "Enviado" ? "Publicado" : r.Status;
+                    return new MeuRelatorioViewModel
+                    {
+                        Id = r.Id,
+                        ObraId = r.ObraId,
+                        ObraNome = obra?.Nome ?? "—",
+                        ObraGrupo = obra?.Grupo ?? "",
+                        ObraStatus = obra?.Status ?? "",
+                        Responsavel = obra?.Responsavel ?? "",
+                        DataFormatada = r.Data.ToString("dd/MM/yyyy"),
+                        NumeroFormatado = $"RDO nº {r.Numero:D3}",
+                        Status = statusNorm,
+                        Revisao = r.Revisao,
+                        FuncionariosNomes = funcNomes,
+                        FuncionariosPresentes = funcNomes.Count > 0
+                            ? string.Join(", ", funcNomes.Take(3)) + (funcNomes.Count > 3 ? $" +{funcNomes.Count - 3}" : "")
+                            : ""
+                    };
+                }).ToList();
+            });
 
             PopularFiltrosRelatorios();
             AplicarFiltrosRelatorios();
@@ -1385,23 +1389,31 @@ namespace RDO.App.Views
             CarregarRascunhos();
         }
 
-        private void CarregarRascunhos()
+        private async void CarregarRascunhos()
         {
             try
             {
-            using var db = new RdoDbContext(DbContextHelper.GetOptions());
+            _todosRascunhos = await Task.Run(() =>
+            {
+                using var db = new RdoDbContext(DbContextHelper.GetOptions());
+                var rels = db.Relatorios.Where(r => r.Rascunho).OrderByDescending(r => r.CriadoEm).ToList();
 
-            _todosRascunhos = db.Relatorios
-                .Where(r => r.Rascunho)
-                .OrderByDescending(r => r.CriadoEm)
-                .ToList()
-                .Select(r =>
+                var obraIds   = rels.Select(r => r.ObraId).Distinct().ToList();
+                var usuIds    = rels.Select(r => r.UsuarioId).Distinct().ToList();
+                var obrasDict = db.Obras.Where(o => obraIds.Contains(o.Id)).ToDictionary(o => o.Id);
+                var usersDict = db.Usuarios.Where(u => usuIds.Contains(u.Id)).ToDictionary(u => u.Id);
+                var contagemPorObra = db.Relatorios
+                    .Where(r => !r.Rascunho && obraIds.Contains(r.ObraId))
+                    .GroupBy(r => r.ObraId)
+                    .ToDictionary(g => g.Key, g => g.Count());
+
+                return rels.Select(r =>
                 {
-                    var obra = db.Obras.Find(r.ObraId);
+                    obrasDict.TryGetValue(r.ObraId, out var obra);
+                    usersDict.TryGetValue(r.UsuarioId, out var usuario);
                     var obraNome = obra?.Nome ?? "—";
-                    var usuario = db.Usuarios.Find(r.UsuarioId);
-                    var criador = usuario?.Nome ?? "—";
-                    var numero = db.Relatorios.Count(x => x.ObraId == r.ObraId && !x.Rascunho) + 1;
+                    var criador  = usuario?.Nome ?? "—";
+                    var numero   = contagemPorObra.GetValueOrDefault(r.ObraId, 0) + 1;
                     return new RascunhoViewModel
                     {
                         Id = r.Id,
@@ -1416,8 +1428,8 @@ namespace RDO.App.Views
                         ObraNomeFiltro = obraNome.ToLower(),
                         CriadoPorFiltro = criador.ToLower()
                     };
-                })
-                .ToList();
+                }).ToList();
+            });
 
             PopularFiltrosRascunhos();
             AplicarFiltrosRascunhos();
