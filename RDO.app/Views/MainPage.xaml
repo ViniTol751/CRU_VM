@@ -173,11 +173,11 @@
                                    FontSize="15" FontWeight="SemiBold"
                                    Foreground="{ThemeResource TextPrimaryBrush}"
                                    VerticalAlignment="Center"/>
-                        <Border Background="{ThemeResource AppBorderBrush}" CornerRadius="10"
+                        <Border Background="{ThemeResource AccentBrush}" CornerRadius="10"
                                 Padding="8,2" VerticalAlignment="Center">
                             <TextBlock x:Name="TotalObrasTexto" Text="0"
-                                       FontSize="11"
-                                       Foreground="{ThemeResource TextTertiaryBrush}"/>
+                                       FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource AccentFgBrush}"/>
                         </Border>
                     </StackPanel>
 
@@ -394,9 +394,9 @@
                                                         HorizontalAlignment="Center"
                                                         Spacing="8">
                                                 <FontIcon Glyph="&#xE825;" FontSize="40"
-                                                          Foreground="{ThemeResource AppBorderBrush}"/>
+                                                          Foreground="{ThemeResource IconBrush}"/>
                                                 <TextBlock Text="Sem imagem" FontSize="11"
-                                                           Foreground="{ThemeResource AppBorderBrush}"
+                                                           Foreground="{ThemeResource TextSecondaryBrush}"
                                                            HorizontalAlignment="Center"/>
                                             </StackPanel>
                                         </Border>

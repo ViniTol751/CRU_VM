@@ -17,6 +17,7 @@
                     <SolidColorBrush x:Key="TextPrimaryBrush"     Color="#cccccc"/>
                     <SolidColorBrush x:Key="TextSecondaryBrush"   Color="#9d9d9d"/>
                     <SolidColorBrush x:Key="TextTertiaryBrush"    Color="#6a6a6a"/>
+                    <SolidColorBrush x:Key="IconBrush"            Color="#b0b4bc"/>
                     <SolidColorBrush x:Key="InputBgBrush"         Color="#252526"/>
                     <SolidColorBrush x:Key="CardImgBgBrush"       Color="#111111"/>
                     <SolidColorBrush x:Key="EditBtnBgBrush"       Color="#333333"/>
@@ -29,22 +30,23 @@
 
                 <!-- ── TEMA CLARO ──────────────────────────────────────────── -->
                 <ResourceDictionary x:Key="Light">
-                    <SolidColorBrush x:Key="AppBgBrush"           Color="#d5d6db"/>
-                    <SolidColorBrush x:Key="PanelBgBrush"         Color="#e1e2e7"/>
-                    <SolidColorBrush x:Key="AppBorderBrush"       Color="#a8aecb"/>
+                    <SolidColorBrush x:Key="AppBgBrush"           Color="#c8cad2"/>
+                    <SolidColorBrush x:Key="PanelBgBrush"         Color="#dddee5"/>
+                    <SolidColorBrush x:Key="AppBorderBrush"       Color="#8892b8"/>
                     <SolidColorBrush x:Key="AccentBrush"          Color="#2563eb"/>
                     <SolidColorBrush x:Key="AccentFgBrush"        Color="#ffffff"/>
-                    <SolidColorBrush x:Key="TextPrimaryBrush"     Color="#343b58"/>
-                    <SolidColorBrush x:Key="TextSecondaryBrush"   Color="#565f89"/>
-                    <SolidColorBrush x:Key="TextTertiaryBrush"    Color="#9699a3"/>
-                    <SolidColorBrush x:Key="InputBgBrush"         Color="#cbccd1"/>
-                    <SolidColorBrush x:Key="CardImgBgBrush"       Color="#b4b5b9"/>
-                    <SolidColorBrush x:Key="EditBtnBgBrush"       Color="#c0c2cd"/>
-                    <SolidColorBrush x:Key="AccentSubtleBgBrush"  Color="#a8aecb"/>
+                    <SolidColorBrush x:Key="TextPrimaryBrush"     Color="#1e2433"/>
+                    <SolidColorBrush x:Key="TextSecondaryBrush"   Color="#424b6e"/>
+                    <SolidColorBrush x:Key="TextTertiaryBrush"    Color="#5e6680"/>
+                    <SolidColorBrush x:Key="IconBrush"            Color="#2e3142"/>
+                    <SolidColorBrush x:Key="InputBgBrush"         Color="#c8cad2"/>
+                    <SolidColorBrush x:Key="CardImgBgBrush"       Color="#9ea3b2"/>
+                    <SolidColorBrush x:Key="EditBtnBgBrush"       Color="#b8bac8"/>
+                    <SolidColorBrush x:Key="AccentSubtleBgBrush"  Color="#c4cae8"/>
                     <SolidColorBrush x:Key="DangerBgBrush"        Color="#ffcccc"/>
                     <SolidColorBrush x:Key="DangerBorderBrush"    Color="#f52a65"/>
                     <SolidColorBrush x:Key="DangerFgBrush"        Color="#8c4351"/>
-                    <SolidColorBrush x:Key="NavBgBrush"           Color="#e1e2e7"/>
+                    <SolidColorBrush x:Key="NavBgBrush"           Color="#d4d6e0"/>
                     </ResourceDictionary>
 
             </ResourceDictionary.ThemeDictionaries>
