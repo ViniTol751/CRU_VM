@@ -139,30 +139,38 @@ namespace RDO.App.Views
             AtualizarSyncUI(SyncEstado.Sincronizando);
             BtnSync.IsEnabled = false;
 
-            var resultado = await _syncService.SyncAsync();
-
-            BtnSync.IsEnabled = true;
-
-            if (resultado.IsOffline)
+            try
             {
-                AtualizarSyncUI(SyncEstado.SemRede);
-                return;
+                var resultado = await _syncService.SyncAsync();
+
+                BtnSync.IsEnabled = true;
+
+                if (resultado.IsOffline)
+                {
+                    AtualizarSyncUI(SyncEstado.SemRede);
+                    return;
+                }
+
+                if (resultado.Success)
+                {
+                    AtualizarSyncUI(SyncEstado.Sincronizado,
+                        $"↑{resultado.PushedInserted + resultado.PushedUpdated}  ↓{resultado.PulledRecords}");
+                    if (_mostraMeusRelatorios) CarregarMeusRelatorios();
+                    else CarregarObras();
+                }
+                else
+                {
+                    var detalheErro = string.IsNullOrWhiteSpace(resultado.ErrorCode)
+                        ? (resultado.Error ?? "Erro desconhecido")
+                        : $"{resultado.ErrorCode}: {resultado.Error}";
+                    AtualizarSyncUI(SyncEstado.Erro, detalheErro);
+                }
             }
-
-            if (resultado.Success)
+            catch (Exception ex)
             {
-                AtualizarSyncUI(SyncEstado.Sincronizado,
-                    $"↑{resultado.PushedInserted + resultado.PushedUpdated}  ↓{resultado.PulledRecords}");
-                // Recarrega dados locais após pull
-                if (_mostraMeusRelatorios) CarregarMeusRelatorios();
-                else CarregarObras();
-            }
-            else
-            {
-                var detalheErro = string.IsNullOrWhiteSpace(resultado.ErrorCode)
-                    ? (resultado.Error ?? "Erro")
-                    : $"{resultado.ErrorCode}: {resultado.Error}";
-                AtualizarSyncUI(SyncEstado.Erro, detalheErro);
+                BtnSync.IsEnabled = true;
+                System.Diagnostics.Debug.WriteLine($"[SYNC] Exceção inesperada: {ex}");
+                AtualizarSyncUI(SyncEstado.Erro, "Falha na comunicação com o servidor");
             }
         }
 
@@ -435,6 +443,8 @@ namespace RDO.App.Views
             Dictionary<int, int> rdoCounts;
             Dictionary<int, bool> rascunhoCounts;
 
+            try
+            {
             // Todas as queries síncronas feitas dentro do using antes de qualquer await
             using (var db = new RdoDbContext(DbContextHelper.GetOptions()))
             {
@@ -511,10 +521,25 @@ namespace RDO.App.Views
             }).ToList();
 
             AplicarFiltros();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[OBRAS] Erro ao carregar obras: {ex}");
+                var d = new ContentDialog
+                {
+                    Title = "Erro ao carregar obras",
+                    Content = "Não foi possível carregar a lista de obras. Verifique o banco de dados e tente novamente.",
+                    CloseButtonText = "OK",
+                    XamlRoot = this.XamlRoot
+                };
+                _ = d.ShowAsync();
+            }
         }
 
         private void CarregarMeusRelatorios()
         {
+            try
+            {
             using var db = new RdoDbContext(DbContextHelper.GetOptions());
 
             // Apenas publicados E cuja obra está ativa (não excluída nem desativada)
@@ -563,6 +588,19 @@ namespace RDO.App.Views
 
             PopularFiltrosRelatorios();
             AplicarFiltrosRelatorios();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[RELATORIOS] Erro ao carregar: {ex}");
+                var d = new ContentDialog
+                {
+                    Title = "Erro ao carregar relatórios",
+                    Content = "Não foi possível carregar os relatórios. Verifique o banco de dados e tente novamente.",
+                    CloseButtonText = "OK",
+                    XamlRoot = this.XamlRoot
+                };
+                _ = d.ShowAsync();
+            }
         }
 
         private void PopularFiltrosRelatorios()
@@ -1349,6 +1387,8 @@ namespace RDO.App.Views
 
         private void CarregarRascunhos()
         {
+            try
+            {
             using var db = new RdoDbContext(DbContextHelper.GetOptions());
 
             _todosRascunhos = db.Relatorios
@@ -1381,6 +1421,19 @@ namespace RDO.App.Views
 
             PopularFiltrosRascunhos();
             AplicarFiltrosRascunhos();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[RASCUNHOS] Erro ao carregar: {ex}");
+                var d = new ContentDialog
+                {
+                    Title = "Erro ao carregar rascunhos",
+                    Content = "Não foi possível carregar os rascunhos. Verifique o banco de dados e tente novamente.",
+                    CloseButtonText = "OK",
+                    XamlRoot = this.XamlRoot
+                };
+                _ = d.ShowAsync();
+            }
         }
 
         private void PopularFiltrosRascunhos()
@@ -1524,7 +1577,7 @@ namespace RDO.App.Views
                     await Windows.System.Launcher.LaunchFileAsync(
                         await Windows.Storage.StorageFile.GetFileFromPathAsync(caminho));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Fecha o dialog pai (Propriedades da Obra) se estiver aberto,
                 // pois WinUI 3 não permite dois ContentDialogs simultâneos.
@@ -1534,7 +1587,7 @@ namespace RDO.App.Views
                 var d = new ContentDialog
                 {
                     Title = "Erro ao gerar PDF",
-                    Content = ex.Message,
+                    Content = "Não foi possível gerar o PDF. Verifique se o relatório contém todas as informações necessárias e tente novamente.",
                     CloseButtonText = "OK",
                     XamlRoot = this.XamlRoot
                 };
@@ -1614,12 +1667,12 @@ namespace RDO.App.Views
                         CarregarMeusRelatorios(); // Recarrega a lista
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     var errorDialog = new ContentDialog
                     {
                         Title = "Erro ao excluir",
-                        Content = ex.Message,
+                        Content = "Não foi possível excluir o relatório. O registro pode estar em uso ou o banco de dados está inacessível. Tente novamente.",
                         CloseButtonText = "OK",
                         XamlRoot = this.XamlRoot
                     };

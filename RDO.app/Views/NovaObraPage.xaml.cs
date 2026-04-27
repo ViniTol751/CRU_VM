@@ -1,20 +1,47 @@
-﻿using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Imaging;
+using RDO.App.Services;
 using RDO.Data.Data;
 using RDO.Data.Models;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using Windows.Storage.Pickers;
 
 namespace RDO.App.Views
 {
+    public class NovaObraEstado
+    {
+        public string Nome { get; set; } = "";
+        public string Grupo { get; set; } = "";
+        public bool GrupoEditavel { get; set; }
+        public int StatusIndex { get; set; }
+        public int ResponsavelIndex { get; set; }
+        public string Endereco { get; set; } = "";
+        public string ART { get; set; } = "";
+        public DateTimeOffset DataInicio { get; set; }
+        public DateTimeOffset DataTermino { get; set; }
+        public string? ImagemPath { get; set; }
+        public int? ObraExistenteId { get; set; }
+    }
+
+    public class CadastrosParams
+    {
+        public string AbaInicial { get; set; } = "";
+        public string VoltarPara { get; set; } = "";
+        public NovaObraEstado? EstadoNovaObra { get; set; }
+    }
+
     public sealed partial class NovaObraPage : Page
     {
-        private string? _imagemPath;
         private Obra? _obraExistente;
         private string _abaOrigem = "Obras";
+        private List<Acompanhante> _terceirosCache = new();
+        private Acompanhante? _responsavelClienteSelecionado;
 
         public NovaObraPage()
         {
@@ -22,109 +49,274 @@ namespace RDO.App.Views
             DataInicioPicker.Date = DateTimeOffset.Now;
             DataTerminoPicker.Date = DateTimeOffset.Now.AddMonths(6);
             StatusBox.SelectedIndex = 0;
-            TipoContratoBox.SelectedIndex = 0;
+            CarregarTerceiros();
         }
 
-        protected override void OnNavigatedTo(
+        private void CarregarTerceiros()
+        {
+            try
+            {
+                using var db = new RdoDbContext(DbContextHelper.GetOptions());
+                _terceirosCache = db.Acompanhantes
+                    .Where(a => a.Ativo)
+                    .OrderBy(a => a.Nome)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[TERCEIROS] Erro ao carregar: {ex}");
+                _terceirosCache = new List<Acompanhante>();
+            }
+
+            ResponsavelClienteBox.TextMemberPath = "Nome";
+            ResponsavelClienteBox.DisplayMemberPath = "Nome";
+
+            ResponsavelClienteBox.GotFocus += (s, e) =>
+            {
+                if (string.IsNullOrWhiteSpace(ResponsavelClienteBox.Text))
+                {
+                    ResponsavelClienteBox.ItemsSource = _terceirosCache;
+                }
+            };
+
+            // Clica no 'X': só limpa quando não veio de uma sugestão escolhida
+            ResponsavelClienteBox.QuerySubmitted += (s, e) =>
+            {
+                if (e.ChosenSuggestion == null)
+                {
+                    ResponsavelClienteBox.Text = "";
+                    _responsavelClienteSelecionado = null;
+                    ResponsavelClienteBox.IsSuggestionListOpen = false;
+                }
+            };
+        }
+
+        private void ResponsavelCliente_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+        {
+            if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
+            {
+                var termo = sender.Text.ToLower();
+                if (string.IsNullOrWhiteSpace(termo))
+                {
+                    sender.ItemsSource = _terceirosCache;
+                }
+                else
+                {
+                    sender.ItemsSource = _terceirosCache.Where(t => t.Nome.ToLower().Contains(termo)).ToList();
+                }
+                _responsavelClienteSelecionado = null;
+            }
+        }
+
+        private void ResponsavelCliente_SuggestionChosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
+        {
+            if (args.SelectedItem is Acompanhante terceiro)
+            {
+                _responsavelClienteSelecionado = terceiro;
+                sender.Text = terceiro.Nome;
+
+                if (terceiro.EmpresaId.HasValue)
+                {
+                    using var db = new RdoDbContext(DbContextHelper.GetOptions());
+                    var empresa = db.Empresas.Find(terceiro.EmpresaId.Value);
+                    if (empresa != null)
+                    {
+                        GrupoBox.IsReadOnly = true;
+                        GrupoBox.Text = LogoService.GetBaseNome(empresa.Nome);
+                        GrupoBox.PlaceholderText = "";
+
+                        // Extrai "YYY | ZZ" do formato "XXX | YYY (ZZ)"
+                        var pipeIdx = empresa.Nome.IndexOf(" | ", StringComparison.Ordinal);
+                        if (pipeIdx >= 0)
+                        {
+                            var localPart = empresa.Nome[(pipeIdx + 3)..];
+                            if (localPart.EndsWith(")") && localPart.Contains(" ("))
+                            {
+                                var ufIdx = localPart.LastIndexOf(" (");
+                                var cidade = localPart[..ufIdx].Trim();
+                                var uf = localPart[(ufIdx + 2)..^1].Trim();
+                                EnderecoBox.Text = $"{cidade} | {uf}";
+                            }
+                            else
+                            {
+                                EnderecoBox.Text = localPart;
+                            }
+                        }
+                        EnderecoBox.IsReadOnly = true;
+                        return;
+                    }
+                }
+
+                if (terceiro.Nome == "-")
+                {
+                    GrupoBox.IsReadOnly = false;
+                    GrupoBox.Text = "";
+                    GrupoBox.PlaceholderText = "Ex: Cargill, Siemens...";
+                    EnderecoBox.IsReadOnly = false;
+                }
+                else
+                {
+                    GrupoBox.IsReadOnly = true;
+                    GrupoBox.Text = terceiro.Grupo;
+                    EnderecoBox.IsReadOnly = true;
+                }
+            }
+        }
+
+        private void BtnEditarGrupoLocal_Click(object sender, RoutedEventArgs e)
+        {
+            GrupoBox.IsReadOnly = false;
+            EnderecoBox.IsReadOnly = false;
+            _responsavelClienteSelecionado = null;
+            ResponsavelClienteBox.Text = "";
+        }
+
+        private bool _mostrандоAvisoGrupo = false;
+
+        private async void GrupoBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            // Se o campo está bloqueado e não está já mostrando o aviso
+            if (GrupoBox.IsReadOnly && !_mostrандоAvisoGrupo)
+            {
+                _mostrандоAvisoGrupo = true;
+                var dialog = new ContentDialog
+                {
+                    Title = "Campo bloqueado",
+                    Content = "O grupo é preenchido automaticamente ao selecionar o Responsável Cliente.\n\nPara editar manualmente, selecione o terceiro \"-\" na lista.",
+                    CloseButtonText = "OK",
+                    XamlRoot = this.XamlRoot
+                };
+                await dialog.ShowAsync();
+                _mostrандоAvisoGrupo = false;
+                // Devolve foco para o ComboBox sem disparar GotFocus do GrupoBox
+                ResponsavelClienteBox.Focus(FocusState.Programmatic);
+            }
+        }
+
+        private void CadastrarTerceiro_Click(object sender, RoutedEventArgs e)
+        {
+            // Salva o estado atual do formulário antes de navegar
+            var estadoAtual = new NovaObraEstado
+            {
+                Nome = NomeBox.Text,
+                Grupo = GrupoBox.Text,
+                GrupoEditavel = !GrupoBox.IsReadOnly,
+                StatusIndex = StatusBox.SelectedIndex,
+                ResponsavelIndex = ResponsavelBox.SelectedIndex,
+                Endereco = EnderecoBox.Text,
+                ART = ArtBox.Text,
+                DataInicio = DataInicioPicker.Date,
+                DataTermino = DataTerminoPicker.Date,
+                ObraExistenteId = _obraExistente?.Id
+            };
+
+            // Navega para cadastros com parâmetro para voltar
+            Frame.Navigate(typeof(CadastrosPage), new CadastrosParams
+            {
+                AbaInicial = "Terceiros",
+                VoltarPara = "NovaObra",
+                EstadoNovaObra = estadoAtual
+            });
+        }
+
+        protected override async void OnNavigatedTo(
             Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
         {
             if (e.Parameter is NovaObraParams p)
             {
                 _abaOrigem = p.AbaOrigem;
                 if (p.ObraId.HasValue)
-                    CarregarObra(p.ObraId.Value);
+                    await CarregarObra(p.ObraId.Value);
+            }
+            else if (e.Parameter is NovaObraEstado estado)
+            {
+                // Restaura estado após voltar de Cadastros
+                await RestaurarEstado(estado);
             }
             else if (e.Parameter is int obraId)
             {
-                CarregarObra(obraId);
+                await CarregarObra(obraId);
             }
         }
 
-        private void CarregarObra(int obraId)
+        private async Task RestaurarEstado(NovaObraEstado estado)
         {
-            using var db = new RdoDbContext(DbContextHelper.GetOptions());
-            var obra = db.Obras.Find(obraId);
-            if (obra == null) return;
+            NomeBox.Text = estado.Nome;
+            GrupoBox.Text = estado.Grupo;
+            GrupoBox.IsReadOnly = !estado.GrupoEditavel;
+            StatusBox.SelectedIndex = estado.StatusIndex;
+            ResponsavelBox.SelectedIndex = estado.ResponsavelIndex;
+            EnderecoBox.Text = estado.Endereco;
+            ArtBox.Text = estado.ART;
+            DataInicioPicker.Date = estado.DataInicio;
+            DataTerminoPicker.Date = estado.DataTermino;
 
-            _obraExistente = obra;
-
-            TituloTexto.Text = "Editar Obra";
-            SalvarBtn.Content = "Salvar Alterações";
-
-            NomeBox.Text = obra.Nome;
-            GrupoBox.Text = obra.Grupo;
-            ContratanteBox.Text = obra.Contratante;
-            EnderecoBox.Text = obra.Endereco;
-            ArtBox.Text = obra.ART;
-            DataInicioPicker.Date = obra.DataInicio;
-            DataTerminoPicker.Date = obra.PrevisaoTermino ?? DateTimeOffset.Now.AddMonths(6);
-
-            for (int i = 0; i < StatusBox.Items.Count; i++)
+            if (estado.ObraExistenteId.HasValue)
             {
-                if ((StatusBox.Items[i] as ComboBoxItem)?.Content.ToString() == obra.Status)
-                { StatusBox.SelectedIndex = i; break; }
+                using var db = new RdoDbContext(DbContextHelper.GetOptions());
+                _obraExistente = db.Obras.Find(estado.ObraExistenteId.Value);
+                if (_obraExistente != null)
+                {
+                    TituloTexto.Text = "Editar Obra";
+                    SalvarBtn.Content = "Salvar Alterações";
+                }
             }
 
-            for (int i = 0; i < TipoContratoBox.Items.Count; i++)
-            {
-                if ((TipoContratoBox.Items[i] as ComboBoxItem)?.Content.ToString() == obra.TipoContrato)
-                { TipoContratoBox.SelectedIndex = i; break; }
-            }
-
-            for (int i = 0; i < ResponsavelBox.Items.Count; i++)
-            {
-                if ((ResponsavelBox.Items[i] as ComboBoxItem)?.Content.ToString() == obra.Responsavel)
-                { ResponsavelBox.SelectedIndex = i; break; }
-            }
-
-            if (!string.IsNullOrEmpty(obra.ImagemPath) && File.Exists(obra.ImagemPath))
-            {
-                _imagemPath = obra.ImagemPath;
-                ImagemNomeTexto.Text = Path.GetFileName(obra.ImagemPath);
-                ImagemPlaceholder.Visibility = Visibility.Collapsed;
-                PreviewImagem.Visibility = Visibility.Visible;
-                PreviewImagem.Source = new BitmapImage(new Uri(obra.ImagemPath));
-                BtnRemoverImagem.Visibility = Visibility.Visible; // ← mostra botão remover
-            }
+            // Recarrega terceiros
+            CarregarTerceiros();
         }
 
-        private async void ImagemBorder_Tapped(object sender, TappedRoutedEventArgs e)
+        private async Task CarregarObra(int obraId)
         {
-            // Evita abrir o picker ao clicar no botão remover
-            if (BtnRemoverImagem.Visibility == Visibility.Visible &&
-                PreviewImagem.Visibility == Visibility.Visible)
-                return;
-
-            var picker = new FileOpenPicker();
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(
-                (Application.Current as App)?.MainWindow);
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
-            picker.FileTypeFilter.Add(".png");
-            picker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
-
-            var file = await picker.PickSingleFileAsync();
-            if (file != null)
+            try
             {
-                _imagemPath = file.Path;
-                ImagemNomeTexto.Text = file.Name;
-                ImagemPlaceholder.Visibility = Visibility.Collapsed;
-                PreviewImagem.Visibility = Visibility.Visible;
-                BtnRemoverImagem.Visibility = Visibility.Visible; // ← mostra botão remover
-                var bitmap = new BitmapImage();
-                using var stream = await file.OpenReadAsync();
-                await bitmap.SetSourceAsync(stream);
-                PreviewImagem.Source = bitmap;
+                using var db = new RdoDbContext(DbContextHelper.GetOptions());
+                var obra = db.Obras.Find(obraId);
+                if (obra == null) return;
+
+                _obraExistente = obra;
+
+                TituloTexto.Text = "Editar Obra";
+                SalvarBtn.Content = "Salvar Alterações";
+
+                NomeBox.Text = obra.Nome;
+                GrupoBox.Text = obra.Grupo;
+                EnderecoBox.Text = obra.Endereco;
+                ArtBox.Text = obra.ART;
+                DataInicioPicker.Date = obra.DataInicio;
+                DataTerminoPicker.Date = obra.PrevisaoTermino ?? DateTimeOffset.Now.AddMonths(6);
+
+                for (int i = 0; i < StatusBox.Items.Count; i++)
+                {
+                    if ((StatusBox.Items[i] as ComboBoxItem)?.Content.ToString() == obra.Status)
+                    { StatusBox.SelectedIndex = i; break; }
+                }
+
+                for (int i = 0; i < ResponsavelBox.Items.Count; i++)
+                {
+                    if ((ResponsavelBox.Items[i] as ComboBoxItem)?.Content.ToString() == obra.Responsavel)
+                    { ResponsavelBox.SelectedIndex = i; break; }
+                }
+
+                // Auto-seleciona responsável cliente se houver match
+                if (!string.IsNullOrEmpty(obra.ResponsavelCliente))
+                {
+                    var acom = _terceirosCache.FirstOrDefault(t => t.Nome == obra.ResponsavelCliente);
+                    if (acom != null)
+                    {
+                        _responsavelClienteSelecionado = acom;
+                        ResponsavelClienteBox.Text = acom.Nome;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CARREGAR OBRA] Erro: {ex}");
+                await MostrarErro("Não foi possível carregar os dados da obra. Tente novamente.");
             }
         }
 
-        private void RemoverImagem_Click(object sender, RoutedEventArgs e)
-        {
-            _imagemPath = null;
-            PreviewImagem.Visibility = Visibility.Collapsed;
-            BtnRemoverImagem.Visibility = Visibility.Collapsed;
-            ImagemPlaceholder.Visibility = Visibility.Visible;
-            ImagemNomeTexto.Text = "";
-        }
+
 
         private async void CriarBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -136,20 +328,6 @@ namespace RDO.App.Views
 
             try
             {
-                // Se removeu a imagem, destino é null
-                string? imagemDestino = _imagemPath == null ? null : _obraExistente?.ImagemPath;
-
-                if (_imagemPath != null && _imagemPath != _obraExistente?.ImagemPath)
-                {
-                    var pastaImagens = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                        "RDOApp", "Imagens");
-                    Directory.CreateDirectory(pastaImagens);
-                    var destino = Path.Combine(pastaImagens, Path.GetFileName(_imagemPath));
-                    File.Copy(_imagemPath, destino, overwrite: true);
-                    imagemDestino = destino;
-                }
-
                 using var db = new RdoDbContext(DbContextHelper.GetOptions());
 
                 if (_obraExistente != null)
@@ -161,13 +339,11 @@ namespace RDO.App.Views
                         item.Grupo = GrupoBox.Text.Trim();
                         item.Status = (StatusBox.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "Em execução";
                         item.Responsavel = (ResponsavelBox.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "";
-                        item.TipoContrato = (TipoContratoBox.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "";
-                        item.Contratante = ContratanteBox.Text.Trim();
+                        item.ResponsavelCliente = _responsavelClienteSelecionado != null ? _responsavelClienteSelecionado.Nome : ResponsavelClienteBox.Text.Trim();
                         item.Endereco = EnderecoBox.Text.Trim();
                         item.ART = ArtBox.Text.Trim();
                         item.DataInicio = DataInicioPicker.Date.DateTime;
                         item.PrevisaoTermino = DataTerminoPicker.Date.DateTime;
-                        item.ImagemPath = imagemDestino;
                         item.UpdatedAt = DateTime.UtcNow;
                     }
                     await db.SaveChangesAsync();
@@ -189,13 +365,11 @@ namespace RDO.App.Views
                         Grupo = GrupoBox.Text.Trim(),
                         Status = (StatusBox.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "Em execução",
                         Responsavel = (ResponsavelBox.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "",
-                        TipoContrato = (TipoContratoBox.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "",
-                        Contratante = ContratanteBox.Text.Trim(),
+                        ResponsavelCliente = _responsavelClienteSelecionado != null ? _responsavelClienteSelecionado.Nome : ResponsavelClienteBox.Text.Trim(),
                         Endereco = EnderecoBox.Text.Trim(),
                         ART = ArtBox.Text.Trim(),
                         DataInicio = DataInicioPicker.Date.DateTime,
                         PrevisaoTermino = DataTerminoPicker.Date.DateTime,
-                        ImagemPath = imagemDestino,
                         Ativo = true
                     };
                     db.Obras.Add(obra);
@@ -211,11 +385,13 @@ namespace RDO.App.Views
                     await dialog.ShowAsync();
                 }
 
-                Frame.Navigate(typeof(CadastrosPage), _abaOrigem);
+                Frame.BackStack.Clear();
+                Frame.Navigate(typeof(MainPage));
             }
             catch (Exception ex)
             {
-                await MostrarErro($"Erro ao salvar: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[NOVA OBRA] Erro ao salvar: {ex}");
+                await MostrarErro("Não foi possível salvar a obra. Verifique se todos os campos estão corretos e tente novamente.");
             }
         }
 

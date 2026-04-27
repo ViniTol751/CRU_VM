@@ -43,6 +43,7 @@ namespace RDO.App.Views
         private readonly HashSet<Ocorrencia> _ocorrenciasConfirmadas = new();
         private DispatcherTimer? _pulseTimer;
         private bool _pulseState;
+        private bool _isInitialized;
 
         public RdoFormPage()
         {
@@ -92,6 +93,13 @@ namespace RDO.App.Views
         protected override void OnNavigatedTo(
             Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
         {
+            // Retornando de CadastrosPage via GoBack — preserva todo o estado do formulário
+            if (e.NavigationMode == Microsoft.UI.Xaml.Navigation.NavigationMode.Back && _isInitialized)
+                return;
+
+            // Nova navegação: sempre limpa o formulário (evita dados do relatório anterior)
+            LimparFormulario();
+
             int obraId = 0;
             if (e.Parameter is int id)
             {
@@ -105,6 +113,7 @@ namespace RDO.App.Views
 
             if (obraId == 0) return;
             _obraId = obraId;
+            _isInitialized = true;
 
             using var db = new RdoDbContext(DbContextHelper.GetOptions());
             var obra = db.Obras.Find(obraId);
@@ -115,11 +124,19 @@ namespace RDO.App.Views
                 {
                     var relEdicao = db.Relatorios.Find(_editRelatorioId);
                     NumeroRdoTexto.Text = relEdicao != null ? $"Nº {relEdicao.Numero:D3}" : "—";
+                    // Mostra revisão atual (a próxima será +1)
+                    if (relEdicao != null && relEdicao.Revisao >= 0)
+                    {
+                        RevisaoBadge.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+                        RevisaoTexto.Text = $"Rev. {relEdicao.Revisao:D2} → Rev. {relEdicao.Revisao + 1:D2}";
+                    }
                 }
                 else
                 {
                     var numero = db.Relatorios.Count(r => r.ObraId == obraId && !r.Rascunho) + 1;
                     NumeroRdoTexto.Text = $"Nº {numero:D3}";
+                    // Novo relatório sempre começa em Rev. 00
+                    RevisaoBadge.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
                 }
                 ResponsavelText.Text = string.IsNullOrEmpty(obra.Responsavel) ? "Não definido" : obra.Responsavel;
                 ResponsavelClienteText.Text = string.IsNullOrEmpty(obra.ResponsavelCliente) ? "Não definido" : obra.ResponsavelCliente;
@@ -128,6 +145,68 @@ namespace RDO.App.Views
 
             if (_editRelatorioId > 0)
                 CarregarRelatorioParaEdicao(_editRelatorioId);
+        }
+
+        private void LimparFormulario()
+        {
+            PararPulse();
+
+            // Esconde badge de revisão (será reconfigurado ao carregar)
+            if (RevisaoBadge != null)
+                RevisaoBadge.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+
+            // Coleções internas
+            _atividades.Clear();
+            _ocorrencias.Clear();
+            _fotos.Clear();
+            _documentos.Clear();
+            _funcionarioIds.Clear();
+            _equipamentoIds.Clear();
+            _acompanhanteIds.Clear();
+            _horasFuncionario.Clear();
+            _atividadesConfirmadas.Clear();
+            _ocorrenciasConfirmadas.Clear();
+            _savedRelatorioId = 0;
+            _editRelatorioId = 0;
+            _isInitialized = false;
+
+            // Painéis dinâmicos
+            FuncionariosPanel.Children.Clear();
+            EquipamentosPanel.Children.Clear();
+            AcompanhantesPanel.Children.Clear();
+            AtividadesPanel.Children.Clear();
+            OcorrenciasPanel.Children.Clear();
+            FotosWrapPanel.Children.Clear();
+            DocumentosPanel.Children.Clear();
+
+            // Contadores
+            ContadorEquipe.Text = "0";
+            ContadorEquipamentos.Text = "0";
+            ContadorAcompanhantes.Text = "0";
+            ContadorAtividades.Text = "0";
+            ContadorOcorrencias.Text = "0";
+            ContadorFotos.Text = "0";
+            ContadorDocumentos.Text = "0";
+
+            // Clima
+            ManhaEnsolarado.IsChecked = false; ManhaNublado.IsChecked = false; ManhaChuvoso.IsChecked = false;
+            ManhaPraticavel.IsChecked = false; ManhaImpraticavel.IsChecked = false;
+            TardeEnsolarado.IsChecked = false; TardeNublado.IsChecked = false; TardeChuvoso.IsChecked = false;
+            TardePraticavel.IsChecked = false; TardeImpraticavel.IsChecked = false;
+            NoiteEnsolarado.IsChecked = false; NoiteNublado.IsChecked = false; NoiteChuvoso.IsChecked = false;
+            NoitePraticavel.IsChecked = false; NoiteImpraticavel.IsChecked = false;
+
+            // Campos de obra (serão recarregados pelo OnNavigatedTo)
+            TituloObra.Text = "";
+            NumeroRdoTexto.Text = "—";
+            ResponsavelText.Text = "—";
+            ResponsavelClienteText.Text = "—";
+            CreaTexto.Text = "—";
+
+            // Data e status
+            DataPicker.Date = DateTimeOffset.Now;
+            DataTexto.Text = DateTime.Now.ToString("dd/MM/yyyy");
+            StatusBox.SelectedIndex = 0;
         }
 
         private void CarregarRelatorioParaEdicao(int relatorioId)
@@ -248,6 +327,103 @@ namespace RDO.App.Views
                 var ac = db.Acompanhantes.Find(acId);
                 if (ac != null) AdicionarLinhaAcompanhante(ac);
             }
+        }
+
+        private void AdicionarDocumentoExistente(Foto doc)
+        {
+            var card = CriarCardDocumento(doc);
+            if (card == null) return;
+            DocumentosPanel.Children.Add(card);
+            ContadorDocumentos.Text = DocumentosPanel.Children.Count.ToString();
+        }
+
+        private Border? CriarCardDocumento(Foto doc)
+        {
+            var nomeArquivo = PathIO.GetFileName(doc.CaminhoArquivo);
+            var extensao = PathIO.GetExtension(doc.CaminhoArquivo).TrimStart('.').ToUpper();
+
+            var card = new Border
+            {
+                CornerRadius = new Microsoft.UI.Xaml.CornerRadius(6),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(255, 30, 45, 74)),
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(12, 8, 8, 8)
+            };
+
+            var row = new Grid();
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(36) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(26) });
+
+            // Ícone / badge de extensão
+            var iconBorder = new Border
+            {
+                Width = 28, Height = 28,
+                CornerRadius = new Microsoft.UI.Xaml.CornerRadius(4),
+                Background = new SolidColorBrush(Color.FromArgb(255, 0, 82, 204)),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            iconBorder.Child = new TextBlock
+            {
+                Text = extensao.Length > 0 ? extensao.Substring(0, Math.Min(3, extensao.Length)) : "DOC",
+                FontSize = 8,
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+                Foreground = new SolidColorBrush(Colors.White),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(iconBorder, 0);
+
+            // Nome do arquivo + legenda
+            var infoStack = new StackPanel { Margin = new Thickness(10, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center };
+            infoStack.Children.Add(new TextBlock
+            {
+                Text = nomeArquivo,
+                FontSize = 12,
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                Foreground = new SolidColorBrush(Colors.White)
+            });
+            var legendaBox = new TextBox
+            {
+                PlaceholderText = "Descrição...",
+                Text = doc.Legenda ?? "",
+                FontSize = 11,
+                Background = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0)),
+                BorderThickness = new Thickness(0),
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 160, 180, 210)),
+                Padding = new Thickness(0, 2, 0, 0)
+            };
+            legendaBox.TextChanged += (s, ev) => doc.Legenda = legendaBox.Text;
+            infoStack.Children.Add(legendaBox);
+            Grid.SetColumn(infoStack, 1);
+
+            // Botão remover
+            var remBtn = new Button
+            {
+                Content = "✕",
+                Width = 26, Height = 26,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                Background = new SolidColorBrush(Color.FromArgb(60, 200, 60, 60)),
+                BorderThickness = new Thickness(0),
+                Foreground = new SolidColorBrush(Colors.White),
+                Padding = new Thickness(0),
+                FontSize = 10
+            };
+            remBtn.Click += (s, ev) =>
+            {
+                _documentos.Remove(doc);
+                DocumentosPanel.Children.Remove(card);
+                ContadorDocumentos.Text = DocumentosPanel.Children.Count.ToString();
+            };
+            Grid.SetColumn(remBtn, 2);
+
+            row.Children.Add(iconBorder);
+            row.Children.Add(infoStack);
+            row.Children.Add(remBtn);
+            card.Child = row;
+            return card;
         }
 
         private void AdicionarFotoExistente(Foto foto)
@@ -1386,6 +1562,40 @@ namespace RDO.App.Views
         }
 
 
+        private async void AdicionarDocumento_Click(object sender, RoutedEventArgs e)
+        {
+            var picker = new FileOpenPicker();
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(
+                (Application.Current as App)?.MainWindow);
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+            picker.FileTypeFilter.Add(".pdf");
+            picker.FileTypeFilter.Add(".doc");
+            picker.FileTypeFilter.Add(".docx");
+            picker.FileTypeFilter.Add(".xls");
+            picker.FileTypeFilter.Add(".xlsx");
+            picker.FileTypeFilter.Add(".txt");
+            picker.FileTypeFilter.Add(".png");
+            picker.FileTypeFilter.Add(".jpg");
+            picker.FileTypeFilter.Add(".jpeg");
+            picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
+
+            var file = await picker.PickSingleFileAsync();
+            if (file == null) return;
+
+            var doc = new Foto
+            {
+                CaminhoArquivo = file.Path,
+                TiradaEm = DateTime.Now,
+                Type = "document"
+            };
+            _documentos.Add(doc);
+
+            var card = CriarCardDocumento(doc);
+            if (card == null) return;
+            DocumentosPanel.Children.Add(card);
+            ContadorDocumentos.Text = DocumentosPanel.Children.Count.ToString();
+        }
+
         // ── SALVAR ────────────────────────────────────────────────────────────
         private async void SalvarBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -1412,6 +1622,7 @@ namespace RDO.App.Views
                     relatorio.Rascunho = false;
                     relatorio.UpdatedAt = DateTime.UtcNow;
                     relatorio.IsSynced = false;
+                    relatorio.Revisao = relatorio.Revisao + 1; // incrementa revisão a cada edição
 
                     // Remove dependentes antigos — serão salvos no SaveChangesAsync final
                     db.Climas.RemoveRange(db.Climas.Where(c => c.RelatorioId == _editRelatorioId));
@@ -1433,7 +1644,7 @@ namespace RDO.App.Views
                     relatorio = new Relatorio
                     {
                         ObraId = _obraId,
-                        UsuarioId = 1,
+                        UsuarioId = ObterUsuarioLogadoId(),
                         Numero = numero,
                         Data = DataPicker.Date?.DateTime ?? DateTime.Now,
                         ObsGerais = "",
@@ -1522,6 +1733,30 @@ namespace RDO.App.Views
                     });
                 }
 
+                // Salvar documentos anexados
+                var pastaDocumentos = PathIO.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "RDOApp", "Documentos");
+                Directory.CreateDirectory(pastaDocumentos);
+                foreach (var d in _documentos)
+                {
+                    var destino = PathIO.Combine(pastaDocumentos, PathIO.GetFileName(d.CaminhoArquivo));
+                    if (File.Exists(d.CaminhoArquivo) &&
+                        !string.Equals(PathIO.GetFullPath(d.CaminhoArquivo),
+                                       PathIO.GetFullPath(destino),
+                                       StringComparison.OrdinalIgnoreCase))
+                        File.Copy(d.CaminhoArquivo, destino, overwrite: true);
+
+                    db.Fotos.Add(new Foto
+                    {
+                        RelatorioId = relatorio.Id,
+                        CaminhoArquivo = destino,
+                        Legenda = d.Legenda,
+                        TiradaEm = d.TiradaEm,
+                        Type = "document"
+                    });
+                }
+
                 foreach (var eqId in _equipamentoIds)
                 {
                     db.RelatorioEquipamentos.Add(new RelatorioEquipamento
@@ -1589,12 +1824,13 @@ namespace RDO.App.Views
                 if (result == ContentDialogResult.Primary)
                     await ExportarPdf(_savedRelatorioId);
 
+                _isInitialized = false; // permite reinicialização ao abrir próximo RDO
                 Frame.GoBack();
             }
             catch (Exception ex)
             {
-                var causa = ex.InnerException?.Message ?? ex.Message;
-                await MostrarErro($"Erro ao salvar: {causa}");
+                System.Diagnostics.Debug.WriteLine($"[RDO FORM] Erro ao salvar: {ex}");
+                await MostrarErro("Não foi possível salvar o relatório. Verifique se todos os campos obrigatórios estão preenchidos e tente novamente.");
             }
         }
 
@@ -1602,6 +1838,13 @@ namespace RDO.App.Views
         // ── VOLTAR + RASCUNHO ─────────────────────────────────────────────────
         private void VoltarBtn_Click(object sender, RoutedEventArgs e)
         {
+            // Modo edição: relatório original já existe, não gerar rascunho
+            if (_editRelatorioId > 0)
+            {
+                Frame.GoBack();
+                return;
+            }
+
             bool temConteudo =
                 _funcionarioIds.Count > 0 ||
                 _equipamentoIds.Count > 0 ||
@@ -1609,6 +1852,7 @@ namespace RDO.App.Views
                 _atividades.Count > 0 ||
                 _ocorrencias.Count > 0 ||
                 _fotos.Count > 0 ||
+                _documentos.Count > 0 ||
                 ManhaEnsolarado.IsChecked == true || ManhaNublado.IsChecked == true || ManhaChuvoso.IsChecked == true ||
                 TardeEnsolarado.IsChecked == true || TardeNublado.IsChecked == true || TardeChuvoso.IsChecked == true ||
                 NoiteEnsolarado.IsChecked == true || NoiteNublado.IsChecked == true || NoiteChuvoso.IsChecked == true;
@@ -1616,6 +1860,7 @@ namespace RDO.App.Views
             if (temConteudo)
                 SalvarRascunho();
 
+            _isInitialized = false; // permite reinicialização ao abrir próximo RDO
             Frame.GoBack();
         }
 
@@ -1642,7 +1887,7 @@ namespace RDO.App.Views
                 var rascunho = new Relatorio
                 {
                     ObraId = _obraId,
-                    UsuarioId = 1,
+                    UsuarioId = ObterUsuarioLogadoId(),
                     Numero = numero,
                     Data = DataPicker.Date?.DateTime ?? DateTime.Now,
                     ObsGerais = "",
@@ -1827,8 +2072,17 @@ namespace RDO.App.Views
             }
             catch (Exception ex)
             {
-                await MostrarErro($"Erro ao gerar PDF: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[RDO FORM] Erro ao gerar PDF: {ex}");
+                await MostrarErro("Não foi possível gerar o PDF. Verifique se o relatório contém todas as informações necessárias e tente novamente.");
             }
+        }
+
+        private static int ObterUsuarioLogadoId()
+        {
+            var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
+            if (settings.ContainsKey("UsuarioId") && settings["UsuarioId"] is int id)
+                return id;
+            return 1;
         }
     }
 }
