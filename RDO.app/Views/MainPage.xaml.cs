@@ -1202,6 +1202,132 @@ namespace RDO.App.Views
                 root.Children.Add(listaPanel);
             }
 
+            // ── HISTÓRICO DE ATIVIDADE ──────────────────────────────────
+            var histRelatorios = db.Relatorios
+                .Where(r => r.ObraId == obra.Id)
+                .OrderBy(r => r.CriadoEm)
+                .ToList();
+
+            var histUsuIds  = histRelatorios.Select(r => r.UsuarioId).Distinct().ToList();
+            var histUsers   = db.Usuarios.Where(u => histUsuIds.Contains(u.Id))
+                                         .ToDictionary(u => u.Id);
+
+            var histTitleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Margin = new Thickness(0, 4, 0, 0) };
+            histTitleRow.Children.Add(new TextBlock
+            {
+                Text = "HISTÓRICO DE ATIVIDADE",
+                FontSize = 11, FontWeight = new Windows.UI.Text.FontWeight { Weight = 700 },
+                Foreground = (Brush)Application.Current.Resources["AccentBrush"],
+                CharacterSpacing = 150, VerticalAlignment = VerticalAlignment.Center
+            });
+            histTitleRow.Children.Add(new Border
+            {
+                Background = (Brush)Application.Current.Resources["AppBorderBrush"],
+                CornerRadius = new Microsoft.UI.Xaml.CornerRadius(12),
+                Padding = new Thickness(10, 3, 10, 3),
+                Child = new TextBlock
+                {
+                    Text = histRelatorios.Count.ToString(),
+                    FontSize = 12, FontWeight = new Windows.UI.Text.FontWeight { Weight = 700 },
+                    Foreground = (Brush)Application.Current.Resources["TextSecondaryBrush"]
+                }
+            });
+            root.Children.Add(histTitleRow);
+
+            if (histRelatorios.Count == 0)
+            {
+                root.Children.Add(new TextBlock
+                {
+                    Text = "Nenhuma atividade registrada.",
+                    FontSize = 13,
+                    Foreground = (Brush)Application.Current.Resources["TextSecondaryBrush"],
+                    Margin = new Thickness(0, 8, 0, 0)
+                });
+            }
+            else
+            {
+                var histStack = new StackPanel { Spacing = 0 };
+                for (int hi = 0; hi < histRelatorios.Count; hi++)
+                {
+                    var hr = histRelatorios[hi];
+                    bool isLast = hi == histRelatorios.Count - 1;
+                    histUsers.TryGetValue(hr.UsuarioId, out var hUser);
+
+                    var (dotColor, titulo) = (hr.Rascunho, hr.Revisao) switch
+                    {
+                        (true,  _) => (Color.FromArgb(255, 240, 165, 0),  $"Rascunho iniciado — RDO nº {hr.Numero:D3}"),
+                        (false, 0) => (Color.FromArgb(255, 0, 163, 108),  $"RDO nº {hr.Numero:D3} publicado"),
+                        _          => (Color.FromArgb(255, 130, 100, 210), $"RDO nº {hr.Numero:D3} — Revisão {hr.Revisao:D2}")
+                    };
+
+                    var itemGrid = new Grid { ColumnSpacing = 12 };
+                    itemGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
+                    itemGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                    // Coluna esquerda: dot + linha vertical
+                    var dotCol = new Grid { VerticalAlignment = VerticalAlignment.Stretch };
+                    var dot = new Border
+                    {
+                        Width = 12, Height = 12, CornerRadius = new Microsoft.UI.Xaml.CornerRadius(6),
+                        Background = new SolidColorBrush(dotColor),
+                        HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top,
+                        Margin = new Thickness(0, 6, 0, 0)
+                    };
+                    dotCol.Children.Add(dot);
+                    if (!isLast)
+                    {
+                        var line = new Border
+                        {
+                            Width = 2,
+                            Background = (Brush)Application.Current.Resources["AppBorderBrush"],
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Stretch,
+                            Margin = new Thickness(0, 18, 0, 0)
+                        };
+                        dotCol.Children.Add(line);
+                    }
+                    Grid.SetColumn(dotCol, 0);
+                    itemGrid.Children.Add(dotCol);
+
+                    // Coluna direita: texto
+                    var textStack = new StackPanel { Spacing = 2, Margin = new Thickness(0, 3, 0, 16) };
+                    textStack.Children.Add(new TextBlock
+                    {
+                        Text = titulo,
+                        FontSize = 13, FontWeight = new Windows.UI.Text.FontWeight { Weight = 600 },
+                        Foreground = (Brush)Application.Current.Resources["TextPrimaryBrush"],
+                        TextWrapping = TextWrapping.Wrap
+                    });
+                    var metaRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+                    metaRow.Children.Add(new TextBlock
+                    {
+                        Text = hr.CriadoEm.ToLocalTime().ToString("dd/MM/yyyy HH:mm"),
+                        FontSize = 11,
+                        Foreground = (Brush)Application.Current.Resources["TextTertiaryBrush"]
+                    });
+                    if (hUser != null)
+                    {
+                        metaRow.Children.Add(new TextBlock
+                        {
+                            Text = "·", FontSize = 11,
+                            Foreground = (Brush)Application.Current.Resources["TextTertiaryBrush"]
+                        });
+                        metaRow.Children.Add(new TextBlock
+                        {
+                            Text = hUser.Nome, FontSize = 11,
+                            Foreground = (Brush)Application.Current.Resources["TextTertiaryBrush"]
+                        });
+                    }
+                    textStack.Children.Add(metaRow);
+                    Grid.SetColumn(textStack, 1);
+                    itemGrid.Children.Add(textStack);
+
+                    histStack.Children.Add(itemGrid);
+                }
+                root.Children.Add(histStack);
+            }
+            // ────────────────────────────────────────────────────────────
+
             var scroll = new ScrollViewer { Content = root, MaxHeight = 680, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
             var dialog = new ContentDialog
             {
