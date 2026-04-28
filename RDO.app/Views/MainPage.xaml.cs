@@ -1202,6 +1202,123 @@ namespace RDO.App.Views
                 root.Children.Add(listaPanel);
             }
 
+            // ── GALERIA DE FOTOS ─────────────────────────────────────────
+            var relIdsGal = db.Relatorios
+                .Where(r => r.ObraId == obra.Id && !r.Rascunho)
+                .Select(r => r.Id).ToList();
+
+            // Carrega fotos e mapeia para o número do RDO
+            var rdoNumeroPorId = db.Relatorios
+                .Where(r => relIdsGal.Contains(r.Id))
+                .ToDictionary(r => r.Id, r => r.Numero);
+
+            var fotos = db.Fotos
+                .Where(f => relIdsGal.Contains(f.RelatorioId) && !f.IsDeleted && f.Type == "photo")
+                .OrderBy(f => f.TiradaEm)
+                .ToList()
+                .Where(f => !string.IsNullOrEmpty(f.CaminhoArquivo) && System.IO.File.Exists(f.CaminhoArquivo))
+                .ToList();
+
+            if (fotos.Count > 0)
+            {
+                var galTitleRow = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal, Spacing = 12,
+                    Margin = new Thickness(0, 4, 0, 0)
+                };
+                galTitleRow.Children.Add(new TextBlock
+                {
+                    Text = "GALERIA DE FOTOS",
+                    FontSize = 11, FontWeight = new Windows.UI.Text.FontWeight { Weight = 700 },
+                    Foreground = (Brush)Application.Current.Resources["AccentBrush"],
+                    CharacterSpacing = 150, VerticalAlignment = VerticalAlignment.Center
+                });
+                galTitleRow.Children.Add(new Border
+                {
+                    Background = (Brush)Application.Current.Resources["AccentBrush"],
+                    CornerRadius = new Microsoft.UI.Xaml.CornerRadius(12),
+                    Padding = new Thickness(10, 3, 10, 3),
+                    Child = new TextBlock
+                    {
+                        Text = fotos.Count.ToString(),
+                        FontSize = 12, FontWeight = new Windows.UI.Text.FontWeight { Weight = 700 },
+                        Foreground = (Brush)Application.Current.Resources["AccentFgBrush"]
+                    }
+                });
+                root.Children.Add(galTitleRow);
+
+                var thumbRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+
+                for (int fi = 0; fi < fotos.Count; fi++)
+                {
+                    var capturedIndex = fi;
+                    var capturedFotos = fotos;
+                    var capturedObra  = obra.Nome;
+                    var foto = fotos[fi];
+                    rdoNumeroPorId.TryGetValue(foto.RelatorioId, out var rdoNum);
+
+                    // Thumb container
+                    var thumbBorder = new Border
+                    {
+                        Width = 128, Height = 96,
+                        CornerRadius = new Microsoft.UI.Xaml.CornerRadius(6),
+                        Background = (Brush)Application.Current.Resources["PanelBgBrush"],
+                        BorderBrush = (Brush)Application.Current.Resources["AppBorderBrush"],
+                        BorderThickness = new Thickness(1)
+                    };
+
+                    var thumbGrid = new Grid();
+                    var thumbImg = new Image { Stretch = Stretch.UniformToFill };
+                    try { thumbImg.Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(foto.CaminhoArquivo)); }
+                    catch { }
+                    thumbGrid.Children.Add(thumbImg);
+
+                    // Overlay inferior com número do RDO
+                    if (rdoNum > 0)
+                    {
+                        var badge = new Border
+                        {
+                            Background = new SolidColorBrush(Color.FromArgb(180, 0, 0, 0)),
+                            Padding = new Thickness(6, 2, 6, 2),
+                            VerticalAlignment = VerticalAlignment.Bottom,
+                            HorizontalAlignment = HorizontalAlignment.Stretch
+                        };
+                        badge.Child = new TextBlock
+                        {
+                            Text = $"RDO {rdoNum:D3}",
+                            FontSize = 10, FontWeight = new Windows.UI.Text.FontWeight { Weight = 600 },
+                            Foreground = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255))
+                        };
+                        thumbGrid.Children.Add(badge);
+                    }
+
+                    // Botão clicável invisível
+                    var thumbBtn = new Button
+                    {
+                        Content = thumbGrid, Width = 128, Height = 96,
+                        Padding = new Thickness(0), BorderThickness = new Thickness(0),
+                        Background = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0))
+                    };
+                    thumbBtn.Click += async (s, ev) =>
+                    {
+                        _dialogPropriedadesObra?.Hide();
+                        _dialogPropriedadesObra = null;
+                        await MostrarVisualizadorFotos(capturedFotos, capturedIndex, capturedObra);
+                    };
+
+                    thumbBorder.Child = thumbBtn;
+                    thumbRow.Children.Add(thumbBorder);
+                }
+
+                root.Children.Add(new ScrollViewer
+                {
+                    Content = thumbRow,
+                    HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Disabled
+                });
+            }
+            // ────────────────────────────────────────────────────────────
+
             // ── HISTÓRICO DE ATIVIDADE ──────────────────────────────────
             var histRelatorios = db.Relatorios
                 .Where(r => r.ObraId == obra.Id)
@@ -1395,6 +1512,138 @@ namespace RDO.App.Views
             _dialogPropriedadesObra = null;
             if (resultado == ContentDialogResult.Primary)
                 Frame.Navigate(typeof(RdoFormPage), obra.Id);
+        }
+
+        private async Task MostrarVisualizadorFotos(
+            System.Collections.Generic.List<Foto> fotos, int startIndex, string obraNome)
+        {
+            if (fotos.Count == 0) return;
+
+            // Índice atual capturado num array para mutabilidade em closures
+            var idx = new int[] { Math.Clamp(startIndex, 0, fotos.Count - 1) };
+
+            // Controles internos do viewer
+            var mainImage = new Image
+            {
+                Stretch = Stretch.Uniform,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment   = VerticalAlignment.Center,
+                MaxHeight = 480,
+                MaxWidth  = 780
+            };
+            var captionText = new TextBlock
+            {
+                FontSize = 13, TextWrapping = TextWrapping.Wrap,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Foreground = (Brush)Application.Current.Resources["TextSecondaryBrush"]
+            };
+            var counterText = new TextBlock
+            {
+                FontSize = 11,
+                Foreground = (Brush)Application.Current.Resources["TextTertiaryBrush"],
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            var rdoBadge = new Border
+            {
+                CornerRadius = new Microsoft.UI.Xaml.CornerRadius(4),
+                Padding = new Thickness(8, 3, 8, 3),
+                Background = (Brush)Application.Current.Resources["AccentBrush"],
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Visibility = Visibility.Collapsed
+            };
+            rdoBadge.Child = new TextBlock
+            {
+                FontSize = 11, FontWeight = new Windows.UI.Text.FontWeight { Weight = 600 },
+                Foreground = (Brush)Application.Current.Resources["AccentFgBrush"]
+            };
+
+            void CarregarFoto(int i)
+            {
+                idx[0] = Math.Clamp(i, 0, fotos.Count - 1);
+                var f = fotos[idx[0]];
+                try
+                {
+                    mainImage.Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(f.CaminhoArquivo));
+                }
+                catch { mainImage.Source = null; }
+
+                captionText.Text = f.Legenda;
+                captionText.Visibility = string.IsNullOrEmpty(f.Legenda) ? Visibility.Collapsed : Visibility.Visible;
+                counterText.Text = $"{idx[0] + 1} / {fotos.Count}";
+
+                if (!string.IsNullOrEmpty(f.AtividadeRelacionada))
+                {
+                    ((TextBlock)rdoBadge.Child).Text = f.AtividadeRelacionada;
+                    rdoBadge.Visibility = Visibility.Visible;
+                }
+                else rdoBadge.Visibility = Visibility.Collapsed;
+            }
+
+            var btnPrev = new Button
+            {
+                Content = "", FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe MDL2 Assets"),
+                FontSize = 16, Width = 40, Height = 40, Padding = new Thickness(0),
+                Background = (Brush)Application.Current.Resources["PanelBgBrush"],
+                BorderBrush = (Brush)Application.Current.Resources["AppBorderBrush"], BorderThickness = new Thickness(1),
+                Foreground = (Brush)Application.Current.Resources["TextPrimaryBrush"],
+                CornerRadius = new Microsoft.UI.Xaml.CornerRadius(20),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            var btnNext = new Button
+            {
+                Content = "", FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe MDL2 Assets"),
+                FontSize = 16, Width = 40, Height = 40, Padding = new Thickness(0),
+                Background = (Brush)Application.Current.Resources["PanelBgBrush"],
+                BorderBrush = (Brush)Application.Current.Resources["AppBorderBrush"], BorderThickness = new Thickness(1),
+                Foreground = (Brush)Application.Current.Resources["TextPrimaryBrush"],
+                CornerRadius = new Microsoft.UI.Xaml.CornerRadius(20),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            btnPrev.Click += (_, _) => CarregarFoto(idx[0] - 1);
+            btnNext.Click += (_, _) => CarregarFoto(idx[0] + 1);
+            ToolTipService.SetToolTip(btnPrev, "Foto anterior");
+            ToolTipService.SetToolTip(btnNext, "Próxima foto");
+
+            // Layout: prev | image | next
+            var navGrid = new Grid { ColumnSpacing = 12 };
+            navGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            navGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            navGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            Grid.SetColumn(btnPrev,   0);
+            Grid.SetColumn(mainImage, 1);
+            Grid.SetColumn(btnNext,   2);
+            navGrid.Children.Add(btnPrev);
+            navGrid.Children.Add(mainImage);
+            navGrid.Children.Add(btnNext);
+
+            var content = new StackPanel { Spacing = 10, Width = 860 };
+            content.Children.Add(navGrid);
+            content.Children.Add(rdoBadge);
+            content.Children.Add(captionText);
+            content.Children.Add(counterText);
+
+            CarregarFoto(idx[0]);
+
+            var dialog = new ContentDialog
+            {
+                Title = $"Fotos — {obraNome}",
+                Content = content,
+                CloseButtonText = "Fechar",
+                XamlRoot = this.XamlRoot
+            };
+            dialog.Resources["ContentDialogMaxWidth"] = 960.0;
+            dialog.Resources["ContentDialogMinWidth"] = 860.0;
+
+            // Navegação por teclado
+            dialog.KeyDown += (_, e) =>
+            {
+                if (e.Key == Windows.System.VirtualKey.Left)  { CarregarFoto(idx[0] - 1); e.Handled = true; }
+                if (e.Key == Windows.System.VirtualKey.Right) { CarregarFoto(idx[0] + 1); e.Handled = true; }
+            };
+
+            await dialog.ShowAsync();
         }
 
         private void BuscaRel_TextChanged(object sender, TextChangedEventArgs e) => AplicarFiltrosRelatorios();
