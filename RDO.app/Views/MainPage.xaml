@@ -159,6 +159,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="56"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
@@ -326,9 +327,108 @@
                 </Grid>
             </Border>
 
+            <!-- KPI Dashboard (só visível na aba Início) -->
+            <Border x:Name="KpiBar"
+                    Grid.Row="2"
+                    Background="{ThemeResource AppBgBrush}"
+                    BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="0,0,0,1"
+                    Padding="28,14">
+                <StackPanel Orientation="Horizontal" Spacing="14">
+
+                    <!-- Obras ativas -->
+                    <Border Background="{ThemeResource PanelBgBrush}"
+                            BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                            CornerRadius="8" Padding="16,12" MinWidth="150">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="4"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" CornerRadius="2" Background="#0078D4"/>
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <TextBlock x:Name="KpiObrasAtivas" Text="—"
+                                           FontSize="26" FontWeight="Bold"
+                                           Foreground="{ThemeResource TextPrimaryBrush}"/>
+                                <TextBlock Text="OBRAS ATIVAS"
+                                           FontSize="10" FontWeight="SemiBold"
+                                           Foreground="{ThemeResource TextSecondaryBrush}"
+                                           CharacterSpacing="100"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Em execução -->
+                    <Border Background="{ThemeResource PanelBgBrush}"
+                            BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                            CornerRadius="8" Padding="16,12" MinWidth="150">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="4"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" CornerRadius="2" Background="#00A36C"/>
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <TextBlock x:Name="KpiEmExecucao" Text="—"
+                                           FontSize="26" FontWeight="Bold"
+                                           Foreground="{ThemeResource TextPrimaryBrush}"/>
+                                <TextBlock Text="EM EXECUÇÃO"
+                                           FontSize="10" FontWeight="SemiBold"
+                                           Foreground="{ThemeResource TextSecondaryBrush}"
+                                           CharacterSpacing="100"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- RDOs este mês -->
+                    <Border Background="{ThemeResource PanelBgBrush}"
+                            BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                            CornerRadius="8" Padding="16,12" MinWidth="150">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="4"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" CornerRadius="2" Background="#7B68EE"/>
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <TextBlock x:Name="KpiRdosMes" Text="—"
+                                           FontSize="26" FontWeight="Bold"
+                                           Foreground="{ThemeResource TextPrimaryBrush}"/>
+                                <TextBlock Text="RDOs ESTE MÊS"
+                                           FontSize="10" FontWeight="SemiBold"
+                                           Foreground="{ThemeResource TextSecondaryBrush}"
+                                           CharacterSpacing="100"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Rascunhos abertos -->
+                    <Border Background="{ThemeResource PanelBgBrush}"
+                            BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                            CornerRadius="8" Padding="16,12" MinWidth="150">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="4"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" CornerRadius="2" Background="#E69500"/>
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <TextBlock x:Name="KpiRascunhos" Text="—"
+                                           FontSize="26" FontWeight="Bold"
+                                           Foreground="{ThemeResource TextPrimaryBrush}"/>
+                                <TextBlock Text="RASCUNHOS"
+                                           FontSize="10" FontWeight="SemiBold"
+                                           Foreground="{ThemeResource TextSecondaryBrush}"
+                                           CharacterSpacing="100"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                </StackPanel>
+            </Border>
+
             <!-- Grid de cards (obras) -->
             <ScrollViewer x:Name="ObrasPanel"
-                          Grid.Row="2" Padding="28"
+                          Grid.Row="3" Padding="28"
                           VerticalScrollBarVisibility="Auto">
                 <ItemsControl x:Name="ObrasItemsControl">
                     <ItemsControl.ItemsPanel>
@@ -528,7 +628,7 @@
 
             <!-- Lista de Meus Relatórios -->
             <ScrollViewer x:Name="RelatoriosPanel"
-                          Grid.Row="2"
+                          Grid.Row="3"
                           Visibility="Collapsed"
                           Padding="28"
                           VerticalScrollBarVisibility="Auto">
@@ -569,6 +669,7 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <ComboBox x:Name="FiltroGrupoRelBox" Grid.Column="0"
@@ -612,6 +713,21 @@
                                     Foreground="{ThemeResource TextSecondaryBrush}"
                                     FontSize="12" Padding="14,0"
                                     Click="LimparFiltrosRel_Click"/>
+                            <Button Grid.Column="6" Height="36" Padding="12,0"
+                                    Background="{ThemeResource PanelBgBrush}"
+                                    BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                    Foreground="{ThemeResource AccentBrush}"
+                                    FontSize="12"
+                                    ToolTipService.ToolTip="Exportar lista filtrada como CSV"
+                                    Click="ExportarCsv_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE8C8;" FontSize="12"
+                                              Foreground="{ThemeResource AccentBrush}"/>
+                                    <TextBlock Text="Exportar CSV"
+                                               Foreground="{ThemeResource AccentBrush}"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
                         </Grid>
                     </StackPanel>
 
@@ -724,7 +840,7 @@
 
             <!-- Painel de Rascunhos (integrado na MainPage) -->
             <ScrollViewer x:Name="RascunhosPanel"
-                          Grid.Row="2"
+                          Grid.Row="3"
                           Visibility="Collapsed"
                           VerticalScrollBarVisibility="Auto"
                           Padding="28">

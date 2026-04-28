@@ -434,7 +434,7 @@ namespace RDO.App.Views
             try
             {
             // DB em background — libera a UI thread imediatamente
-            var (obras, empPorGrupo, rdoCounts, rascunhoCounts) = await Task.Run(() =>
+            var (obras, empPorGrupo, rdoCounts, rascunhoCounts, rdosMes) = await Task.Run(() =>
             {
                 using var db = new RdoDbContext(DbContextHelper.GetOptions());
                 var o = db.Obras.Where(x => x.IsActive).ToList();
@@ -457,8 +457,17 @@ namespace RDO.App.Views
                     .GroupBy(r => r.ObraId)
                     .ToDictionary(g => g.Key, g => true);
 
-                return (o, epg, rdc, rsc);
+                var agora = DateTime.Now;
+                var rdosMesCount = db.Relatorios
+                    .Where(r => !r.Rascunho)
+                    .ToList()
+                    .Count(r => r.Data.Year == agora.Year && r.Data.Month == agora.Month);
+
+                return (o, epg, rdc, rsc, rdosMesCount);
             });
+
+            // Atualiza KPIs com dados já carregados
+            AtualizarKpis(obras, rdoCounts, rascunhoCounts, rdosMes);
 
             var cfg = RDO.App.Services.LogosConfig.Load();
             var nasFiles = await RDO.App.Services.LogoService.GetNasFilesAsync(cfg);
@@ -764,10 +773,12 @@ namespace RDO.App.Views
             BtnRascunhos.CornerRadius    = rascAtivo ? raioAtivo  : raioInativo;
 
             // Mostra/esconde painéis
-            ObrasPanel.Visibility         = (!_mostraMeusRelatorios && !_mostraRascunhos) ? Visibility.Visible : Visibility.Collapsed;
+            var isInicio = !_mostraMeusRelatorios && !_mostraRascunhos;
+            ObrasPanel.Visibility         = isInicio ? Visibility.Visible : Visibility.Collapsed;
             RelatoriosPanel.Visibility    = _mostraMeusRelatorios ? Visibility.Visible : Visibility.Collapsed;
             RascunhosPanel.Visibility     = _mostraRascunhos ? Visibility.Visible : Visibility.Collapsed;
-            FiltroBar.Visibility          = (!_mostraMeusRelatorios && !_mostraRascunhos) ? Visibility.Visible : Visibility.Collapsed;
+            FiltroBar.Visibility          = isInicio ? Visibility.Visible : Visibility.Collapsed;
+            KpiBar.Visibility             = isInicio ? Visibility.Visible : Visibility.Collapsed;
 
             if (_mostraMeusRelatorios)
             {
@@ -787,6 +798,20 @@ namespace RDO.App.Views
                 SubtituloLista.Text = "Todas as obras";
                 BtnNovaObra.Visibility = Visibility.Visible;
             }
+        }
+
+        private void AtualizarKpis(
+            List<Obra> obras,
+            Dictionary<int, int> rdoCounts,
+            Dictionary<int, bool> rascunhoCounts,
+            int rdosMes)
+        {
+            if (KpiObrasAtivas == null) return;
+
+            KpiObrasAtivas.Text = obras.Count(o => o.Status != "Concluída").ToString();
+            KpiEmExecucao.Text  = obras.Count(o => o.Status == "Em execução").ToString();
+            KpiRdosMes.Text     = rdosMes.ToString();
+            KpiRascunhos.Text   = rascunhoCounts.Count.ToString();
         }
 
         private void AtualizarIconeTema()
@@ -1261,6 +1286,82 @@ namespace RDO.App.Views
             if (FiltroStatusObraRelBox.Items.Count > 0) FiltroStatusObraRelBox.SelectedIndex = 0;
             if (FiltroResponsavelRelBox.Items.Count > 0) FiltroResponsavelRelBox.SelectedIndex = 0;
             if (FiltroFuncRelBox.Items.Count > 0) FiltroFuncRelBox.SelectedIndex = 0;
+        }
+
+        private async void ExportarCsv_Click(object sender, RoutedEventArgs e)
+        {
+            var lista = MeusRelatoriosListView?.ItemsSource as System.Collections.Generic.List<MeuRelatorioViewModel>;
+            if (lista == null || lista.Count == 0)
+            {
+                var d = new ContentDialog
+                {
+                    Title = "Exportar CSV",
+                    Content = "Nenhum relatório para exportar. Ajuste os filtros e tente novamente.",
+                    CloseButtonText = "OK",
+                    XamlRoot = this.XamlRoot
+                };
+                await d.ShowAsync();
+                return;
+            }
+
+            // Escolhe onde salvar
+            var savePicker = new Windows.Storage.Pickers.FileSavePicker();
+            savePicker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
+            savePicker.FileTypeChoices.Add("CSV", new System.Collections.Generic.List<string> { ".csv" });
+            savePicker.SuggestedFileName = $"Relatorios_{DateTime.Now:yyyyMMdd_HHmm}";
+
+            // WinUI 3: associa o picker à janela
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(
+                (Application.Current as App)?.MainWindow);
+            WinRT.Interop.InitializeWithWindow.Initialize(savePicker, hwnd);
+
+            var file = await savePicker.PickSaveFileAsync();
+            if (file == null) return;
+
+            try
+            {
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("Número;Obra;Grupo;Status Obra;Data;Responsável;Status RDO;Revisão;Funcionários");
+                foreach (var r in lista)
+                {
+                    sb.AppendLine(string.Join(";",
+                        Csv(r.NumeroFormatado),
+                        Csv(r.ObraNome),
+                        Csv(r.ObraGrupo),
+                        Csv(r.ObraStatus),
+                        Csv(r.DataFormatada),
+                        Csv(r.Responsavel),
+                        Csv(r.Status),
+                        r.Revisao.ToString(),
+                        Csv(r.FuncionariosPresentes)));
+                }
+
+                await Windows.Storage.FileIO.WriteTextAsync(file, sb.ToString(),
+                    Windows.Storage.Streams.UnicodeEncoding.Utf8);
+
+                var ok = new ContentDialog
+                {
+                    Title = "Exportação concluída",
+                    Content = $"{lista.Count} relatório(s) exportado(s) para:\n{file.Path}",
+                    PrimaryButtonText = "Abrir arquivo",
+                    CloseButtonText = "Fechar",
+                    XamlRoot = this.XamlRoot
+                };
+                if (await ok.ShowAsync() == ContentDialogResult.Primary)
+                    await Windows.System.Launcher.LaunchFileAsync(file);
+            }
+            catch (Exception ex)
+            {
+                await RDO.App.Services.ErrorDialogService.ShowAsync(this.XamlRoot, RDO.App.Services.AppErrorCodes.IO_001, null, ex);
+            }
+
+            static string Csv(string? v)
+            {
+                if (string.IsNullOrEmpty(v)) return "";
+                if (v.Contains(';') || v.Contains('"') || v.Contains('\n'))
+                    return $"\"{v.Replace("\"", "\"\"")}\"";
+                return v;
+            }
         }
 
         private void BuscaRasc_TextChanged(object sender, TextChangedEventArgs e) => AplicarFiltrosRascunhos();
