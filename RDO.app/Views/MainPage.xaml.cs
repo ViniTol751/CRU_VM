@@ -228,14 +228,7 @@ namespace RDO.App.Views
             }
             catch (Exception ex)
             {
-                var d = new ContentDialog
-                {
-                    Title = "Não foi possível abrir a pasta",
-                    Content = $"Caminho: {logDir}\n\n{ex.Message}",
-                    CloseButtonText = "OK",
-                    XamlRoot = this.XamlRoot
-                };
-                await d.ShowAsync();
+                await RDO.App.Services.ErrorDialogService.ShowAsync(this.XamlRoot, RDO.App.Services.AppErrorCodes.IO_001, $"Caminho: {logDir}", ex);
             }
         }
 
@@ -523,14 +516,7 @@ namespace RDO.App.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[OBRAS] Erro ao carregar obras: {ex}");
-                var d = new ContentDialog
-                {
-                    Title = "Erro ao carregar obras",
-                    Content = "Não foi possível carregar a lista de obras. Verifique o banco de dados e tente novamente.",
-                    CloseButtonText = "OK",
-                    XamlRoot = this.XamlRoot
-                };
-                _ = d.ShowAsync();
+                _ = RDO.App.Services.ErrorDialogService.ShowAsync(this.XamlRoot, RDO.App.Services.AppErrorCodes.DB_001, null, ex);
             }
         }
 
@@ -596,14 +582,7 @@ namespace RDO.App.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[RELATORIOS] Erro ao carregar: {ex}");
-                var d = new ContentDialog
-                {
-                    Title = "Erro ao carregar relatórios",
-                    Content = "Não foi possível carregar os relatórios. Verifique o banco de dados e tente novamente.",
-                    CloseButtonText = "OK",
-                    XamlRoot = this.XamlRoot
-                };
-                _ = d.ShowAsync();
+                _ = RDO.App.Services.ErrorDialogService.ShowAsync(this.XamlRoot, RDO.App.Services.AppErrorCodes.DB_001, null, ex);
             }
         }
 
@@ -1437,14 +1416,7 @@ namespace RDO.App.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[RASCUNHOS] Erro ao carregar: {ex}");
-                var d = new ContentDialog
-                {
-                    Title = "Erro ao carregar rascunhos",
-                    Content = "Não foi possível carregar os rascunhos. Verifique o banco de dados e tente novamente.",
-                    CloseButtonText = "OK",
-                    XamlRoot = this.XamlRoot
-                };
-                _ = d.ShowAsync();
+                _ = RDO.App.Services.ErrorDialogService.ShowAsync(this.XamlRoot, RDO.App.Services.AppErrorCodes.DB_001, null, ex);
             }
         }
 
@@ -1596,14 +1568,7 @@ namespace RDO.App.Views
                 _dialogPropriedadesObra?.Hide();
                 _dialogPropriedadesObra = null;
 
-                var d = new ContentDialog
-                {
-                    Title = "Erro ao gerar PDF",
-                    Content = "Não foi possível gerar o PDF. Verifique se o relatório contém todas as informações necessárias e tente novamente.",
-                    CloseButtonText = "OK",
-                    XamlRoot = this.XamlRoot
-                };
-                await d.ShowAsync();
+                await RDO.App.Services.ErrorDialogService.ShowAsync(this.XamlRoot, RDO.App.Services.AppErrorCodes.PDF_001);
             }
         }
 
@@ -1679,16 +1644,9 @@ namespace RDO.App.Views
                         CarregarMeusRelatorios(); // Recarrega a lista
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    var errorDialog = new ContentDialog
-                    {
-                        Title = "Erro ao excluir",
-                        Content = "Não foi possível excluir o relatório. O registro pode estar em uso ou o banco de dados está inacessível. Tente novamente.",
-                        CloseButtonText = "OK",
-                        XamlRoot = this.XamlRoot
-                    };
-                    await errorDialog.ShowAsync();
+                    await RDO.App.Services.ErrorDialogService.ShowAsync(this.XamlRoot, RDO.App.Services.AppErrorCodes.DB_003, null, ex);
                 }
             }
         }

@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using PathIO = System.IO.Path;
+using RDO.App.Services;
 using System.Linq;
 using System.Threading.Tasks;
 using Windows.Storage.Pickers;
@@ -1604,7 +1605,7 @@ namespace RDO.App.Views
                 var statusEscolhido = (StatusBox.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "";
                 if (statusEscolhido != "Publicado")
                 {
-                    await MostrarErro("O relatório só pode ser salvo quando o status for \"Publicado\".");
+                    await MostrarErro(AppErrorCodes.FORM_001);
                     return;
                 }
 
@@ -1830,7 +1831,7 @@ namespace RDO.App.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[RDO FORM] Erro ao salvar: {ex}");
-                await MostrarErro("Não foi possível salvar o relatório. Verifique se todos os campos obrigatórios estão preenchidos e tente novamente.");
+                await MostrarErro(AppErrorCodes.DB_002, ex);
             }
         }
 
@@ -2049,17 +2050,8 @@ namespace RDO.App.Views
             return sp;
         }
 
-        private async Task MostrarErro(string mensagem)
-        {
-            var dialog = new ContentDialog
-            {
-                Title = "Atenção",
-                Content = mensagem,
-                CloseButtonText = "OK",
-                XamlRoot = this.XamlRoot
-            };
-            await dialog.ShowAsync();
-        }
+        private async Task MostrarErro(string code, Exception? ex = null)
+            => await ErrorDialogService.ShowAsync(this.XamlRoot, code, null, ex);
 
         private async Task ExportarPdf(int relatorioId)
         {
@@ -2073,7 +2065,7 @@ namespace RDO.App.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[RDO FORM] Erro ao gerar PDF: {ex}");
-                await MostrarErro("Não foi possível gerar o PDF. Verifique se o relatório contém todas as informações necessárias e tente novamente.");
+                await MostrarErro(AppErrorCodes.PDF_001, ex);
             }
         }
 

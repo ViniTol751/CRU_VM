@@ -215,7 +215,7 @@ namespace RDO.App.Views
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[EMPRESA] Erro ao excluir: {ex}");
-                    await MostrarErro("Não foi possível excluir a empresa. Tente novamente.");
+                    await MostrarErro(AppErrorCodes.DB_003, ex);
                 }
             }
         }
@@ -369,7 +369,7 @@ namespace RDO.App.Views
                     }
                     catch (IOException ex)
                     {
-                        await MostrarErro($"Não foi possível copiar o arquivo de logo: {ex.Message}");
+                        await MostrarErro(AppErrorCodes.IO_001, ex);
                         return;
                     }
                 }
@@ -403,7 +403,7 @@ namespace RDO.App.Views
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[EMPRESA] Erro ao salvar: {ex}");
-                    await MostrarErro("Não foi possível salvar os dados da empresa. Tente novamente.");
+                    await MostrarErro(AppErrorCodes.DB_002, ex);
                 }
             }
         }
@@ -484,7 +484,7 @@ namespace RDO.App.Views
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[OBRA] Erro ao excluir: {ex}");
-                    await MostrarErro("Não foi possível excluir a obra. Tente novamente.");
+                    await MostrarErro(AppErrorCodes.DB_003, ex);
                 }
             }
         }
@@ -691,7 +691,7 @@ namespace RDO.App.Views
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[FUNCIONARIO] Erro ao excluir: {ex}");
-                    await MostrarErro("Não foi possível excluir o funcionário. Tente novamente.");
+                    await MostrarErro(AppErrorCodes.DB_003, ex);
                 }
             }
         }
@@ -890,7 +890,7 @@ namespace RDO.App.Views
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[EQUIPAMENTO] Erro ao excluir: {ex}");
-                    await MostrarErro("Não foi possível excluir o equipamento. Tente novamente.");
+                    await MostrarErro(AppErrorCodes.DB_003, ex);
                 }
             }
         }
@@ -1227,7 +1227,7 @@ namespace RDO.App.Views
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[ACOMPANHANTE] Erro ao excluir: {ex}");
-                    await MostrarErro("Não foi possível excluir o acompanhante. Tente novamente.");
+                    await MostrarErro(AppErrorCodes.DB_003, ex);
                 }
             }
         }
@@ -1279,17 +1279,8 @@ namespace RDO.App.Views
             return await dialog.ShowAsync() == ContentDialogResult.Primary;
         }
 
-        private async Task MostrarErro(string mensagem)
-        {
-            var dialog = new ContentDialog
-            {
-                Title = "Atenção",
-                Content = mensagem,
-                CloseButtonText = "OK",
-                XamlRoot = this.XamlRoot
-            };
-            await dialog.ShowAsync();
-        }
+        private async Task MostrarErro(string code, Exception? ex = null)
+            => await ErrorDialogService.ShowAsync(this.XamlRoot, code, null, ex);
 
         private void VoltarBtn_Click(object sender, RoutedEventArgs e)
         {

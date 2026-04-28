@@ -312,7 +312,7 @@ namespace RDO.App.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[CARREGAR OBRA] Erro: {ex}");
-                await MostrarErro("Não foi possível carregar os dados da obra. Tente novamente.");
+                await MostrarErro(AppErrorCodes.DB_001, ex);
             }
         }
 
@@ -322,7 +322,7 @@ namespace RDO.App.Views
         {
             if (string.IsNullOrWhiteSpace(NomeBox.Text))
             {
-                await MostrarErro("O nome da obra é obrigatório.");
+                await MostrarErro(AppErrorCodes.FORM_001);
                 return;
             }
 
@@ -391,21 +391,12 @@ namespace RDO.App.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[NOVA OBRA] Erro ao salvar: {ex}");
-                await MostrarErro("Não foi possível salvar a obra. Verifique se todos os campos estão corretos e tente novamente.");
+                await MostrarErro(AppErrorCodes.DB_002, ex);
             }
         }
 
-        private async System.Threading.Tasks.Task MostrarErro(string mensagem)
-        {
-            var dialog = new ContentDialog
-            {
-                Title = "Atenção",
-                Content = mensagem,
-                CloseButtonText = "OK",
-                XamlRoot = this.XamlRoot
-            };
-            await dialog.ShowAsync();
-        }
+        private async System.Threading.Tasks.Task MostrarErro(string code, Exception? ex = null)
+            => await ErrorDialogService.ShowAsync(this.XamlRoot, code, null, ex);
 
         private void VoltarBtn_Click(object sender, RoutedEventArgs e)
             => Frame.GoBack();
