@@ -55,6 +55,8 @@ namespace Teste.Migrations
 
                     b.HasIndex("ReportId");
 
+                    b.HasIndex("UpdatedAt");
+
                     b.ToTable("Activities");
                 });
 
@@ -69,6 +71,9 @@ namespace Teste.Migrations
                     b.Property<string>("Contact")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int?>("EmpresaId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Group")
                         .IsRequired()
@@ -92,6 +97,8 @@ namespace Teste.Migrations
                         .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UpdatedAt");
 
                     b.ToTable("Companions");
                 });
@@ -135,6 +142,8 @@ namespace Teste.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UpdatedAt");
+
                     b.ToTable("Employees");
                 });
 
@@ -173,6 +182,37 @@ namespace Teste.Migrations
                     b.ToTable("EmployeePresences");
                 });
 
+            modelBuilder.Entity("TesteAPI.Models.Empresa", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ImagemPath")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UpdatedAt");
+
+                    b.ToTable("Empresas");
+                });
+
             modelBuilder.Entity("TesteAPI.Models.Equipment", b =>
                 {
                     b.Property<int>("Id")
@@ -207,6 +247,8 @@ namespace Teste.Migrations
                         .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UpdatedAt");
 
                     b.ToTable("Equipments");
                 });
@@ -283,6 +325,8 @@ namespace Teste.Migrations
 
                     b.HasIndex("ReportId");
 
+                    b.HasIndex("UpdatedAt");
+
                     b.ToTable("Materials");
                 });
 
@@ -323,6 +367,8 @@ namespace Teste.Migrations
 
                     b.HasIndex("ReportId");
 
+                    b.HasIndex("UpdatedAt");
+
                     b.ToTable("Occurrences");
                 });
 
@@ -362,6 +408,8 @@ namespace Teste.Migrations
 
                     b.HasIndex("ReportId");
 
+                    b.HasIndex("UpdatedAt");
+
                     b.ToTable("Photos");
                 });
 
@@ -385,7 +433,15 @@ namespace Teste.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ClientManager")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("ContractType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Crea")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -425,6 +481,8 @@ namespace Teste.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UpdatedAt");
+
                     b.ToTable("Projects");
                 });
 
@@ -455,6 +513,8 @@ namespace Teste.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ProjectId");
+
+                    b.HasIndex("UpdatedAt");
 
                     b.HasIndex("UserId");
 
@@ -509,6 +569,9 @@ namespace Teste.Migrations
                     b.Property<int>("ProjectId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("Revisao")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("text");
@@ -524,6 +587,8 @@ namespace Teste.Migrations
                     b.HasIndex("CompanionId");
 
                     b.HasIndex("ProjectId");
+
+                    b.HasIndex("UpdatedAt");
 
                     b.HasIndex("UserId");
 
@@ -556,6 +621,8 @@ namespace Teste.Migrations
 
                     b.HasIndex("ReportId");
 
+                    b.HasIndex("UpdatedAt");
+
                     b.ToTable("ReportCompanions");
                 });
 
@@ -584,6 +651,8 @@ namespace Teste.Migrations
                     b.HasIndex("EquipmentId");
 
                     b.HasIndex("ReportId");
+
+                    b.HasIndex("UpdatedAt");
 
                     b.ToTable("ReportEquipments");
                 });
@@ -638,6 +707,8 @@ namespace Teste.Migrations
 
                     b.HasIndex("ReportId");
 
+                    b.HasIndex("UpdatedAt");
+
                     b.ToTable("Signatures");
                 });
 
@@ -675,6 +746,8 @@ namespace Teste.Migrations
                         .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UpdatedAt");
 
                     b.ToTable("Users");
                 });
@@ -717,6 +790,8 @@ namespace Teste.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ReportId");
+
+                    b.HasIndex("UpdatedAt");
 
                     b.ToTable("WeatherDetails");
                 });

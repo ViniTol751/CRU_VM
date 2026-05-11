@@ -1,12 +1,16 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using TesteAPI.Data;
 using TesteAPI.Models;
 
 namespace TesteAPI.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [EnableRateLimiting("api")]
     public class UserController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -24,8 +28,13 @@ namespace TesteAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll() =>
-            Ok(await _context.Users.Where(x => !x.IsDeleted).ToListAsync());
+        public async Task<IActionResult> GetAll([FromQuery] int page = 0, [FromQuery] int pageSize = 100)
+        {
+            var query = _context.Users.Where(x => !x.IsDeleted);
+            if (page > 0)
+                query = query.Skip((page - 1) * pageSize).Take(pageSize);
+            return Ok(await query.ToListAsync());
+        }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)

@@ -5,7 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Background="{ThemeResource AppBgBrush}">
 
-    <Grid>
+    <Grid Margin="0,44,0,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="64"/>
             <RowDefinition Height="*"/>
@@ -37,33 +37,43 @@
 
                 <!-- Nome -->
                 <StackPanel Spacing="8">
-                    <TextBlock Text="NOME DA OBRA" FontSize="11"
+                    <TextBlock Text="NÚMERO DO CONTRATO INTERNO" FontSize="11"
                                FontWeight="SemiBold"
                                Foreground="{ThemeResource AccentBrush}"
                                CharacterSpacing="150"/>
                     <TextBox x:Name="NomeBox"
-                             PlaceholderText="Ex: Subestação Itatiba 138kV"
+                             PlaceholderText="Ex: CS-001-26"
                              Background="{ThemeResource PanelBgBrush}"
                              BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
                              Foreground="{ThemeResource TextPrimaryBrush}" Height="44"/>
                 </StackPanel>
 
-                <!-- Linha 1: Grupo + Status -->
+                <!-- Linha 1: Responsável Cliente + Status -->
                 <Grid ColumnSpacing="20">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" Spacing="8">
-                        <TextBlock Text="GRUPO / CLIENTE" FontSize="11"
+                        <TextBlock Text="RESPONSÁVEL CLIENTE" FontSize="11"
                                    FontWeight="SemiBold"
                                    Foreground="{ThemeResource AccentBrush}"
                                    CharacterSpacing="150"/>
-                        <TextBox x:Name="GrupoBox"
-                                 PlaceholderText="Ex: Cargill, Siemens..."
-                                 Background="{ThemeResource PanelBgBrush}"
-                                 BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
-                                 Foreground="{ThemeResource TextPrimaryBrush}" Height="44"/>
+                        <AutoSuggestBox x:Name="ResponsavelClienteBox"
+                                  HorizontalAlignment="Stretch"
+                                  Background="{ThemeResource PanelBgBrush}"
+                                  BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                  Foreground="{ThemeResource TextPrimaryBrush}"
+                                  PlaceholderText="Escreva para buscar..."
+                                  TextChanged="ResponsavelCliente_TextChanged"
+                                  SuggestionChosen="ResponsavelCliente_SuggestionChosen"
+                                  QueryIcon="Clear"/>
+                        <!-- Link para cadastrar terceiro -->
+                        <HyperlinkButton Content="+ Não encontrou? Cadastre um novo terceiro"
+                                         FontSize="11"
+                                         Foreground="{ThemeResource AccentBrush}"
+                                         Padding="0"
+                                         Click="CadastrarTerceiro_Click"/>
                     </StackPanel>
                     <StackPanel Grid.Column="1" Spacing="8">
                         <TextBlock Text="STATUS" FontSize="11"
@@ -82,7 +92,7 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- Linha 2: Responsável Focus + Tipo de contrato -->
+                <!-- Linha 2: Grupo + Responsável Focus -->
                 <Grid ColumnSpacing="20">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -90,6 +100,30 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0" Spacing="8">
+                        <TextBlock Text="GRUPO / CLIENTE" FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{ThemeResource AccentBrush}"
+                                   CharacterSpacing="150"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="GrupoBox" Grid.Column="0"
+                                     Background="{ThemeResource PanelBgBrush}"
+                                     BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                     Foreground="{ThemeResource TextPrimaryBrush}" Height="44"
+                                     IsReadOnly="True"
+                                     GotFocus="GrupoBox_GotFocus"/>
+                            <Button x:Name="BtnEditarGrupo" Grid.Column="1"
+                                    Content="✏" Margin="8,0,0,0" Height="44" Width="44"
+                                    Background="Transparent" BorderThickness="0"
+                                    ToolTipService.ToolTip="Desvincular Responsável para edição manual"
+                                    Click="BtnEditarGrupoLocal_Click"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Spacing="8">
                         <TextBlock Text="RESPONSÁVEL FOCUS" FontSize="11"
                                    FontWeight="SemiBold"
                                    Foreground="{ThemeResource AccentBrush}"
@@ -109,51 +143,33 @@
                             <ComboBoxItem Content="Wesley Gregório"/>
                         </ComboBox>
                     </StackPanel>
-
-                    <StackPanel Grid.Column="1" Spacing="8">
-                        <TextBlock Text="TIPO DE CONTRATO" FontSize="11"
-                                   FontWeight="SemiBold"
-                                   Foreground="{ThemeResource AccentBrush}"
-                                   CharacterSpacing="150"/>
-                        <ComboBox x:Name="TipoContratoBox"
-                                  HorizontalAlignment="Stretch"
-                                  Background="{ThemeResource PanelBgBrush}"
-                                  BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
-                                  Foreground="{ThemeResource TextPrimaryBrush}">
-                            <ComboBoxItem Content="Contratante"/>
-                            <ComboBoxItem Content="Contratada"/>
-                            <ComboBoxItem Content="Supervisão de terceiros"/>
-                        </ComboBox>
-                    </StackPanel>
                 </Grid>
 
-                <!-- Linha 3: Contratante -->
-                <StackPanel Spacing="8">
-                    <TextBlock Text="RESPONSÁVEL CLIENTE" FontSize="11"
-                               FontWeight="SemiBold"
-                               Foreground="{ThemeResource AccentBrush}"
-                               CharacterSpacing="150"/>
-                    <TextBox x:Name="ContratanteBox"
-                             PlaceholderText="Nome da empresa contratante"
-                             Background="{ThemeResource PanelBgBrush}"
-                             BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
-                             Foreground="{ThemeResource TextPrimaryBrush}" Height="44"/>
-                </StackPanel>
-
-                <!-- Linha 4: Endereço -->
+                <!-- Linha 3: Endereço -->
                 <StackPanel Spacing="8">
                     <TextBlock Text="ENDEREÇO / LOCAL DA OBRA" FontSize="11"
                                FontWeight="SemiBold"
                                Foreground="{ThemeResource AccentBrush}"
                                CharacterSpacing="150"/>
-                    <TextBox x:Name="EnderecoBox"
-                             PlaceholderText="Ex: Rua das Flores, 123 — Indaiatuba/SP"
-                             Background="{ThemeResource PanelBgBrush}"
-                             BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
-                             Foreground="{ThemeResource TextPrimaryBrush}" Height="44"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="EnderecoBox" Grid.Column="0"
+                                 PlaceholderText="Ex: Americana | SP"
+                                 Background="{ThemeResource PanelBgBrush}"
+                                 BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                 Foreground="{ThemeResource TextPrimaryBrush}" Height="44"/>
+                        <Button x:Name="BtnEditarEndereco" Grid.Column="1"
+                                Content="✏" Margin="8,0,0,0" Height="44" Width="44"
+                                Background="Transparent" BorderThickness="0"
+                                ToolTipService.ToolTip="Desvincular Responsável para edição manual"
+                                Click="BtnEditarGrupoLocal_Click"/>
+                    </Grid>
                 </StackPanel>
 
-                <!-- Linha 5: ART -->
+                <!-- Linha 4: ART -->
                 <StackPanel Spacing="8">
                     <TextBlock Text="ART / RRT" FontSize="11"
                                FontWeight="SemiBold"
@@ -194,49 +210,7 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- Linha 7: Imagem -->
-                <StackPanel Spacing="8">
-                    <TextBlock Text="IMAGEM DA OBRA (.PNG)" FontSize="11"
-                               FontWeight="SemiBold"
-                               Foreground="{ThemeResource AccentBrush}"
-                               CharacterSpacing="150"/>
-                    <Border x:Name="ImagemBorder"
-                            Background="{ThemeResource PanelBgBrush}"
-                            BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
-                            CornerRadius="4" Height="140"
-                            Tapped="ImagemBorder_Tapped">
-                        <Grid>
-                            <StackPanel x:Name="ImagemPlaceholder"
-                                        VerticalAlignment="Center"
-                                        HorizontalAlignment="Center"
-                                        Spacing="8">
-                                <FontIcon Glyph="&#xEB9F;" FontSize="32"
-                                          Foreground="{ThemeResource AppBorderBrush}"/>
-                                <TextBlock Text="Toque ou clique para adicionar uma imagem"
-                                           FontSize="13"
-                                           Foreground="{ThemeResource TextSecondaryBrush}"
-                                           HorizontalAlignment="Center"/>
-                            </StackPanel>
-                            <Image x:Name="PreviewImagem"
-                                   Stretch="UniformToFill"
-                                   Visibility="Collapsed"/>
-                            <Button x:Name="BtnRemoverImagem"
-                                    Content="✕ Remover imagem"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Top"
-                                    Margin="0,8,8,0"
-                                    Padding="8,4"
-                                    FontSize="11"
-                                    Background="#1a1212"
-                                    BorderBrush="#3a1a1a" BorderThickness="1"
-                                    Foreground="#ff6666"
-                                    Visibility="Collapsed"
-                                    Click="RemoverImagem_Click"/>
-                        </Grid>
-                    </Border>
-                    <TextBlock x:Name="ImagemNomeTexto" FontSize="11"
-                               Foreground="{ThemeResource TextSecondaryBrush}"/>
-                </StackPanel>
+
 
                 <!-- Botões -->
                 <Grid ColumnSpacing="16" Margin="0,8,0,0">

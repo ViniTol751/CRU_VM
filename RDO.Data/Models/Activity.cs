@@ -8,6 +8,7 @@ public class Activity : ILocalSyncEntity
     public string Description { get; set; } = string.Empty;
     public string Location { get; set; } = string.Empty;
     public string Status { get; set; } = "In Progress";
+    public int? ParentId { get; set; }
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; } = false;
     [JsonIgnore] public Report? Report { get; set; }

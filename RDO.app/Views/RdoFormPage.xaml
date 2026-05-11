@@ -3,9 +3,10 @@
     x:Class="RDO.App.Views.RdoFormPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    NavigationCacheMode="Required"
     Background="{ThemeResource AppBgBrush}">
 
-    <Grid>
+    <Grid Margin="0,44,0,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="56"/>
             <RowDefinition Height="*"/>
@@ -33,6 +34,12 @@
                     <Border Background="{ThemeResource AppBorderBrush}" CornerRadius="4" Padding="8,2">
                         <TextBlock x:Name="NumeroRdoTexto" FontSize="12"
                            Foreground="{ThemeResource AccentBrush}"/>
+                    </Border>
+                    <!-- Badge de revisão — visível apenas em modo edição -->
+                    <Border x:Name="RevisaoBadge" Visibility="Collapsed"
+                            Background="#1E3A5F" CornerRadius="4" Padding="8,2">
+                        <TextBlock x:Name="RevisaoTexto" FontSize="12"
+                                   Foreground="#60A5FA" FontWeight="SemiBold"/>
                     </Border>
                 </StackPanel>
 

@@ -9,6 +9,8 @@ public class Project : ILocalSyncEntity
     public string Group { get; set; } = string.Empty;
     public string Status { get; set; } = "In Progress";
     public string Manager { get; set; } = string.Empty;
+    public string Crea { get; set; } = string.Empty;
+    public string ClientManager { get; set; } = string.Empty;
     public string ContractType { get; set; } = string.Empty;
     public string Client { get; set; } = string.Empty;
     public DateTime StartDate { get; set; }

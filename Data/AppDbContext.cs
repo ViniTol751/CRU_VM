@@ -25,4 +25,28 @@ public class AppDbContext : DbContext
     public DbSet<ReportEquipment> ReportEquipments { get; set; }
     public DbSet<EquipmentUsage>  EquipmentUsages  { get; set; }
     public DbSet<User>            Users            { get; set; }
+    public DbSet<Empresa>         Empresas         { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // Índices em UpdatedAt para otimizar o Sync/Pull (filtra por >= sinceUtc)
+        modelBuilder.Entity<Activity>()      .HasIndex(e => e.UpdatedAt);
+        modelBuilder.Entity<Companion>()     .HasIndex(e => e.UpdatedAt);
+        modelBuilder.Entity<Employee>()      .HasIndex(e => e.UpdatedAt);
+        modelBuilder.Entity<Equipment>()     .HasIndex(e => e.UpdatedAt);
+        modelBuilder.Entity<Empresa>()       .HasIndex(e => e.UpdatedAt);
+        modelBuilder.Entity<Material>()      .HasIndex(e => e.UpdatedAt);
+        modelBuilder.Entity<Occurrence>()    .HasIndex(e => e.UpdatedAt);
+        modelBuilder.Entity<Photo>()         .HasIndex(e => e.UpdatedAt);
+        modelBuilder.Entity<Project>()       .HasIndex(e => e.UpdatedAt);
+        modelBuilder.Entity<ProjectMember>() .HasIndex(e => e.UpdatedAt);
+        modelBuilder.Entity<Report>()        .HasIndex(e => e.UpdatedAt);
+        modelBuilder.Entity<ReportCompanion>().HasIndex(e => e.UpdatedAt);
+        modelBuilder.Entity<ReportEquipment>().HasIndex(e => e.UpdatedAt);
+        modelBuilder.Entity<Signature>()     .HasIndex(e => e.UpdatedAt);
+        modelBuilder.Entity<User>()          .HasIndex(e => e.UpdatedAt);
+        modelBuilder.Entity<WeatherDetail>() .HasIndex(e => e.UpdatedAt);
+    }
 }

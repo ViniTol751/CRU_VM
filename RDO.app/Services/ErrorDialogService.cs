@@ -17,10 +17,10 @@ public static class ErrorDialogService
         {
             try
             {
-                var v = Windows.ApplicationModel.Package.Current.Id.Version;
-                return $"{v.Major}.{v.Minor}.{v.Build}";
+                var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+                return v != null ? $"{v.Major}.{v.Minor}.{v.Build}" : "1.0.0";
             }
-            catch { return "—"; }
+            catch { return "1.0.0"; }
         }
     }
 
@@ -33,6 +33,8 @@ public static class ErrorDialogService
     /// <param name="ex">Exceção original (opcional, usada no diagnóstico).</param>
     public static async Task ShowAsync(XamlRoot xamlRoot, string errorCode, string? detail = null, Exception? ex = null)
     {
+        AppLogger.LogError(errorCode, detail, ex);
+
         var description = AppErrorCodes.GetDescription(errorCode);
         var solution    = AppErrorCodes.GetSolution(errorCode);
         var timestamp   = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");

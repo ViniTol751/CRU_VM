@@ -28,6 +28,7 @@ public static class SyncLogger
             sb.AppendLine("══════════════════════════════════════════════════════════════");
             sb.AppendLine($"  Operação       : {entry.Operation}");
             sb.AppendLine($"  Código de Erro : {entry.ErrorCode}");
+            sb.AppendLine($"  Cód. Padronizado: {RDO.App.Services.AppErrorCodes.MapToStandardCode(entry.ErrorCode)}");
             sb.AppendLine($"  Tipo           : {entry.ErrorType}");
             sb.AppendLine($"  Status HTTP    : {(entry.HttpStatusCode.HasValue ? $"{(int)entry.HttpStatusCode} {entry.HttpStatusCode}" : "N/A")}");
             sb.AppendLine($"  URL da API     : {entry.ApiUrl}");

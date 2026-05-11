@@ -1,12 +1,16 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using TesteAPI.Data;
 using TesteAPI.Models;
 
 namespace TesteAPI.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [EnableRateLimiting("api")]
     public class CompanionController : ControllerBase
     {
         private readonly AppDbContext _context;

@@ -1,12 +1,16 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using TesteAPI.Data;
 using TesteAPI.Models;
 
 namespace TesteAPI.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [EnableRateLimiting("api")]
     public class ReportController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -49,11 +53,16 @@ namespace TesteAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll() =>
-            Ok(await _context.Reports.Where(x => !x.IsDeleted)
+        public async Task<IActionResult> GetAll([FromQuery] int page = 0, [FromQuery] int pageSize = 50)
+        {
+            IQueryable<Report> query = _context.Reports.Where(x => !x.IsDeleted)
                 .Include(r => r.Project)
                 .Include(r => r.User)
-                .ToListAsync());
+                .OrderByDescending(r => r.Date);
+            if (page > 0)
+                query = query.Skip((page - 1) * pageSize).Take(pageSize);
+            return Ok(await query.ToListAsync());
+        }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)

@@ -6,11 +6,17 @@ using RDO.Data.Models;
 using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace RDO.App
 {
     public partial class App : Application
     {
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern int MessageBox(IntPtr hWnd, string text, string caption, uint type);
+
+        private const uint MB_ICONERROR = 0x10;
+
         public Window? MainWindow { get; private set; }
 
         // Todas as migrations que este código de app já conhece.
@@ -28,8 +34,29 @@ namespace RDO.App
 
         public App()
         {
+            this.UnhandledException += (_, e) =>
+            {
+                e.Handled = true;
+                var msg = e.Exception?.ToString() ?? "Erro desconhecido";
+                MessageBox(IntPtr.Zero, msg, "RDO — Erro Fatal", MB_ICONERROR);
+                Environment.Exit(1);
+            };
+
             InitializeComponent();
-            InicializarBanco();
+
+            try
+            {
+                InicializarBanco();
+            }
+            catch (Exception ex)
+            {
+                // Mostra erro detalhado antes da janela existir (MessageBox nativo)
+                MessageBox(IntPtr.Zero,
+                    $"Falha ao inicializar banco de dados.\n\n{ex.GetType().Name}: {ex.Message}" +
+                    (ex.InnerException != null ? $"\n\nCausa: {ex.InnerException.Message}" : ""),
+                    "RDO — Erro de Inicialização", MB_ICONERROR);
+                // Continua: a janela abre mesmo assim (usuário verá o erro e poderá reportar)
+            }
         }
 
         private void InicializarBanco()
@@ -142,6 +169,12 @@ namespace RDO.App
             RDO.App.Services.EmpresaSeeder.Seed(db);
             System.Diagnostics.Debug.WriteLine("[DB-INIT] ✓ Empresas verificadas");
 
+            // Auto-arquiva obras com mais de 2 anos de início (reduz carga do front)
+            ArquivarObrasAntigas(db);
+
+            // Limpeza de produção: remove (soft-delete) obras inativas — roda uma única vez
+            LimparObrasInativasProducao(db);
+
             System.Diagnostics.Debug.WriteLine("[DB-INIT] ✓ Inicialização concluída");
         }
 
@@ -185,6 +218,7 @@ namespace RDO.App
                 ("Project",   "Crea",                "TEXT NOT NULL DEFAULT ''"),
                 ("Project",   "ResponsavelCliente",  "TEXT NOT NULL DEFAULT ''"),
                 ("Companion", "EmpresaId",            "INTEGER NULL"),
+                ("Activity",  "ParentId",             "INTEGER NULL"),
             };
 
             foreach (var (tabela, coluna, definicao) in colunas)
@@ -219,6 +253,71 @@ namespace RDO.App
                 {
                     System.Diagnostics.Debug.WriteLine($"[DB-INIT] ⚠️ Erro ao garantir {tabela}.{coluna}: {ex.Message}");
                 }
+            }
+        }
+
+        private const string FlagLimpezaProducao = "ProductionCleanup_InativasV1";
+
+        /// <summary>
+        /// Remove (soft-delete) todas as obras inativas. Roda apenas uma vez por instalação.
+        /// </summary>
+        private static void LimparObrasInativasProducao(RDO.Data.Data.RdoDbContext db)
+        {
+            try
+            {
+                // Flag gravada no LocalSettings — garante execução única
+                if (RDO.App.Services.LocalSettingsService.Get<bool?>(FlagLimpezaProducao) == true)
+                    return;
+
+                var inativas = db.Obras
+                    .Where(o => !o.IsActive && !o.IsDeleted)
+                    .ToList();
+
+                if (inativas.Count > 0)
+                {
+                    foreach (var obra in inativas)
+                    {
+                        obra.IsDeleted = true;
+                        obra.UpdatedAt = DateTime.UtcNow;
+                    }
+                    db.SaveChanges();
+                    System.Diagnostics.Debug.WriteLine($"[DB-INIT] ✓ {inativas.Count} obra(s) inativa(s) removidas da produção");
+                }
+
+                RDO.App.Services.LocalSettingsService.Set(FlagLimpezaProducao, true);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DB-INIT] ⚠️ Erro ao limpar inativas: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Arquiva automaticamente obras cuja data de início é anterior a 2 anos.
+        /// Opere de forma silenciosa — o usuário pode reativar manualmente na aba Inativas.
+        /// </summary>
+        private static void ArquivarObrasAntigas(RDO.Data.Data.RdoDbContext db)
+        {
+            try
+            {
+                var limite = DateTime.UtcNow.AddYears(-2);
+                var antigas = db.Obras
+                    .Where(o => o.IsActive && !o.IsDeleted && o.StartDate <= limite)
+                    .ToList();
+
+                if (antigas.Count == 0) return;
+
+                foreach (var obra in antigas)
+                {
+                    obra.IsActive = false;
+                    obra.UpdatedAt = DateTime.UtcNow;
+                }
+                db.SaveChanges();
+                System.Diagnostics.Debug.WriteLine($"[DB-INIT] ✓ {antigas.Count} obra(s) arquivada(s) automaticamente (>2 anos)");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DB-INIT] ⚠️ Erro ao arquivar obras antigas: {ex.Message}");
             }
         }
 
@@ -276,9 +375,35 @@ namespace RDO.App
             Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
             ThemeManager.LoadSaved();          // carrega tema ANTES de criar a janela
-            MainWindow = new MainWindow();
-            MainWindow.Activate();
-            ThemeManager.Apply(ThemeManager.Current); // aplica RequestedTheme ao conteúdo
+            try
+            {
+                MainWindow = new MainWindow();
+                MainWindow.Activate();
+                ThemeManager.Apply(ThemeManager.Current);
+            }
+            catch (Exception ex)
+            {
+                // Monta mensagem com todas as InnerExceptions para diagnóstico
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("Falha ao inicializar a janela principal.");
+                sb.AppendLine();
+                var e = ex;
+                int depth = 0;
+                while (e != null && depth < 5)
+                {
+                    sb.AppendLine($"[{depth}] {e.GetType().FullName}: {e.Message}");
+                    if (e.HResult != 0)
+                        sb.AppendLine($"    HResult: 0x{e.HResult:X8}");
+                    e = e.InnerException;
+                    depth++;
+                }
+                sb.AppendLine();
+                sb.AppendLine("StackTrace:");
+                sb.AppendLine(ex.StackTrace);
+
+                MessageBox(IntPtr.Zero, sb.ToString(), "RDO — Erro Fatal (Diagnóstico)", MB_ICONERROR);
+                Environment.Exit(1);
+            }
         }
     }
 }

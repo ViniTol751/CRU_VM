@@ -15,7 +15,6 @@
         <!-- Painel esquerdo — imagem -->
         <Grid Grid.Column="0">
             <Image x:Name="LoginSideImage"
-                   Source="ms-appx:///Assets/SE_Dark.png"
                    Stretch="UniformToFill"/>
             <Rectangle>
                 <Rectangle.Fill>

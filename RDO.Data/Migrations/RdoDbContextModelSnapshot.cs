@@ -17,7 +17,7 @@ namespace RDO.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.5")
+                .HasAnnotation("ProductVersion", "8.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -458,6 +458,10 @@ namespace RDO.Data.Migrations
                     b.Property<DateTime>("TiradaEm")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -489,6 +493,10 @@ namespace RDO.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("ClientManager")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Crea")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -659,6 +667,10 @@ namespace RDO.Data.Migrations
 
                     b.Property<bool>("Rascunho")
                         .HasColumnType("boolean");
+
+                    b.Property<int>("Revisao")
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<bool>("Sincronizado")
                         .HasColumnType("boolean");

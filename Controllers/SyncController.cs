@@ -1,12 +1,16 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using TesteAPI.Data;
 using TesteAPI.Models;
 
 namespace TesteAPI.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("api")]
 public class SyncController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -21,33 +25,51 @@ public class SyncController : ControllerBase
     // ── PULL ─────────────────────────────────────────────────────────────────
 
     [HttpGet("pull")]
-    public async Task<IActionResult> Pull([FromQuery] DateTime since)
+    public async Task<IActionResult> Pull([FromQuery] DateTime since, [FromQuery] string? table = null)
     {
         var sinceUtc = since.Kind == DateTimeKind.Unspecified
             ? DateTime.SpecifyKind(since, DateTimeKind.Utc)
             : since.ToUniversalTime();
 
-        _logger.LogInformation("[Sync/Pull] since={Since:O}", sinceUtc);
+        _logger.LogInformation("[Sync/Pull] since={Since:O} table={Table}", sinceUtc, table ?? "all");
 
-        var payload = new SyncPullPayload
-        {
-            ServerTime       = DateTime.UtcNow,
-            Projects         = await _context.Projects.Where(x => x.UpdatedAt > sinceUtc).ToListAsync(),
-            Users            = await _context.Users.Where(x => x.UpdatedAt > sinceUtc).ToListAsync(),
-            Employees        = await _context.Employees.Where(x => x.UpdatedAt > sinceUtc).ToListAsync(),
-            Equipments       = await _context.Equipments.Where(x => x.UpdatedAt > sinceUtc).ToListAsync(),
-            Companions       = await _context.Companions.Where(x => x.UpdatedAt > sinceUtc).ToListAsync(),
-            Reports          = await _context.Reports.Where(x => x.UpdatedAt > sinceUtc).ToListAsync(),
-            WeatherDetails   = await _context.WeatherDetails.Where(x => x.UpdatedAt > sinceUtc).ToListAsync(),
-            Activities       = await _context.Activities.Where(x => x.UpdatedAt > sinceUtc).ToListAsync(),
-            Occurrences      = await _context.Occurrences.Where(x => x.UpdatedAt > sinceUtc).ToListAsync(),
-            Materials        = await _context.Materials.Where(x => x.UpdatedAt > sinceUtc).ToListAsync(),
-            Photos           = await _context.Photos.Where(x => x.UpdatedAt > sinceUtc).ToListAsync(),
-            Signatures       = await _context.Signatures.Where(x => x.UpdatedAt > sinceUtc).ToListAsync(),
-            ProjectMembers   = await _context.ProjectMembers.Where(x => x.UpdatedAt > sinceUtc).ToListAsync(),
-            ReportEquipments = await _context.ReportEquipments.Where(x => x.UpdatedAt > sinceUtc).ToListAsync(),
-            ReportCompanions = await _context.ReportCompanions.Where(x => x.UpdatedAt > sinceUtc).ToListAsync(),
-        };
+        var payload = new SyncPullPayload { ServerTime = DateTime.UtcNow };
+
+        var t = table?.ToLowerInvariant();
+        bool all = t is null;
+
+        if (all || t == "projects")
+            payload.Projects         = await _context.Projects.Where(x => x.UpdatedAt >= sinceUtc).ToListAsync();
+        if (all || t == "users")
+            payload.Users            = await _context.Users.Where(x => x.UpdatedAt >= sinceUtc).ToListAsync();
+        if (all || t == "employees")
+            payload.Employees        = await _context.Employees.Where(x => x.UpdatedAt >= sinceUtc).ToListAsync();
+        if (all || t == "equipments")
+            payload.Equipments       = await _context.Equipments.Where(x => x.UpdatedAt >= sinceUtc).ToListAsync();
+        if (all || t == "companions")
+            payload.Companions       = await _context.Companions.Where(x => x.UpdatedAt >= sinceUtc).ToListAsync();
+        if (all || t == "reports")
+            payload.Reports          = await _context.Reports.Where(x => x.UpdatedAt >= sinceUtc).ToListAsync();
+        if (all || t == "weatherdetails")
+            payload.WeatherDetails   = await _context.WeatherDetails.Where(x => x.UpdatedAt >= sinceUtc).ToListAsync();
+        if (all || t == "activities")
+            payload.Activities       = await _context.Activities.Where(x => x.UpdatedAt >= sinceUtc).ToListAsync();
+        if (all || t == "occurrences")
+            payload.Occurrences      = await _context.Occurrences.Where(x => x.UpdatedAt >= sinceUtc).ToListAsync();
+        if (all || t == "materials")
+            payload.Materials        = await _context.Materials.Where(x => x.UpdatedAt >= sinceUtc).ToListAsync();
+        if (all || t == "photos")
+            payload.Photos           = await _context.Photos.Where(x => x.UpdatedAt >= sinceUtc).ToListAsync();
+        if (all || t == "signatures")
+            payload.Signatures       = await _context.Signatures.Where(x => x.UpdatedAt >= sinceUtc).ToListAsync();
+        if (all || t == "projectmembers")
+            payload.ProjectMembers   = await _context.ProjectMembers.Where(x => x.UpdatedAt >= sinceUtc).ToListAsync();
+        if (all || t == "reportequipments")
+            payload.ReportEquipments = await _context.ReportEquipments.Where(x => x.UpdatedAt >= sinceUtc).ToListAsync();
+        if (all || t == "reportcompanions")
+            payload.ReportCompanions = await _context.ReportCompanions.Where(x => x.UpdatedAt >= sinceUtc).ToListAsync();
+        if (all || t == "empresas")
+            payload.Empresas         = await _context.Empresas.Where(x => x.UpdatedAt >= sinceUtc).ToListAsync();
 
         return Ok(payload);
     }
@@ -78,6 +100,7 @@ public class SyncController : ControllerBase
         Acc(await UpsertAll(_context.ProjectMembers,   payload.ProjectMembers));
         Acc(await UpsertAll(_context.ReportEquipments, payload.ReportEquipments));
         Acc(await UpsertAll(_context.ReportCompanions, payload.ReportCompanions));
+        Acc(await UpsertAll(_context.Empresas,         payload.Empresas));
 
         await _context.SaveChangesAsync();
 
@@ -91,19 +114,23 @@ public class SyncController : ControllerBase
         DbSet<T> dbSet, List<T> incoming)
         where T : class, ILocalSyncEntity
     {
+        if (incoming.Count == 0) return (0, 0, 0);
+
+        var ids = incoming.Select(x => x.Id).ToList();
+        var existing = await dbSet.AsNoTracking()
+            .Where(x => ids.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id);
+
         int ins = 0, upd = 0, skp = 0;
 
         foreach (var item in incoming)
         {
-            var existing = await dbSet.AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == item.Id);
-
-            if (existing is null)
+            if (!existing.TryGetValue(item.Id, out var found))
             {
                 _context.Entry(item).State = EntityState.Added;
                 ins++;
             }
-            else if (item.UpdatedAt.ToUniversalTime() >= existing.UpdatedAt.ToUniversalTime())
+            else if (item.UpdatedAt.ToUniversalTime() >= found.UpdatedAt.ToUniversalTime())
             {
                 _context.Entry(item).State = EntityState.Modified;
                 upd++;
@@ -137,6 +164,7 @@ public class SyncPushPayload
     public List<ProjectMember>   ProjectMembers   { get; set; } = new();
     public List<ReportEquipment> ReportEquipments { get; set; } = new();
     public List<ReportCompanion> ReportCompanions { get; set; } = new();
+    public List<Empresa>         Empresas         { get; set; } = new();
 }
 
 public class SyncPullPayload
@@ -158,4 +186,5 @@ public class SyncPullPayload
     public List<ProjectMember>   ProjectMembers   { get; set; } = new();
     public List<ReportEquipment> ReportEquipments { get; set; } = new();
     public List<ReportCompanion> ReportCompanions { get; set; } = new();
+    public List<Empresa>         Empresas         { get; set; } = new();
 }

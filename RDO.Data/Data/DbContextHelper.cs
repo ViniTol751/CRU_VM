@@ -19,7 +19,11 @@ public static class DbContextHelper
     public static DbContextOptions<RdoDbContext> GetOptions()
     {
         var optionsBuilder = new DbContextOptionsBuilder<RdoDbContext>();
-        optionsBuilder.UseSqlite($"Data Source={GetDbPath()}");
+        var connectionString = $"Data Source={GetDbPath()};Mode=ReadWriteCreate;Cache=Shared;";
+        optionsBuilder.UseSqlite(connectionString, options =>
+        {
+            options.CommandTimeout(30);
+        });
         return optionsBuilder.Options;
     }
 }

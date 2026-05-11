@@ -1,4 +1,4 @@
-using RDO.Data.Data;
+﻿using RDO.Data.Data;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -170,14 +170,18 @@ public static class LogoService
             }
 
             // Salva como JPEG (sem canal alpha — impossível ter transparência)
-            var cacheFolder = await StorageFolder.GetFolderFromPathAsync(cacheDir);
-            var cacheFile = await cacheFolder.CreateFileAsync(cachedName, CreationCollisionOption.ReplaceExisting);
-            using var outStream = await cacheFile.OpenAsync(FileAccessMode.ReadWrite);
+            System.IO.Directory.CreateDirectory(cacheDir);
 
-            var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.JpegEncoderId, outStream);
+            // BitmapEncoder requer IRandomAccessStream — usa memória e depois copia para arquivo
+            using var memStream = new Windows.Storage.Streams.InMemoryRandomAccessStream();
+            var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.JpegEncoderId, memStream);
             encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore,
                 w, h, decoder.DpiX, decoder.DpiY, pixels);
             await encoder.FlushAsync();
+
+            memStream.Seek(0);
+            using var fileStream = System.IO.File.Open(cachedPath, System.IO.FileMode.Create, System.IO.FileAccess.Write);
+            await memStream.AsStreamForRead().CopyToAsync(fileStream);
 
             System.Diagnostics.Debug.WriteLine($"[LOGO] FlattenToWhiteAsync OK: {cachedName}");
             return cachedPath;

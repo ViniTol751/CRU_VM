@@ -569,9 +569,7 @@ namespace RDO.App.Services
                     table.ColumnsDefinition(cols =>
                     {
                         cols.RelativeColumn(2);
-                        cols.RelativeColumn();
-                        cols.RelativeColumn();
-                        cols.RelativeColumn();
+                        cols.RelativeColumn(1.5f);
                     });
 
                     void Th(string txt, bool ultima = false)
@@ -590,7 +588,7 @@ namespace RDO.App.Services
                                 .Text(txt).Bold().FontSize(8).FontColor(CorLabelCinza);
                     }
 
-                    Th("Nome"); Th("Cargo"); Th("Grupo / Cliente"); Th("Contato", ultima: true);
+                    Th("Nome"); Th("Grupo / Cliente", ultima: true);
 
                     for (int i = 0; i < acomps.Count; i++)
                     {
@@ -608,8 +606,7 @@ namespace RDO.App.Services
                                     .BorderBottom(borda).BorderColor(CorBordaInterna)
                                     .Padding(5).Text(v).FontSize(9).FontColor(CorTexto);
                         }
-                        Td(ac.Nome); Td(ac.Cargo); Td(ac.Grupo);
-                        Td(string.IsNullOrEmpty(ac.Contato) ? "—" : ac.Contato, ultima: true);
+                        Td(ac.Nome); Td(ac.Grupo, ultima: true);
                     }
                 });
             });
@@ -642,7 +639,6 @@ namespace RDO.App.Services
                     table.ColumnsDefinition(cols =>
                     {
                         cols.RelativeColumn(2);
-                        cols.RelativeColumn(1.5f);
                         cols.RelativeColumn(2);
                         cols.RelativeColumn();
                         cols.RelativeColumn();
@@ -664,7 +660,7 @@ namespace RDO.App.Services
                                 .Text(txt).Bold().FontSize(8).FontColor(CorLabelCinza);
                     }
 
-                    Th("Nome"); Th("Função"); Th("Entrada / Saída"); Th("Intervalo"); Th("Horas", ultima: true);
+                    Th("Nome"); Th("Entrada / Saída"); Th("Intervalo"); Th("Horas", ultima: true);
 
                     for (int i = 0; i < assinaturas.Count; i++)
                     {
@@ -696,7 +692,7 @@ namespace RDO.App.Services
                             if (negrito) txt.Bold();
                         }
 
-                        Td(a.NomeAssinante); Td(a.Cargo); Td(entSaida);
+                        Td(a.NomeAssinante); Td(entSaida);
                         Td(string.IsNullOrEmpty(a.HoraIntervalo) ? "—" : a.HoraIntervalo);
                         Td(hsTrab, negrito: true, ultima: true);
                     }
@@ -784,7 +780,7 @@ namespace RDO.App.Services
                     .Background(CorCabecalhoSec)
                     .BorderBottom(2).BorderColor(CorBorda)
                     .Padding(8)
-                    .Text($"Atividades ({rel.Atividades.Count})")
+                    .Text($"Atividades ({rel.Atividades.Count(a => a.ParentId == null)})")
                     .FontSize(11).Bold().FontColor(CorLabelCinza);
 
                 if (!rel.Atividades.Any())
@@ -796,21 +792,46 @@ namespace RDO.App.Services
 
                 bloco.Item().Column(inner =>
                 {
-                    var lista = rel.Atividades.ToList();
-                    for (int i = 0; i < lista.Count; i++)
+                    var raizes = rel.Atividades.Where(a => a.ParentId == null).ToList();
+                    var subMap = rel.Atividades
+                        .Where(a => a.ParentId != null)
+                        .GroupBy(a => a.ParentId!.Value)
+                        .ToDictionary(g => g.Key, g => g.OrderBy(a => a.Id).ToList());
+
+                    for (int i = 0; i < raizes.Count; i++)
                     {
                         var bg = i % 2 == 0 ? CorBranco : CorLinhaAltern;
-                        var borda = i < lista.Count - 1 ? 1 : 0;
-                        var at = lista[i];
+                        var at = raizes[i];
+                        var subs = subMap.TryGetValue(at.Id, out var s) ? s : null;
+                        var temSubs = subs?.Count > 0;
 
                         inner.Item().Background(bg)
-                             .BorderBottom(borda).BorderColor(CorBorda)
+                             .BorderBottom(temSubs ? 0 : 1).BorderColor(CorBorda)
                              .Padding(5).Row(row =>
                              {
                                  row.ConstantItem(18).Text($"{i + 1}.").Bold().FontSize(8)
                                      .FontColor(CorLabelCinza);
                                  row.RelativeItem().Text(at.Descricao).FontSize(8);
                              });
+
+                        if (temSubs)
+                        {
+                            for (int j = 0; j < subs!.Count; j++)
+                            {
+                                var sub = subs[j];
+                                var subBorda = j < subs.Count - 1 ? 0 : 1;
+                                inner.Item().Background(bg)
+                                     .BorderBottom(subBorda).BorderColor(CorBorda)
+                                     .PaddingLeft(18).PaddingRight(5).PaddingBottom(4)
+                                     .Row(row =>
+                                     {
+                                         row.ConstantItem(24).Text($"{i + 1}.{j + 1}").FontSize(7).Bold()
+                                             .FontColor(CorLabelCinza);
+                                         row.RelativeItem().Text(sub.Descricao).FontSize(7)
+                                             .FontColor("#444444");
+                                     });
+                            }
+                        }
                     }
                 });
             });

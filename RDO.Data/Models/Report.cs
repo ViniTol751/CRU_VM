@@ -19,6 +19,7 @@ public class Report : ILocalSyncEntity
     public bool IsDraft { get; set; } = false;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; } = false;
+    public int Revisao { get; set; } = 0;
     [JsonIgnore] public Project? Project { get; set; }
     [JsonIgnore] public User? User { get; set; }
     [JsonIgnore] public Companion? Companion { get; set; }

@@ -352,5 +352,8 @@ public sealed class ApiSyncPushResult
 
 public sealed class ApiSyncPullResult
 {
-    public List<Project> Projects { get; set; } = new();
+    public List<Project>   Projects   { get; set; } = new();
+    public List<Report>    Reports    { get; set; } = new();
+    public List<Companion> Companions { get; set; } = new();
+    public List<Empresa>   Empresas   { get; set; } = new();
 }

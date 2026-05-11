@@ -1,4 +1,4 @@
-using Microsoft.UI.Dispatching;
+﻿using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -10,7 +10,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Windows.Security.Credentials;
-using Windows.Storage;
 using Windows.System;
 using Windows.UI;
 
@@ -32,7 +31,7 @@ namespace RDO.App.Views
         {
             LoadSavedLogins();
 
-            var lastLogin = ApplicationData.Current.LocalSettings.Values["LembrarLogin"] as string;
+            var lastLogin = LocalSettingsService.Get<string>("LembrarLogin");
             if (!string.IsNullOrEmpty(lastLogin))
             {
                 EmailBox.Text = lastLogin;
@@ -144,7 +143,7 @@ namespace RDO.App.Views
             var isDark = ThemeManager.Current == ElementTheme.Dark;
             BtnTema.Content = isDark ? "" : "";
             LoginSideImage.Source = new BitmapImage(
-                new Uri(isDark ? "ms-appx:///Assets/SE_Dark.png" : "ms-appx:///Assets/SE_Light.png"));
+                AssetHelper.GetUri(isDark ? "Assets/SE_Dark.png" : "Assets/SE_Light.png"));
         }
 
         private void EntrarBtn_Click(object sender, RoutedEventArgs e)
@@ -169,6 +168,9 @@ namespace RDO.App.Views
 
             ErroTexto.Visibility = Visibility.Collapsed;
 
+            // Guarda credenciais em memória para o SyncService usar JWT na API
+            UserSession.Set(login, senha);
+
             if (LembrarCheck.IsChecked == true)
             {
                 try
@@ -178,17 +180,18 @@ namespace RDO.App.Views
                     vault.Add(new PasswordCredential(VaultResource, login, senha));
                 }
                 catch { }
-                ApplicationData.Current.LocalSettings.Values["LembrarLogin"] = login;
+                LocalSettingsService.Set("LembrarLogin", login);
             }
             else
             {
-                ApplicationData.Current.LocalSettings.Values.Remove("LembrarLogin");
+                LocalSettingsService.Remove("LembrarLogin");
             }
 
-            ApplicationData.Current.LocalSettings.Values["NomeUsuario"] = usuario.Nome;
-            ApplicationData.Current.LocalSettings.Values["UsuarioId"]   = usuario.Id;
-            ApplicationData.Current.LocalSettings.Values.Remove("FuncionarioVinculadoId");
+            LocalSettingsService.Set("NomeUsuario", usuario.Nome);
+            LocalSettingsService.Set("UsuarioId", usuario.Id);
+            LocalSettingsService.Remove("FuncionarioVinculadoId");
 
+            AppLogger.LogInfo("AUTH", $"Login: {usuario.Email}  (perfil={usuario.Perfil})");
             Frame.Navigate(typeof(MainPage));
         }
 

@@ -15,23 +15,36 @@
 
     <Grid Margin="0,44,0,0">
         <Grid.RowDefinitions>
-            <RowDefinition Height="56"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <!-- Cabeçalho -->
         <Border Grid.Row="0" Background="{ThemeResource PanelBgBrush}"
-                BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="28,0">
+                BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="28,16">
             <Grid>
-                <StackPanel Orientation="Horizontal" Spacing="12"
-                            VerticalAlignment="Center">
-                    <Button Content="← Voltar" Click="VoltarBtn_Click"
-                            Background="Transparent" BorderThickness="0"
-                            Foreground="{ThemeResource AccentBrush}"/>
-                    <TextBlock Text="Cadastros" FontSize="15"
-                               FontWeight="SemiBold" Foreground="{ThemeResource TextPrimaryBrush}"
-                               VerticalAlignment="Center"/>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0"
+                        Content="&#xE72B;"
+                        FontFamily="Segoe MDL2 Assets"
+                        Width="36" Height="36" Padding="0"
+                        Background="Transparent"
+                        BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                        Foreground="{ThemeResource TextSecondaryBrush}"
+                        Margin="0,0,16,0"
+                        ToolTipService.ToolTip="Voltar"
+                        Click="VoltarBtn_Click"/>
+
+                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="Cadastros" FontSize="20" FontWeight="SemiBold"
+                               Foreground="{ThemeResource TextPrimaryBrush}"/>
+                    <TextBlock Text="Gerencie empresas, obras, funcionários e equipamentos"
+                               FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -74,6 +87,7 @@
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
@@ -131,7 +145,19 @@
                                        VerticalAlignment="Center"/>
                         </Border>
 
-                        <Button Grid.Column="3" Content="+ Nova Empresa"
+                        <Button Grid.Column="3" Height="40" Padding="12,0"
+                                Background="{ThemeResource PanelBgBrush}"
+                                BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                Foreground="{ThemeResource AccentBrush}" FontSize="12"
+                                ToolTipService.ToolTip="Exportar lista como CSV"
+                                Click="ExportarEmpresas_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE8C8;" FontSize="12" Foreground="{ThemeResource AccentBrush}"/>
+                                <TextBlock Text="CSV" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Grid.Column="4" Content="+ Nova Empresa"
                 Height="40"
                 Background="{ThemeResource AccentBrush}" BorderThickness="0"
                 Foreground="{ThemeResource AccentFgBrush}" FontWeight="SemiBold"
@@ -223,6 +249,8 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
                         <Border Grid.Column="0" Background="{ThemeResource PanelBgBrush}"
@@ -264,8 +292,10 @@
                                 Height="40" Width="44" CornerRadius="6" Padding="0"
                                 Background="{ThemeResource PanelBgBrush}"
                                 BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
-                                Foreground="{ThemeResource AccentBrush}" FontSize="11" FontWeight="SemiBold"
-                                Content="A↑" ToolTipService.ToolTip="Ordenar A → Z"
+                                Foreground="{ThemeResource AccentBrush}" FontSize="14"
+                                Content="&#xE8CB;"
+                                FontFamily="Segoe MDL2 Assets"
+                                ToolTipService.ToolTip="Mais antigas primeiro (por nº contrato)"
                                 Click="SortObras_Click"/>
 
                         <Border Grid.Column="2" Background="{ThemeResource AccentSubtleBgBrush}"
@@ -277,7 +307,28 @@
                                        VerticalAlignment="Center"/>
                         </Border>
 
-                        <Button Grid.Column="3" Content="+ Adicionar"
+                        <Button x:Name="BtnMostrarInativas" Grid.Column="3"
+                                Height="40" Padding="14,0"
+                                Background="Transparent"
+                                BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                Foreground="{ThemeResource TextSecondaryBrush}" FontSize="12"
+                                Content="Mostrar inativas"
+                                Click="BtnMostrarInativas_Click"/>
+
+                        <Button x:Name="ExportarObrasBtn" Grid.Column="4"
+                                Height="40" Padding="12,0"
+                                Background="{ThemeResource PanelBgBrush}"
+                                BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                Foreground="{ThemeResource AccentBrush}" FontSize="12"
+                                ToolTipService.ToolTip="Exportar lista como CSV"
+                                Click="ExportarObras_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE8C8;" FontSize="12" Foreground="{ThemeResource AccentBrush}"/>
+                                <TextBlock Text="CSV" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Grid.Column="5" Content="+ Adicionar"
                 Height="40"
                 Background="{ThemeResource AccentBrush}" BorderThickness="0"
                 Foreground="{ThemeResource AccentFgBrush}" FontWeight="SemiBold"
@@ -427,6 +478,73 @@
                         </ListView.ItemTemplate>
                     </ListView>
 
+                    <!-- Seção: obras desativadas (oculta por padrão) -->
+                    <StackPanel x:Name="PainelObrasInativas" Visibility="Collapsed" Spacing="8">
+                        <Border Background="{ThemeResource AppBorderBrush}" Height="1" Margin="0,4,0,0"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="OBRAS DESATIVADAS" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="120"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock x:Name="ContadorInativasTexto" Grid.Column="1"
+                                       Text="" FontSize="11"
+                                       Foreground="{ThemeResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"/>
+                        </Grid>
+                        <ListView x:Name="ObrasInativasListView"
+                                  SelectionMode="None" Background="Transparent"
+                                  MaxHeight="480">
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    <Setter Property="Padding" Value="0"/>
+                                    <Setter Property="Margin" Value="0,0,0,6"/>
+                                </Style>
+                            </ListView.ItemContainerStyle>
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{ThemeResource PanelBgBrush}"
+                                            BorderBrush="{ThemeResource AppBorderBrush}"
+                                            BorderThickness="1" CornerRadius="4" Padding="16,12"
+                                            Opacity="0.7">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Spacing="2">
+                                                <TextBlock Text="{Binding Nome}"
+                                                           FontSize="13" FontWeight="SemiBold"
+                                                           Foreground="{ThemeResource TextPrimaryBrush}"/>
+                                                <TextBlock Text="{Binding Grupo}"
+                                                           FontSize="11"
+                                                           Foreground="{ThemeResource TextSecondaryBrush}"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Status}"
+                                                       FontSize="11"
+                                                       Foreground="{ThemeResource TextTertiaryBrush}"
+                                                       VerticalAlignment="Center" Margin="0,0,16,0"/>
+                                            <Button Grid.Column="2"
+                                                    Content="Reativar"
+                                                    Height="32" Padding="14,0"
+                                                    Background="{ThemeResource AccentSubtleBgBrush}"
+                                                    BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                                    Foreground="{ThemeResource AccentBrush}"
+                                                    FontSize="12"
+                                                    Tag="{Binding}"
+                                                    Click="ReativarObra_Click"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </StackPanel>
+
                 </StackPanel>
 
                 <!-- ABA: Funcionários -->
@@ -435,6 +553,7 @@
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
@@ -493,7 +612,19 @@
                                        VerticalAlignment="Center"/>
                         </Border>
 
-                        <Button Grid.Column="3" Content="+ Adicionar"
+                        <Button Grid.Column="3" Height="40" Padding="12,0"
+                                Background="{ThemeResource PanelBgBrush}"
+                                BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                Foreground="{ThemeResource AccentBrush}" FontSize="12"
+                                ToolTipService.ToolTip="Exportar lista como CSV"
+                                Click="ExportarFuncionarios_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE8C8;" FontSize="12" Foreground="{ThemeResource AccentBrush}"/>
+                                <TextBlock Text="CSV" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Grid.Column="4" Content="+ Adicionar"
                 Height="40"
                 Background="{ThemeResource AccentBrush}" BorderThickness="0"
                 Foreground="{ThemeResource AccentFgBrush}" FontWeight="SemiBold"
@@ -626,6 +757,7 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
                         <Border Grid.Column="0" Background="{ThemeResource PanelBgBrush}"
@@ -667,8 +799,10 @@
                                 Height="40" Width="44" CornerRadius="6" Padding="0"
                                 Background="{ThemeResource PanelBgBrush}"
                                 BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
-                                Foreground="{ThemeResource AccentBrush}" FontSize="11" FontWeight="SemiBold"
-                                Content="A↑" ToolTipService.ToolTip="Ordenar A → Z"
+                                Foreground="{ThemeResource AccentBrush}" FontSize="14"
+                                Content="&#xE8CB;"
+                                FontFamily="Segoe MDL2 Assets"
+                                ToolTipService.ToolTip="Menor patrimônio primeiro (FC-01 → FC-XX)"
                                 Click="SortEquipamentos_Click"/>
 
                         <Border Grid.Column="2" Background="{ThemeResource AccentSubtleBgBrush}"
@@ -680,7 +814,19 @@
                                        VerticalAlignment="Center"/>
                         </Border>
 
-                        <Button Grid.Column="3" Content="+ Adicionar"
+                        <Button Grid.Column="3" Height="40" Padding="12,0"
+                                Background="{ThemeResource PanelBgBrush}"
+                                BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                Foreground="{ThemeResource AccentBrush}" FontSize="12"
+                                ToolTipService.ToolTip="Exportar lista como CSV"
+                                Click="ExportarEquipamentos_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE8C8;" FontSize="12" Foreground="{ThemeResource AccentBrush}"/>
+                                <TextBlock Text="CSV" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Grid.Column="4" Content="+ Adicionar"
                 Height="40"
                 Background="{ThemeResource AccentBrush}" BorderThickness="0"
                 Foreground="{ThemeResource AccentFgBrush}" FontWeight="SemiBold"
@@ -824,6 +970,7 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
                         <Border Grid.Column="0" Background="{ThemeResource PanelBgBrush}"
@@ -878,7 +1025,19 @@
                                        VerticalAlignment="Center"/>
                         </Border>
 
-                        <Button Grid.Column="3" Content="+ Adicionar"
+                        <Button Grid.Column="3" Height="40" Padding="12,0"
+                                Background="{ThemeResource PanelBgBrush}"
+                                BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                                Foreground="{ThemeResource AccentBrush}" FontSize="12"
+                                ToolTipService.ToolTip="Exportar lista como CSV"
+                                Click="ExportarAcompanhantes_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE8C8;" FontSize="12" Foreground="{ThemeResource AccentBrush}"/>
+                                <TextBlock Text="CSV" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Grid.Column="4" Content="+ Adicionar"
                 Height="40"
                 Background="{ThemeResource AccentBrush}" BorderThickness="0"
                 Foreground="{ThemeResource AccentFgBrush}" FontWeight="SemiBold"

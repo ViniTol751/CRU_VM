@@ -1,4 +1,4 @@
-using Microsoft.UI;
+﻿using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -25,6 +25,7 @@ namespace RDO.App.Views
     {
         public int ObraId { get; set; }
         public int RelatorioId { get; set; } // 0 = novo, >0 = editar
+        public bool EditarRevisaoAtual { get; set; } // true = não incrementa revisão
     }
 
     public sealed partial class RdoFormPage : Page
@@ -32,7 +33,11 @@ namespace RDO.App.Views
         private int _obraId;
         private int _savedRelatorioId;
         private int _editRelatorioId; // 0 = novo, >0 = editar relatório existente
+        private bool _editarRevisaoAtual; // true = não incrementa revisão ao salvar
         private readonly List<Atividade> _atividades = new();
+        private readonly Dictionary<Atividade, List<Atividade>> _subAtividades = new();
+        private readonly HashSet<Atividade> _subAtividadesConfirmadas = new();
+        private readonly Dictionary<Atividade, StackPanel> _subPanels = new();
         private readonly List<Ocorrencia> _ocorrencias = new();
         private readonly List<Foto> _fotos = new();
         private readonly List<Foto> _documentos = new();
@@ -110,6 +115,7 @@ namespace RDO.App.Views
             {
                 obraId = p.ObraId;
                 _editRelatorioId = p.RelatorioId;
+                _editarRevisaoAtual = p.EditarRevisaoAtual;
             }
 
             if (obraId == 0) return;
@@ -125,11 +131,13 @@ namespace RDO.App.Views
                 {
                     var relEdicao = db.Relatorios.Find(_editRelatorioId);
                     NumeroRdoTexto.Text = relEdicao != null ? $"Nº {relEdicao.Numero:D3}" : "—";
-                    // Mostra revisão atual (a próxima será +1)
+                    // Mostra revisão atual
                     if (relEdicao != null && relEdicao.Revisao >= 0)
                     {
                         RevisaoBadge.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
-                        RevisaoTexto.Text = $"Rev. {relEdicao.Revisao:D2} → Rev. {relEdicao.Revisao + 1:D2}";
+                        RevisaoTexto.Text = _editarRevisaoAtual
+                            ? $"Rev. {relEdicao.Revisao:D2} (editando)"
+                            : $"Rev. {relEdicao.Revisao:D2} → Rev. {relEdicao.Revisao + 1:D2}";
                     }
                 }
                 else
@@ -166,6 +174,9 @@ namespace RDO.App.Views
             _acompanhanteIds.Clear();
             _horasFuncionario.Clear();
             _atividadesConfirmadas.Clear();
+            _subAtividades.Clear();
+            _subAtividadesConfirmadas.Clear();
+            _subPanels.Clear();
             _ocorrenciasConfirmadas.Clear();
             _savedRelatorioId = 0;
             _editRelatorioId = 0;
@@ -261,11 +272,21 @@ namespace RDO.App.Views
                 NoiteImpraticavel.IsChecked = noite.Condicao == "Impraticável";
             }
 
-            foreach (var a in rel.Atividades)
+            var dbIdToAtividade = new Dictionary<int, Atividade>();
+            foreach (var a in rel.Atividades.Where(a => a.ParentId == null))
             {
                 var nova = new Atividade { Descricao = a.Descricao, Local = a.Local, Status = a.Status };
                 _atividades.Add(nova);
                 AdicionarLinhaAtividade(nova, preConfirm: true);
+                dbIdToAtividade[a.Id] = nova;
+            }
+            foreach (var a in rel.Atividades.Where(a => a.ParentId != null))
+            {
+                if (!dbIdToAtividade.TryGetValue(a.ParentId!.Value, out var pai)) continue;
+                if (!_subPanels.TryGetValue(pai, out var sp)) continue;
+                var sub = new Atividade { Descricao = a.Descricao, Local = a.Local, Status = a.Status };
+                _subAtividades[pai].Add(sub);
+                AdicionarLinhaSubAtividade(pai, sub, sp, preConfirm: true);
             }
 
             foreach (var o in rel.Ocorrencias)
@@ -535,11 +556,21 @@ namespace RDO.App.Views
 
             // Restaurar atividades — cria novos objetos (Id=0) para evitar conflito de PK ao re-salvar
             var atividades = db.Atividades.Where(a => a.RelatorioId == rascunho.Id).ToList();
-            foreach (var a in atividades)
+            var rascIdToAtividade = new Dictionary<int, Atividade>();
+            foreach (var a in atividades.Where(a => a.ParentId == null))
             {
                 var nova = new Atividade { Descricao = a.Descricao, Local = a.Local, Status = a.Status };
                 _atividades.Add(nova);
                 AdicionarLinhaAtividade(nova);
+                rascIdToAtividade[a.Id] = nova;
+            }
+            foreach (var a in atividades.Where(a => a.ParentId != null))
+            {
+                if (!rascIdToAtividade.TryGetValue(a.ParentId!.Value, out var pai)) continue;
+                if (!_subPanels.TryGetValue(pai, out var sp)) continue;
+                var sub = new Atividade { Descricao = a.Descricao, Local = a.Local, Status = a.Status };
+                _subAtividades[pai].Add(sub);
+                AdicionarLinhaSubAtividade(pai, sub, sp);
             }
 
             // Restaurar ocorrências — cria novos objetos (Id=0)
@@ -997,10 +1028,8 @@ namespace RDO.App.Views
             };
 
             var grid = new Grid { ColumnSpacing = 8 };
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(300) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(36) });
 
             var nomeStack = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
@@ -1011,14 +1040,6 @@ namespace RDO.App.Views
                 FontWeight = new Windows.UI.Text.FontWeight { Weight = 600 },
                 Foreground = TR("TextPrimaryBrush")
             });
-
-            var cargo = new TextBlock
-            {
-                Text = ac.Cargo,
-                FontSize = 12,
-                Foreground = TR("TextTertiaryBrush"),
-                VerticalAlignment = VerticalAlignment.Center
-            };
 
             var grupoBadge = new Border
             {
@@ -1047,11 +1068,10 @@ namespace RDO.App.Views
             };
 
             Grid.SetColumn(nomeStack, 0);
-            Grid.SetColumn(cargo, 1);
-            Grid.SetColumn(grupoBadge, 2);
-            Grid.SetColumn(remBtn, 4);
+            Grid.SetColumn(grupoBadge, 1);
+            Grid.SetColumn(remBtn, 2);
             grid.Children.Add(nomeStack);
-            grid.Children.Add(cargo);
+
             grid.Children.Add(grupoBadge);
             grid.Children.Add(remBtn);
             border.Child = grid;
@@ -1162,6 +1182,7 @@ namespace RDO.App.Views
                 AtividadesPanel.Children.Remove(border);
                 AtividadesPanel.Children.Insert(i - 1, border);
                 RenumerarAtividades();
+                RealtarCard(border);
             };
 
             var downBtn = CriarBotaoOrdem("↓");
@@ -1176,9 +1197,38 @@ namespace RDO.App.Views
                 AtividadesPanel.Children.Remove(border);
                 AtividadesPanel.Children.Insert(i + 1, border);
                 RenumerarAtividades();
+                RealtarCard(border);
             };
 
-            if (preConfirm)
+            // Painel de sub-itens (aparece ao confirmar)
+            var subPanel = new StackPanel { Spacing = 4, Margin = new Thickness(30, 6, 0, 0) };
+            _subPanels[atividade] = subPanel;
+            if (!_subAtividades.ContainsKey(atividade))
+                _subAtividades[atividade] = new List<Atividade>();
+
+            // Botão adicionar sub-item
+            var addSubBtn = new Button
+            {
+                Content = "+ sub-item",
+                FontSize = 11,
+                Height = 26,
+                Padding = new Thickness(8, 0, 8, 0),
+                Background = new SolidColorBrush(Color.FromArgb(255, 20, 30, 55)),
+                BorderBrush = TR("AppBorderBrush"),
+                BorderThickness = new Thickness(1),
+                Foreground = TR("TextSecondaryBrush"),
+                CornerRadius = new Microsoft.UI.Xaml.CornerRadius(4),
+                Margin = new Thickness(30, 4, 0, 0),
+                Visibility = Visibility.Collapsed
+            };
+            addSubBtn.Click += (s, ev) =>
+            {
+                var sub = new Atividade { Status = "Em andamento" };
+                _subAtividades[atividade].Add(sub);
+                AdicionarLinhaSubAtividade(atividade, sub, subPanel);
+            };
+
+            void ConfirmarEstado()
             {
                 _atividadesConfirmadas.Add(atividade);
                 descBox.IsReadOnly = true;
@@ -1188,41 +1238,37 @@ namespace RDO.App.Views
                 saveBtn.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 50, 90, 150));
                 saveBtn.Foreground = new SolidColorBrush(Color.FromArgb(255, 100, 160, 230));
                 ToolTipService.SetToolTip(saveBtn, "Editar descrição");
-                border.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 0, 160, 90));
+                border.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 37, 99, 235));
                 upBtn.Visibility = Visibility.Visible;
                 downBtn.Visibility = Visibility.Visible;
+                addSubBtn.Visibility = Visibility.Visible;
             }
+
+            void EditarEstado()
+            {
+                _atividadesConfirmadas.Remove(atividade);
+                descBox.IsReadOnly = false;
+                descBox.Opacity = 1.0;
+                saveBtn.Content = "✓";
+                saveBtn.Background = new SolidColorBrush(Color.FromArgb(255, 10, 60, 30));
+                saveBtn.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 0, 180, 80));
+                saveBtn.Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 220, 100));
+                ToolTipService.SetToolTip(saveBtn, "Confirmar atividade");
+                border.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 37, 99, 235));
+                upBtn.Visibility = Visibility.Collapsed;
+                downBtn.Visibility = Visibility.Collapsed;
+                addSubBtn.Visibility = Visibility.Collapsed;
+            }
+
+            if (preConfirm)
+                ConfirmarEstado();
+
             saveBtn.Click += (s, ev) =>
             {
-                bool isConfirmed = _atividadesConfirmadas.Contains(atividade);
-                if (!isConfirmed)
-                {
-                    _atividadesConfirmadas.Add(atividade);
-                    descBox.IsReadOnly = true;
-                    descBox.Opacity = 0.75;
-                    saveBtn.Content = "✏";
-                    saveBtn.Background = new SolidColorBrush(Color.FromArgb(255, 20, 40, 75));
-                    saveBtn.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 50, 90, 150));
-                    saveBtn.Foreground = new SolidColorBrush(Color.FromArgb(255, 100, 160, 230));
-                    ToolTipService.SetToolTip(saveBtn, "Editar descrição");
-                    border.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 0, 160, 90));
-                    upBtn.Visibility = Visibility.Visible;
-                    downBtn.Visibility = Visibility.Visible;
-                }
+                if (!_atividadesConfirmadas.Contains(atividade))
+                    ConfirmarEstado();
                 else
-                {
-                    _atividadesConfirmadas.Remove(atividade);
-                    descBox.IsReadOnly = false;
-                    descBox.Opacity = 1.0;
-                    saveBtn.Content = "✓";
-                    saveBtn.Background = new SolidColorBrush(Color.FromArgb(255, 10, 60, 30));
-                    saveBtn.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 0, 180, 80));
-                    saveBtn.Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 220, 100));
-                    ToolTipService.SetToolTip(saveBtn, "Confirmar atividade");
-                    border.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 37, 99, 235));
-                    upBtn.Visibility = Visibility.Collapsed;
-                    downBtn.Visibility = Visibility.Collapsed;
-                }
+                    EditarEstado();
             };
 
             var remBtn = CriarBotaoRemover();
@@ -1231,6 +1277,8 @@ namespace RDO.App.Views
             {
                 _atividades.Remove(atividade);
                 _atividadesConfirmadas.Remove(atividade);
+                _subAtividades.Remove(atividade);
+                _subPanels.Remove(atividade);
                 AtividadesPanel.Children.Remove(border);
                 ContadorAtividades.Text = AtividadesPanel.Children.Count.ToString();
                 RenumerarAtividades();
@@ -1249,9 +1297,130 @@ namespace RDO.App.Views
             row.Children.Add(downBtn);
             row.Children.Add(remBtn);
 
-            border.Child = row;
+            var outer = new StackPanel { Spacing = 0 };
+            outer.Children.Add(row);
+            outer.Children.Add(subPanel);
+            outer.Children.Add(addSubBtn);
+
+            border.Child = outer;
             AtividadesPanel.Children.Add(border);
             ContadorAtividades.Text = AtividadesPanel.Children.Count.ToString();
+        }
+
+        private void AdicionarLinhaSubAtividade(Atividade pai, Atividade sub, StackPanel subPanel, bool preConfirm = false)
+        {
+            var paiIdx = _atividades.IndexOf(pai) + 1;
+            var subIdx = _subAtividades[pai].IndexOf(sub) + 1;
+
+            var subRow = new Grid { ColumnSpacing = 6 };
+            subRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
+            subRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            subRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) });
+            subRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) });
+
+            var letraBadge = new TextBlock
+            {
+                Text = $"{paiIdx}.{subIdx}",
+                FontSize = 11,
+                FontWeight = new Windows.UI.Text.FontWeight { Weight = 600 },
+                Foreground = TR("TextSecondaryBrush"),
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, 4, 0, 0)
+            };
+
+            var descBox = new TextBox
+            {
+                PlaceholderText = "Sub-item...",
+                AcceptsReturn = false,
+                MinHeight = 30,
+                TextWrapping = TextWrapping.Wrap,
+                Background = TR("InputBgBrush"),
+                BorderBrush = TR("AppBorderBrush"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new Microsoft.UI.Xaml.CornerRadius(4),
+                Foreground = TR("TextPrimaryBrush"),
+                Padding = new Thickness(8, 6, 8, 6),
+                FontSize = 12
+            };
+            descBox.TextChanged += (s, ev) => sub.Descricao = descBox.Text;
+            if (!string.IsNullOrEmpty(sub.Descricao))
+                descBox.Text = sub.Descricao;
+
+            var saveBtn = new Button
+            {
+                Content = "✓", Width = 28, Height = 28,
+                Background = new SolidColorBrush(Color.FromArgb(255, 10, 60, 30)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(255, 0, 180, 80)),
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 220, 100)),
+                Padding = new Thickness(0), FontSize = 11,
+                VerticalAlignment = VerticalAlignment.Top
+            };
+
+            var remBtn = new Button
+            {
+                Content = "🗑", Width = 28, Height = 28,
+                Background = TR("DangerBgBrush"),
+                BorderBrush = TR("DangerBorderBrush"),
+                Foreground = TR("DangerFgBrush"),
+                Padding = new Thickness(0), FontSize = 11,
+                VerticalAlignment = VerticalAlignment.Top
+            };
+
+            void ConfirmarSub()
+            {
+                _subAtividadesConfirmadas.Add(sub);
+                descBox.IsReadOnly = true;
+                descBox.Opacity = 0.75;
+                saveBtn.Content = "✏";
+                saveBtn.Background = new SolidColorBrush(Color.FromArgb(255, 20, 40, 75));
+                saveBtn.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 50, 90, 150));
+                saveBtn.Foreground = new SolidColorBrush(Color.FromArgb(255, 100, 160, 230));
+            }
+
+            if (preConfirm) ConfirmarSub();
+
+            saveBtn.Click += (s, ev) =>
+            {
+                if (!_subAtividadesConfirmadas.Contains(sub)) ConfirmarSub();
+                else
+                {
+                    _subAtividadesConfirmadas.Remove(sub);
+                    descBox.IsReadOnly = false;
+                    descBox.Opacity = 1.0;
+                    saveBtn.Content = "✓";
+                    saveBtn.Background = new SolidColorBrush(Color.FromArgb(255, 10, 60, 30));
+                    saveBtn.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 0, 180, 80));
+                    saveBtn.Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 220, 100));
+                }
+            };
+
+            remBtn.Click += (s, ev) =>
+            {
+                _subAtividades[pai].Remove(sub);
+                _subAtividadesConfirmadas.Remove(sub);
+                subPanel.Children.Remove(subRow);
+                RenumerarSubAtividades(pai, subPanel);
+            };
+
+            Grid.SetColumn(letraBadge, 0);
+            Grid.SetColumn(descBox, 1);
+            Grid.SetColumn(saveBtn, 2);
+            Grid.SetColumn(remBtn, 3);
+            subRow.Children.Add(letraBadge);
+            subRow.Children.Add(descBox);
+            subRow.Children.Add(saveBtn);
+            subRow.Children.Add(remBtn);
+            subPanel.Children.Add(subRow);
+        }
+
+        private void RenumerarSubAtividades(Atividade pai, StackPanel subPanel)
+        {
+            var paiIdx = _atividades.IndexOf(pai) + 1;
+            for (int i = 0; i < subPanel.Children.Count; i++)
+            {
+                if (subPanel.Children[i] is Grid g && g.Children.Count > 0 && g.Children[0] is TextBlock tb)
+                    tb.Text = $"{paiIdx}.{i + 1}";
+            }
         }
 
         // ── OCORRÊNCIAS ───────────────────────────────────────────────────────
@@ -1623,7 +1792,8 @@ namespace RDO.App.Views
                     relatorio.Rascunho = false;
                     relatorio.UpdatedAt = DateTime.UtcNow;
                     relatorio.IsSynced = false;
-                    relatorio.Revisao = relatorio.Revisao + 1; // incrementa revisão a cada edição
+                    if (!_editarRevisaoAtual)
+                        relatorio.Revisao = relatorio.Revisao + 1;
 
                     // Remove dependentes antigos — serão salvos no SaveChangesAsync final
                     db.Climas.RemoveRange(db.Climas.Where(c => c.RelatorioId == _editRelatorioId));
@@ -1700,10 +1870,25 @@ namespace RDO.App.Views
                     if (await aviso.ShowAsync() != ContentDialogResult.Primary) return;
                 }
 
+                // Passo 1: salva atividades raiz para obter seus IDs
                 foreach (var a in _atividades.Where(a => _atividadesConfirmadas.Contains(a)))
                 {
                     a.RelatorioId = relatorio.Id;
+                    a.ParentId = null;
                     db.Atividades.Add(a);
+                }
+                await db.SaveChangesAsync(); // IDs necessários para os sub-itens
+
+                // Passo 2: salva sub-atividades confirmadas com ParentId definido
+                foreach (var a in _atividades.Where(a => _atividadesConfirmadas.Contains(a)))
+                {
+                    if (!_subAtividades.TryGetValue(a, out var subs)) continue;
+                    foreach (var sub in subs.Where(s => _subAtividadesConfirmadas.Contains(s)))
+                    {
+                        sub.RelatorioId = relatorio.Id;
+                        sub.ParentId = a.Id;
+                        db.Atividades.Add(sub);
+                    }
                 }
 
                 foreach (var o in _ocorrencias.Where(o => _ocorrenciasConfirmadas.Contains(o)))
@@ -1810,6 +1995,7 @@ namespace RDO.App.Views
                 await db.SaveChangesAsync(); // ← (2/2) único SaveChanges para todos os dependentes
 
                 _savedRelatorioId = relatorio.Id;
+                AppLogger.LogInfo("DB", $"RDO salvo: id={relatorio.Id}  nº={relatorio.Numero:D3}  obra={relatorio.ObraId}  rascunho=false");
                 MainPage.ShowMeusRelatoriosOnNavigate = true;
 
                 var dialog = new ContentDialog
@@ -1924,7 +2110,15 @@ namespace RDO.App.Views
                 SalvarClima("Noite", NoiteEnsolarado, NoiteNublado, NoiteChuvoso, NoitePraticavel, NoiteImpraticavel);
 
                 foreach (var a in _atividades)
-                { a.RelatorioId = rascunho.Id; db.Atividades.Add(a); }
+                { a.RelatorioId = rascunho.Id; a.ParentId = null; db.Atividades.Add(a); }
+                db.SaveChanges(); // IDs para sub-itens
+
+                foreach (var a in _atividades)
+                {
+                    if (!_subAtividades.TryGetValue(a, out var subs)) continue;
+                    foreach (var sub in subs)
+                    { sub.RelatorioId = rascunho.Id; sub.ParentId = a.Id; db.Atividades.Add(sub); }
+                }
 
                 foreach (var o in _ocorrencias)
                 { o.RelatorioId = rascunho.Id; db.Ocorrencias.Add(o); }
@@ -2004,11 +2198,31 @@ namespace RDO.App.Views
         {
             for (int i = 0; i < AtividadesPanel.Children.Count; i++)
             {
-                if (AtividadesPanel.Children[i] is Border b && b.Child is Grid g &&
-                    g.Children.Count > 0 && g.Children[0] is Border nb && nb.Child is TextBlock tb)
+                // Estrutura: Border > StackPanel outer > Grid row > Border numBadge > TextBlock
+                if (AtividadesPanel.Children[i] is Border b &&
+                    b.Child is StackPanel outer &&
+                    outer.Children.Count > 0 &&
+                    outer.Children[0] is Grid g &&
+                    g.Children.Count > 0 &&
+                    g.Children[0] is Border nb &&
+                    nb.Child is TextBlock tb)
                     tb.Text = (i + 1).ToString();
             }
+            // Atualiza também os sub-itens (seus prefixos mudam quando o pai muda de posição)
+            foreach (var (ativ, sp) in _subPanels)
+                RenumerarSubAtividades(ativ, sp);
             ContadorAtividades.Text = AtividadesPanel.Children.Count.ToString();
+        }
+
+        private async void RealtarCard(Border card)
+        {
+            var originalBorder = card.BorderBrush;
+            var originalBg = card.Background;
+            card.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 250, 204, 21));
+            card.Background = new SolidColorBrush(Color.FromArgb(255, 32, 28, 8));
+            await Task.Delay(1100);
+            card.BorderBrush = originalBorder;
+            card.Background = originalBg;
         }
 
         private void RenumerarOcorrencias()
@@ -2059,8 +2273,11 @@ namespace RDO.App.Views
             {
                 var caminho = await RDO.App.Services.RdoPdfExportService.ExportAsync(relatorioId);
                 if (caminho != null)
+                {
+                    AppLogger.LogInfo("PDF", $"PDF gerado: relatorioId={relatorioId}  path={caminho}");
                     await Windows.System.Launcher.LaunchFileAsync(
                         await Windows.Storage.StorageFile.GetFileFromPathAsync(caminho));
+                }
             }
             catch (Exception ex)
             {
@@ -2071,10 +2288,8 @@ namespace RDO.App.Views
 
         private static int ObterUsuarioLogadoId()
         {
-            var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
-            if (settings.ContainsKey("UsuarioId") && settings["UsuarioId"] is int id)
-                return id;
-            return 1;
+            var id = LocalSettingsService.Get<int?>("UsuarioId");
+            return id ?? 1;
         }
     }
 }

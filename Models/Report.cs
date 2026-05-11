@@ -16,6 +16,7 @@ public class Report : ILocalSyncEntity
     public bool IsSynced { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDraft { get; set; } = false;
+    public int Revisao { get; set; } = 0;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; } = false;
     public Project? Project { get; set; }

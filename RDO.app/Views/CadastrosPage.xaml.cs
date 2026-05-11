@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using RDO.App.Services;
@@ -8,7 +8,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
+using Windows.Storage;
+using Windows.Storage.Pickers;
 using Windows.UI;
 using Empresa = RDO.Data.Models.Empresa;
 
@@ -398,6 +401,7 @@ namespace RDO.App.Views
                         });
                     }
                     await db.SaveChangesAsync();
+                    AppLogger.LogInfo("DB", $"Empresa salva: \"{nomeBox.Text.Trim()}\"");
                     RecarregarAbaAtual();
                 }
                 catch (Exception ex)
@@ -432,10 +436,33 @@ namespace RDO.App.Views
                         o.Contratante.ToLower().Contains(t) ||
                         o.Responsavel.ToLower().Contains(t)).ToList();
                 }
-                return asc ? q.OrderBy(o => o.Nome).ToList() : q.OrderByDescending(o => o.Nome).ToList();
+                // Ordena pelo padrão CS-NNN-AA: primeiro pelo ano (2 dígitos), depois pelo número
+                // Ex: CS-001-25 < CS-025-25 < CS-001-26 < CS-099-26
+                return asc
+                    ? q.OrderBy(o => ExtrairChaveContrato(o.Nome)).ToList()
+                    : q.OrderByDescending(o => ExtrairChaveContrato(o.Nome)).ToList();
             });
             ObrasListViewCadastro.ItemsSource = lista;
             ObrasCountText.Text = $"{lista.Count} registro(s)";
+        }
+
+        /// <summary>
+        /// Extrai uma chave de ordenação numérica do nome de obra no formato PREFIXO-NNN-AA.
+        /// Retorna (ano * 10000 + número) para ordenação cronológica correta.
+        /// Obras fora do padrão ficam no final com chave int.MaxValue.
+        /// </summary>
+        private static int ExtrairChaveContrato(string nome)
+        {
+            if (string.IsNullOrWhiteSpace(nome)) return int.MaxValue;
+            // Espera formato: QUALQUER-NNN-AA  (ex: CS-001-26, RDO-025-25)
+            var partes = nome.Trim().Split('-');
+            if (partes.Length >= 3
+                && int.TryParse(partes[^1], out var ano)
+                && int.TryParse(partes[^2], out var num))
+            {
+                return ano * 10000 + num;
+            }
+            return int.MaxValue;
         }
 
         private async void BuscaObras_TextChanged(object sender, TextChangedEventArgs e)
@@ -455,8 +482,9 @@ namespace RDO.App.Views
         private async void SortObras_Click(object sender, RoutedEventArgs e)
         {
             _sortAscObras = !_sortAscObras;
-            SortObrasBtn.Content = _sortAscObras ? "A↑" : "Z↓";
-            ToolTipService.SetToolTip(SortObrasBtn, _sortAscObras ? "Ordenar A → Z" : "Ordenar Z → A");
+            // Ícone de calendário — tooltip indica a direção
+            ToolTipService.SetToolTip(SortObrasBtn,
+                _sortAscObras ? "Mais antigas primeiro (por nº contrato)" : "Mais recentes primeiro (por nº contrato)");
             await FiltrarObrasAsync(BuscaObrasBox?.Text ?? "");
         }
 
@@ -486,6 +514,74 @@ namespace RDO.App.Views
                     System.Diagnostics.Debug.WriteLine($"[OBRA] Erro ao excluir: {ex}");
                     await MostrarErro(AppErrorCodes.DB_003, ex);
                 }
+            }
+        }
+
+        private bool _mostraObrasInativas = false;
+
+        private void BtnMostrarInativas_Click(object sender, RoutedEventArgs e)
+        {
+            _mostraObrasInativas = !_mostraObrasInativas;
+            BtnMostrarInativas.Content = _mostraObrasInativas ? "Ocultar inativas" : "Mostrar inativas";
+            PainelObrasInativas.Visibility = _mostraObrasInativas ? Visibility.Visible : Visibility.Collapsed;
+            if (_mostraObrasInativas)
+                CarregarObrasInativas();
+        }
+
+        private async void CarregarObrasInativas()
+        {
+            try
+            {
+                var lista = await Task.Run(() =>
+                {
+                    using var db = new RdoDbContext(DbContextHelper.GetOptions());
+                    // ToList() antes do OrderBy — Nome é [NotMapped] e não pode ser traduzido para SQL
+                    return db.Obras
+                        .Where(o => !o.IsActive && !o.IsDeleted)
+                        .ToList()
+                        .OrderBy(o => o.Nome)
+                        .ToList();
+                });
+                if (ObrasInativasListView != null)
+                {
+                    ObrasInativasListView.ItemsSource = lista;
+                    ContadorInativasTexto.Text = lista.Count > 0
+                        ? $"{lista.Count} obra(s) inativa(s)"
+                        : "Nenhuma obra inativa";
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[OBRAS INATIVAS] Erro: {ex}");
+            }
+        }
+
+        private async void ReativarObra_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button btn) return;
+            int obraId;
+            if (btn.Tag is Obra obra)
+                obraId = obra.Id;
+            else if (btn.DataContext is Obra obraCtx)
+                obraId = obraCtx.Id;
+            else return;
+
+            try
+            {
+                using var db = new RdoDbContext(DbContextHelper.GetOptions());
+                var item = await db.Obras.FindAsync(obraId);
+                if (item != null)
+                {
+                    item.Ativo = true;
+                    item.UpdatedAt = DateTime.UtcNow;
+                    await db.SaveChangesAsync();
+                }
+                _ = FiltrarObrasAsync(BuscaObrasBox?.Text ?? "");
+                CarregarObrasInativas();
+            }
+            catch (Exception ex)
+            {
+                await MostrarErro(AppErrorCodes.DB_002, ex);
             }
         }
 
@@ -672,6 +768,7 @@ namespace RDO.App.Views
                     });
                 }
                 await db.SaveChangesAsync();
+                AppLogger.LogInfo("DB", $"Funcionário salvo: \"{nomeBox.Text.Trim()}\"");
                 RecarregarAbaAtual();
             }
         }
@@ -724,10 +821,27 @@ namespace RDO.App.Views
                         e.NumeroSerie.ToLower().Contains(t) ||
                         e.Modelo.ToLower().Contains(t)).ToList();
                 }
-                return asc ? q.OrderBy(e => e.Nome).ToList() : q.OrderByDescending(e => e.Nome).ToList();
+                // Ordena pelo número numérico do patrimônio (FC-01 → FC-XX)
+                return asc
+                    ? q.OrderBy(e => ExtrairNumeroPatrimonio(e.NumeroSerie)).ToList()
+                    : q.OrderByDescending(e => ExtrairNumeroPatrimonio(e.NumeroSerie)).ToList();
             });
             EquipamentosListView.ItemsSource = lista;
             EquipamentosCountText.Text = $"{lista.Count} registro(s)";
+        }
+
+        /// <summary>
+        /// Extrai o número inteiro do patrimônio no formato FC-XX.
+        /// Retorna int.MaxValue para patrimônios fora do padrão.
+        /// </summary>
+        private static int ExtrairNumeroPatrimonio(string serie)
+        {
+            if (string.IsNullOrWhiteSpace(serie)) return int.MaxValue;
+            var idx = serie.LastIndexOf('-');
+            if (idx >= 0 && idx < serie.Length - 1
+                && int.TryParse(serie[(idx + 1)..], out var num))
+                return num;
+            return int.MaxValue;
         }
 
         private async void BuscaEquipamentos_TextChanged(object sender, TextChangedEventArgs e)
@@ -747,8 +861,8 @@ namespace RDO.App.Views
         private async void SortEquipamentos_Click(object sender, RoutedEventArgs e)
         {
             _sortAscEquipamentos = !_sortAscEquipamentos;
-            SortEquipamentosBtn.Content = _sortAscEquipamentos ? "A↑" : "Z↓";
-            ToolTipService.SetToolTip(SortEquipamentosBtn, _sortAscEquipamentos ? "Ordenar A → Z" : "Ordenar Z → A");
+            ToolTipService.SetToolTip(SortEquipamentosBtn,
+                _sortAscEquipamentos ? "Menor patrimônio primeiro (FC-01 → FC-XX)" : "Maior patrimônio primeiro (FC-XX → FC-01)");
             await FiltrarEquipamentosAsync(BuscaEquipamentosBox?.Text ?? "");
         }
 
@@ -871,6 +985,7 @@ namespace RDO.App.Views
                     });
                 }
                 await db.SaveChangesAsync();
+                AppLogger.LogInfo("DB", $"Equipamento salvo: \"{patrimonioBox.Text.Trim()}\" / \"{nomeBox.Text.Trim()}\"");
                 RecarregarAbaAtual();
             }
         }
@@ -972,7 +1087,6 @@ namespace RDO.App.Views
             var nomeBox = new TextBox { PlaceholderText = "Nome completo" };
             var cargoBox = new TextBox { PlaceholderText = "Ex: Fiscal, Engenheiro..." };
             var grupoBox = new TextBox { PlaceholderText = "Ex: Ambev, Cargill..." };
-            var contatoBox = new TextBox { PlaceholderText = "Telefone ou e-mail" };
 
             var empresaComboBox = new AutoSuggestBox
             {
@@ -1057,7 +1171,6 @@ namespace RDO.App.Views
                 nomeBox.Text = existente.Nome;
                 cargoBox.Text = existente.Cargo;
                 grupoBox.Text = existente.Grupo;
-                contatoBox.Text = existente.Contato;
 
                 // Pre-select empresa if linked
                 if (existente.EmpresaId.HasValue)
@@ -1105,9 +1218,6 @@ namespace RDO.App.Views
             // Empresa: AutoSuggestBox + botão Limpar visível
             form.Children.Add(CriarCampo("EMPRESA *", empresaGrid));
 
-            // Contato (full width)
-            form.Children.Add(CriarCampo("CONTATO", contatoBox));
-            
             form.Children.Add(avisoTexto);
 
             // Warning if no empresas
@@ -1191,7 +1301,6 @@ namespace RDO.App.Views
                         item.Nome = nomeBox.Text.Trim();
                         item.Cargo = cargoBox.Text.Trim();
                         item.Grupo = grupoBox.Text.Trim();
-                        item.Contato = contatoBox.Text.Trim();
                         item.EmpresaId = empresaId;
                     }
                 }
@@ -1202,12 +1311,12 @@ namespace RDO.App.Views
                         Nome = nomeBox.Text.Trim(),
                         Cargo = cargoBox.Text.Trim(),
                         Grupo = grupoBox.Text.Trim(),
-                        Contato = contatoBox.Text.Trim(),
                         Ativo = true,
                         EmpresaId = empresaId
                     });
                 }
                 await db.SaveChangesAsync();
+                AppLogger.LogInfo("DB", $"Acompanhante salvo: \"{nomeBox.Text.Trim()}\" / cargo={cargoBox.Text.Trim()}");
                 RecarregarAbaAtual();
             }
         }
@@ -1230,6 +1339,105 @@ namespace RDO.App.Views
                     await MostrarErro(AppErrorCodes.DB_003, ex);
                 }
             }
+        }
+
+        // ── EXPORTAR CSV ─────────────────────────────────────────────────────
+        private async void ExportarEmpresas_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                using var db = new RdoDbContext(DbContextHelper.GetOptions());
+                var lista = db.Empresas.Where(x => x.IsActive).OrderBy(x => x.Nome).ToList();
+                var sb = new StringBuilder();
+                sb.AppendLine("Nome;Logo");
+                foreach (var item in lista)
+                    sb.AppendLine($"\"{item.Nome}\";\"{item.ImagemPath ?? ""}\"");
+                await SalvarCsvAsync("empresas", sb.ToString());
+            }
+            catch (Exception ex) { await MostrarErro(AppErrorCodes.IO_001, ex); }
+        }
+
+        private async void ExportarObras_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var lista = ObrasListViewCadastro.ItemsSource as System.Collections.IEnumerable;
+                if (lista == null) return;
+                var sb = new StringBuilder();
+                sb.AppendLine("Nome;Grupo;Contratante;Responsável;Status;Tipo Contrato;Endereço;Data Início;Previsão Término");
+                foreach (Obra o in lista)
+                    sb.AppendLine($"\"{o.Nome}\";\"{o.Grupo}\";\"{o.Contratante}\";\"{o.Responsavel}\";\"{o.Status}\";\"{o.TipoContrato}\";\"{o.Endereco}\";\"{o.DataInicio:dd/MM/yyyy}\";\"{o.PrevisaoTermino?.ToString("dd/MM/yyyy") ?? ""}\"");
+                await SalvarCsvAsync("obras", sb.ToString());
+            }
+            catch (Exception ex) { await MostrarErro(AppErrorCodes.IO_001, ex); }
+        }
+
+        private async void ExportarFuncionarios_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var lista = FuncionariosListView.ItemsSource as System.Collections.IEnumerable;
+                if (lista == null) return;
+                var sb = new StringBuilder();
+                sb.AppendLine("Nome;Função;Tipo;Empresa;Contato");
+                foreach (Funcionario f in lista)
+                    sb.AppendLine($"\"{f.Nome}\";\"{f.Funcao}\";\"{f.Tipo}\";\"{f.Empresa}\";\"{f.Contato}\"");
+                await SalvarCsvAsync("funcionarios", sb.ToString());
+            }
+            catch (Exception ex) { await MostrarErro(AppErrorCodes.IO_001, ex); }
+        }
+
+        private async void ExportarEquipamentos_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var lista = EquipamentosListView.ItemsSource as System.Collections.IEnumerable;
+                if (lista == null) return;
+                var sb = new StringBuilder();
+                sb.AppendLine("Patrimônio;Nome;Fabricante;Modelo");
+                foreach (EquipamentoCadastrado eq in lista)
+                    sb.AppendLine($"\"{eq.NumeroSerie}\";\"{eq.Nome}\";\"{eq.Fabricante}\";\"{eq.Modelo}\"");
+                await SalvarCsvAsync("equipamentos", sb.ToString());
+            }
+            catch (Exception ex) { await MostrarErro(AppErrorCodes.IO_001, ex); }
+        }
+
+        private async void ExportarAcompanhantes_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var lista = AcompanhantesListView.ItemsSource as System.Collections.IEnumerable;
+                if (lista == null) return;
+                var sb = new StringBuilder();
+                sb.AppendLine("Nome;Cargo;Grupo/Cliente;Empresa;Contato");
+                foreach (AcompanhanteListItem a in lista)
+                    sb.AppendLine($"\"{a.Nome}\";\"{a.Cargo}\";\"{a.Grupo}\";\"{a.EmpresaNome ?? ""}\";\"{a.Contato}\"");
+                await SalvarCsvAsync("acompanhantes", sb.ToString());
+            }
+            catch (Exception ex) { await MostrarErro(AppErrorCodes.IO_001, ex); }
+        }
+
+        private async Task SalvarCsvAsync(string prefixo, string conteudo)
+        {
+            var picker = new Windows.Storage.Pickers.FileSavePicker();
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(
+                (Application.Current as App)?.MainWindow);
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+            picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
+            picker.FileTypeChoices.Add("CSV", new System.Collections.Generic.List<string> { ".csv" });
+            picker.SuggestedFileName = $"{prefixo}_{DateTime.Now:yyyyMMdd_HHmm}";
+            var file = await picker.PickSaveFileAsync();
+            if (file == null) return;
+            await Windows.Storage.FileIO.WriteTextAsync(file, conteudo, Windows.Storage.Streams.UnicodeEncoding.Utf8);
+            AppLogger.LogInfo("IO", $"CSV exportado: {file.Path}  ({conteudo.Length} bytes, prefixo={prefixo})");
+            var dialog = new ContentDialog
+            {
+                Title = "Exportado",
+                Content = $"Arquivo salvo em:\n{file.Path}",
+                CloseButtonText = "OK",
+                XamlRoot = this.XamlRoot
+            };
+            await dialog.ShowAsync();
         }
 
         // ── NAVEGAÇÃO ABAS ────────────────────────────────────────────────────
@@ -1290,5 +1498,7 @@ namespace RDO.App.Views
             else
                 Frame.GoBack();
         }
+
+
     }
 }

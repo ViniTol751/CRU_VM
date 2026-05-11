@@ -347,6 +347,7 @@ namespace RDO.App.Views
                         item.UpdatedAt = DateTime.UtcNow;
                     }
                     await db.SaveChangesAsync();
+                    AppLogger.LogInfo("DB", $"Obra atualizada: \"{NomeBox.Text.Trim()}\"  id={_obraExistente.Id}");
 
                     var dialog = new ContentDialog
                     {
@@ -374,6 +375,7 @@ namespace RDO.App.Views
                     };
                     db.Obras.Add(obra);
                     await db.SaveChangesAsync();
+                    AppLogger.LogInfo("DB", $"Obra criada: \"{obra.Nome}\"  id={obra.Id}");
 
                     var dialog = new ContentDialog
                     {

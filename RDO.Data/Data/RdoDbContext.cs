@@ -30,6 +30,7 @@ public class RdoDbContext : DbContext
     public DbSet<ReportEquipment> ReportEquipments { get; set; }
     public DbSet<ReportCompanion> ReportCompanions { get; set; }
     public DbSet<EmployeePresence> EmployeePresences { get; set; }
+    public DbSet<Empresa> Empresas { get; set; }
 
     // ── Aliases em português (retrocompatibilidade) ──────────────────────────
     public DbSet<Project> Obras => Projects;

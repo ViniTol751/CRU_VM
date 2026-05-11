@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using RDO.app.Services;
+using RDO.App.Services;
 using RDO.Data.Data;
 using RDO.Data.Models;
 using System;
@@ -34,6 +35,10 @@ namespace RDO.App.Views
         public int QtdRdos { get; set; }
         public bool TemRascunho { get; set; }
 
+        public bool PrazoVencido => Status != "Concluída" && Status != "Paralisada"
+            && PrevisaoTermino.HasValue
+            && PrevisaoTermino.Value.Date < DateTime.Today;
+
         public Microsoft.UI.Xaml.Media.Brush StatusBackground => Status switch
         {
             "Em execução" => new Microsoft.UI.Xaml.Media.SolidColorBrush(
@@ -63,6 +68,7 @@ namespace RDO.App.Views
         public string ObraGrupo { get; set; } = "";
         public string ObraStatus { get; set; } = "";
         public string Responsavel { get; set; } = "";
+        public DateTime Data { get; set; }
         public string DataFormatada { get; set; } = "";
         public string NumeroFormatado { get; set; } = "";
         public string Status { get; set; } = "";
@@ -95,15 +101,13 @@ namespace RDO.App.Views
         private bool _apenasMinhas = false;
         private bool _mostraMeusRelatorios = false;
         private bool _mostraRascunhos = false;
-        private bool _inicializandoFiltros = false;
         private List<ObraViewModel> _todasObras = new();
         private List<MeuRelatorioViewModel> _todosRelatorios = new();
         private List<RascunhoViewModel> _todosRascunhos = new();
         private ContentDialog? _dialogPropriedadesObra;
 
-        // URL da API — altere para o endereço do servidor quando implantado
-        private const string ApiUrl = "http://localhost:5043";
-        private readonly SyncService _syncService = new SyncService(ApiUrl);
+        private static string ApiUrl => RDO.App.Services.AppConfig.Load().ApiUrl;
+        private readonly SyncService _syncService = new SyncService(RDO.App.Services.AppConfig.Load().ApiUrl);
 
         public MainPage()
         {
@@ -160,24 +164,33 @@ namespace RDO.App.Views
                 }
                 else
                 {
-                    var detalheErro = string.IsNullOrWhiteSpace(resultado.ErrorCode)
-                        ? (resultado.Error ?? "Erro desconhecido")
-                        : $"{resultado.ErrorCode}: {resultado.Error}";
-                    AtualizarSyncUI(SyncEstado.Erro, detalheErro);
+                    // Converte o código interno (ex: SYNC-PULL-CONN) para o código padronizado (ex: SYNC-002)
+                    var codigoPadrao = string.IsNullOrWhiteSpace(resultado.ErrorCode)
+                        ? RDO.App.Services.AppErrorCodes.SYNC_007
+                        : RDO.App.Services.AppErrorCodes.MapToStandardCode(resultado.ErrorCode);
+                    var mensagem = resultado.Error ?? "Erro desconhecido";
+                    AtualizarSyncUI(SyncEstado.Erro, codigoPadrao, mensagem);
                 }
             }
             catch (Exception ex)
             {
                 BtnSync.IsEnabled = true;
                 System.Diagnostics.Debug.WriteLine($"[SYNC] Exceção inesperada: {ex}");
-                AtualizarSyncUI(SyncEstado.Erro, "Falha na comunicação com o servidor");
+                AtualizarSyncUI(SyncEstado.Erro,
+                    RDO.App.Services.AppErrorCodes.SYNC_007,
+                    "Falha na comunicação com o servidor");
             }
         }
 
         private enum SyncEstado { Sincronizando, Sincronizado, SemRede, Erro }
 
-        private void AtualizarSyncUI(SyncEstado estado, string detalhe = "")
+        private void AtualizarSyncUI(SyncEstado estado, string detalhe = "", string mensagem = "")
         {
+            // Para erros, detalhe = código padronizado (ex: SYNC-002), mensagem = texto descritivo
+            var textoErro = estado == SyncEstado.Erro && !string.IsNullOrEmpty(detalhe)
+                ? $"[{detalhe}]  {(string.IsNullOrEmpty(mensagem) ? detalhe : mensagem)}"
+                : detalhe;
+
             var (glyph, texto, bgHex, fgHex) = estado switch
             {
                 SyncEstado.Sincronizando => ("\uE895", "Sincronizando...",
@@ -187,8 +200,8 @@ namespace RDO.App.Views
                     "#0A2A14", "#00D264"),
                 SyncEstado.SemRede       => ("\uE774", "Sem rede",
                     "#2A1A00", "#F0BE00"),
-                SyncEstado.Erro          => ("\uE783", string.IsNullOrEmpty(detalhe)
-                    ? "Erro de sync" : $"Erro: {detalhe}",
+                SyncEstado.Erro          => ("\uE783", string.IsNullOrEmpty(textoErro)
+                    ? "Erro de sync" : textoErro,
                     "#2A0A0A", "#E65050"),
                 _                        => ("\uE895", "", "#333", "#888")
             };
@@ -383,6 +396,33 @@ namespace RDO.App.Views
             };
             root.Children.Add(btnAbrirLogs);
 
+            // Botão PDF de troubleshooting no rodapé
+            var btnPdfTroubleshooting = new Button
+            {
+                Content = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 8,
+                    Children =
+                    {
+                        new FontIcon { Glyph = "\uEA90", FontSize = 14, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 230, 80, 80)) },
+                        new TextBlock { Text = "Abrir guia de erros (PDF)", FontSize = 13, VerticalAlignment = VerticalAlignment.Center }
+                    }
+                },
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Height = 36,
+                Padding = new Thickness(14, 0, 14, 0),
+                Background = (Brush)Application.Current.Resources["PanelBgBrush"],
+                BorderBrush = (Brush)Application.Current.Resources["AppBorderBrush"],
+                BorderThickness = new Thickness(1)
+            };
+            btnPdfTroubleshooting.Click += async (s, ev) =>
+            {
+                const string urlPdfTroubleshooting = "https://zoaakrwiqfudidmwziga.supabase.co/storage/v1/object/sign/DocumentosRDO/ANEXO%20C.pdf?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV83MzlkYzIwZi02YzRlLTRhMjQtYmM4ZC1jMGEwNjNmYTA1OTIiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJEb2N1bWVudG9zUkRPL0FORVhPIEMucGRmIiwiaWF0IjoxNzc3Mzk4OTYxLCJleHAiOjQ5MzA5OTg5NjF9.GGBxcO6mFPah13VkbC_P3vuOYUL23P22LF2Le7000iM";
+                await Windows.System.Launcher.LaunchUriAsync(new Uri(urlPdfTroubleshooting));
+            };
+            root.Children.Add(btnPdfTroubleshooting);
+
             var scroll = new ScrollViewer
             {
                 Content = root,
@@ -404,10 +444,10 @@ namespace RDO.App.Views
 
         private void CarregarNomeVinculado()
         {
-            // Prioridade 1: funcionário vinculado
-            if (ApplicationData.Current.LocalSettings.Values.ContainsKey("FuncionarioVinculadoId"))
+            // Prioridade 1: funcionário vinculado por ID salvo
+            if (LocalSettingsService.ContainsKey("FuncionarioVinculadoId"))
             {
-                var funcId = (int?)ApplicationData.Current.LocalSettings.Values["FuncionarioVinculadoId"];
+                var funcId = LocalSettingsService.Get<int?>("FuncionarioVinculadoId");
                 if (funcId != null)
                 {
                     using var db = new RdoDbContext(DbContextHelper.GetOptions());
@@ -415,18 +455,60 @@ namespace RDO.App.Views
                     if (func != null)
                     {
                         NomeUsuarioTexto.Text = AbreviarNome(func.Nome);
-                        PerfilUsuarioTexto.Text = func.Funcao ?? "—";
+                        PerfilUsuarioTexto.Text = string.IsNullOrWhiteSpace(func.Funcao) ? "Colaborador" : func.Funcao;
                         return;
                     }
                 }
             }
-            // Prioridade 2: nome do login
-            var nomeLogin = ApplicationData.Current.LocalSettings.Values["NomeUsuario"]?.ToString();
+
+            var nomeLogin = LocalSettingsService.Get<string>("NomeUsuario");
+            var usuarioId = LocalSettingsService.Get<int?>("UsuarioId");
+
+            if (!string.IsNullOrEmpty(nomeLogin))
+                NomeUsuarioTexto.Text = AbreviarNome(nomeLogin);
+
+            using var db2 = new RdoDbContext(DbContextHelper.GetOptions());
+
+            // Prioridade 2: vincula por nome ao funcionário
             if (!string.IsNullOrEmpty(nomeLogin))
             {
-                NomeUsuarioTexto.Text = AbreviarNome(nomeLogin);
-                PerfilUsuarioTexto.Text = "—";
+                var funcMatch = db2.Funcionarios.FirstOrDefault(f => f.Ativo && f.Nome == nomeLogin);
+                if (funcMatch != null)
+                {
+                    PerfilUsuarioTexto.Text = string.IsNullOrWhiteSpace(funcMatch.Funcao) ? "Colaborador" : funcMatch.Funcao;
+                    LocalSettingsService.Set("FuncionarioVinculadoId", funcMatch.Id);
+                    return;
+                }
             }
+
+            // Prioridade 3: vincula pelo email do usuário ao funcionário
+            if (usuarioId.HasValue)
+            {
+                var usuario = db2.Usuarios.Find(usuarioId.Value);
+                if (usuario != null)
+                {
+                    // Tenta encontrar funcionário pelo email (login)
+                    var funcPorEmail = db2.Funcionarios.FirstOrDefault(f =>
+                        f.Ativo && f.Contato.ToLower().Contains(usuario.Email.ToLower()));
+                    if (funcPorEmail != null)
+                    {
+                        PerfilUsuarioTexto.Text = string.IsNullOrWhiteSpace(funcPorEmail.Funcao) ? "Colaborador" : funcPorEmail.Funcao;
+                        LocalSettingsService.Set("FuncionarioVinculadoId", funcPorEmail.Id);
+                        return;
+                    }
+
+                    // Fallback: perfil do sistema
+                    PerfilUsuarioTexto.Text = usuario.Perfil switch
+                    {
+                        "Admin"      => "Administrador",
+                        "Technician" => "Colaborador",
+                        _            => string.IsNullOrWhiteSpace(usuario.Perfil) ? "Colaborador" : usuario.Perfil
+                    };
+                    return;
+                }
+            }
+
+            PerfilUsuarioTexto.Text = "Colaborador";
         }
 
         private async void CarregarObras()
@@ -573,6 +655,7 @@ namespace RDO.App.Views
                         ObraGrupo = obra?.Grupo ?? "",
                         ObraStatus = obra?.Status ?? "",
                         Responsavel = obra?.Responsavel ?? "",
+                        Data = r.Data,
                         DataFormatada = r.Data.ToString("dd/MM/yyyy"),
                         NumeroFormatado = $"RDO nº {r.Numero:D3}",
                         Status = statusNorm,
@@ -597,70 +680,15 @@ namespace RDO.App.Views
 
         private void PopularFiltrosRelatorios()
         {
-            _inicializandoFiltros = true;
-
-            var grupos = _todosRelatorios.Select(r => r.ObraGrupo)
-                .Where(g => !string.IsNullOrEmpty(g)).Distinct().OrderBy(g => g).ToList();
-            FiltroGrupoRelBox.Items.Clear();
-            FiltroGrupoRelBox.Items.Add(new ComboBoxItem { Content = "Todos os grupos", Tag = "" });
-            foreach (var g in grupos)
-                FiltroGrupoRelBox.Items.Add(new ComboBoxItem { Content = g, Tag = g });
-            FiltroGrupoRelBox.SelectedIndex = 0;
-
-            var obras = _todosRelatorios.Select(r => r.ObraNome)
-                .Where(o => !string.IsNullOrEmpty(o) && o != "—").Distinct().OrderBy(o => o).ToList();
-            FiltroObraRelBox.Items.Clear();
-            FiltroObraRelBox.Items.Add(new ComboBoxItem { Content = "Todas as obras", Tag = "" });
-            foreach (var o in obras)
-                FiltroObraRelBox.Items.Add(new ComboBoxItem { Content = o, Tag = o });
-            FiltroObraRelBox.SelectedIndex = 0;
-
-            var statusObras = _todosRelatorios.Select(r => r.ObraStatus)
-                .Where(s => !string.IsNullOrEmpty(s)).Distinct().OrderBy(s => s).ToList();
-            FiltroStatusObraRelBox.Items.Clear();
-            FiltroStatusObraRelBox.Items.Add(new ComboBoxItem { Content = "Todos os status", Tag = "" });
-            foreach (var s in statusObras)
-            {
-                var statusTrad = s switch
-                {
-                    "In Progress" => "Em execução",
-                    "Completed" => "Concluída",
-                    "Paused" => "Paralisada",
-                    _ => s
-                };
-                FiltroStatusObraRelBox.Items.Add(new ComboBoxItem { Content = statusTrad, Tag = s });
-            }
-            FiltroStatusObraRelBox.SelectedIndex = 0;
-
-            var responsaveis = _todosRelatorios.Select(r => r.Responsavel)
-                .Where(r => !string.IsNullOrEmpty(r)).Distinct().OrderBy(r => r).ToList();
-            FiltroResponsavelRelBox.Items.Clear();
-            FiltroResponsavelRelBox.Items.Add(new ComboBoxItem { Content = "Todos os responsáveis", Tag = "" });
-            foreach (var r in responsaveis)
-                FiltroResponsavelRelBox.Items.Add(new ComboBoxItem { Content = r, Tag = r });
-            FiltroResponsavelRelBox.SelectedIndex = 0;
-
-            var funcs = _todosRelatorios.SelectMany(r => r.FuncionariosNomes)
-                .Distinct().OrderBy(f => f).ToList();
-            FiltroFuncRelBox.Items.Clear();
-            FiltroFuncRelBox.Items.Add(new ComboBoxItem { Content = "Todos os funcionários", Tag = "" });
-            foreach (var f in funcs)
-                FiltroFuncRelBox.Items.Add(new ComboBoxItem { Content = f, Tag = f });
-            FiltroFuncRelBox.SelectedIndex = 0;
-
-            _inicializandoFiltros = false;
+            // Filtros de dropdown removidos — apenas reaplica a busca textual
+            AplicarFiltrosRelatorios();
         }
 
         private void AplicarFiltrosRelatorios()
         {
             if (MeusRelatoriosListView == null) return;
 
-            var busca       = BuscaRelBox?.Text?.Trim().ToLower() ?? "";
-            var grupo       = (FiltroGrupoRelBox?.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "";
-            var obra        = (FiltroObraRelBox?.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "";
-            var statusObra  = (FiltroStatusObraRelBox?.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "";
-            var responsavel = (FiltroResponsavelRelBox?.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "";
-            var func        = (FiltroFuncRelBox?.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "";
+            var busca = BuscaRelBox?.Text?.Trim().ToLower() ?? "";
 
             var resultado = _todosRelatorios.AsEnumerable();
 
@@ -669,27 +697,13 @@ namespace RDO.App.Views
                     r.ObraNome.ToLower().Contains(busca) ||
                     r.NumeroFormatado.ToLower().Contains(busca));
 
-            if (!string.IsNullOrEmpty(grupo))
-                resultado = resultado.Where(r => r.ObraGrupo == grupo);
+            // Ordenação padrão: mais recente primeiro
+            var lista = resultado.OrderByDescending(r => r.Data).ToList();
 
-            if (!string.IsNullOrEmpty(obra))
-                resultado = resultado.Where(r => r.ObraNome == obra);
-
-            if (!string.IsNullOrEmpty(statusObra))
-                resultado = resultado.Where(r => r.ObraStatus == statusObra);
-
-            if (!string.IsNullOrEmpty(responsavel))
-                resultado = resultado.Where(r => r.Responsavel == responsavel);
-
-            // Filtro de funcionário: verifica se o nome está na lista de presentes
-            if (!string.IsNullOrEmpty(func))
-                resultado = resultado.Where(r =>
-                    r.FuncionariosNomes.Any(f =>
-                        f.Equals(func, StringComparison.OrdinalIgnoreCase)));
-
-            var lista = resultado.ToList();
             MeusRelatoriosListView.ItemsSource = lista;
             TotalObrasTexto.Text = lista.Count.ToString();
+            if (ContadorRelTexto != null)
+                ContadorRelTexto.Text = lista.Count == 1 ? "1 relatório" : $"{lista.Count} relatórios";
         }
         private void AplicarFiltros()
         {
@@ -806,10 +820,11 @@ namespace RDO.App.Views
             Dictionary<int, bool> rascunhoCounts,
             int rdosMes)
         {
-            if (KpiObrasAtivas == null) return;
+            if (KpiEmExecucao == null) return;
 
-            KpiObrasAtivas.Text = obras.Count(o => o.Status != "Concluída").ToString();
             KpiEmExecucao.Text  = obras.Count(o => o.Status == "Em execução").ToString();
+            KpiConcluidas.Text  = obras.Count(o => o.Status == "Concluída").ToString();
+            KpiParalisadas.Text = obras.Count(o => o.Status == "Paralisada").ToString();
             KpiRdosMes.Text     = rdosMes.ToString();
             KpiRascunhos.Text   = rascunhoCounts.Count.ToString();
         }
@@ -839,6 +854,7 @@ namespace RDO.App.Views
                 .Select(r => new MeuRelatorioViewModel
                 {
                     Id = r.Id, ObraId = r.ObraId,
+                    Data = r.Data,
                     DataFormatada = r.Data.ToString("dd/MM/yyyy"),
                     NumeroFormatado = $"RDO nº {r.Numero:D3}",
                     Status = r.Status == "Enviado" ? "Publicado" : r.Status
@@ -878,29 +894,76 @@ namespace RDO.App.Views
                 Opacity = 0.95
             });
 
-            // Badge de status da obra (colorido)
-            var statusObraBg = obra.Status switch
+            // Badge/botão de status interativo
+            Color StatusCorFor(string s) => s switch
             {
                 "Em execução" => Color.FromArgb(255, 0, 120, 215),
-                "Concluída" => Color.FromArgb(255, 16, 124, 16),
-                "Paralisada" => Color.FromArgb(255, 200, 80, 0),
-                _ => Color.FromArgb(255, 100, 100, 100)
+                "Concluída"   => Color.FromArgb(255, 16, 124, 16),
+                "Paralisada"  => Color.FromArgb(255, 200, 80, 0),
+                _             => Color.FromArgb(255, 100, 100, 100)
             };
-            var statusObraBadge = new Border
+
+            // Texto do status exibido no badge
+            var statusBadgeText = new TextBlock
             {
-                Background = new SolidColorBrush(statusObraBg),
+                Text = obra.Status.ToUpper(),
+                FontSize = 12,
+                FontWeight = new Windows.UI.Text.FontWeight { Weight = 700 },
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)),
+                CharacterSpacing = 120,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            var statusBadgeIcon = new FontIcon
+            {
+                Glyph = "", FontSize = 9,
+                Foreground = new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)),
+                Margin = new Thickness(6, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            var statusBadgeContent = new StackPanel { Orientation = Orientation.Horizontal };
+            statusBadgeContent.Children.Add(statusBadgeText);
+            statusBadgeContent.Children.Add(statusBadgeIcon);
+
+            var statusBtn = new Button
+            {
+                Background = new SolidColorBrush(StatusCorFor(obra.Status)),
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)),
+                BorderThickness = new Thickness(0),
+                Padding = new Thickness(16, 8, 12, 8),
                 CornerRadius = new Microsoft.UI.Xaml.CornerRadius(8),
-                Padding = new Thickness(16, 8, 16, 8),
                 VerticalAlignment = VerticalAlignment.Center,
-                Child = new TextBlock
+                Content = statusBadgeContent
+            };
+            ToolTipService.SetToolTip(statusBtn, "Clique para alterar o status");
+
+            // Botão "Editar obra" no hero
+            var editarObraBtn = new Button
+            {
+                Background = new SolidColorBrush(Color.FromArgb(50, 255, 255, 255)),
+                Foreground = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)),
+                BorderThickness = new Thickness(1),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)),
+                Padding = new Thickness(12, 8, 12, 8),
+                CornerRadius = new Microsoft.UI.Xaml.CornerRadius(8),
+                VerticalAlignment = VerticalAlignment.Center,
+                Content = new StackPanel
                 {
-                    Text = obra.Status.ToUpper(),
-                    FontSize = 12,
-                    FontWeight = new Windows.UI.Text.FontWeight { Weight = 700 },
-                    Foreground = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)),
-                    CharacterSpacing = 120
+                    Orientation = Orientation.Horizontal, Spacing = 6,
+                    Children =
+                    {
+                        new FontIcon { Glyph = "", FontSize = 11,
+                            Foreground = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)) },
+                        new TextBlock { Text = "Editar", FontSize = 12,
+                            Foreground = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)) }
+                    }
                 }
             };
+            ToolTipService.SetToolTip(editarObraBtn, "Editar informações da obra");
+
+            // Painel de ações agrupa status + editar
+            var heroActionsPanel = new StackPanel { Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
+            heroActionsPanel.Children.Add(statusBtn);
+            heroActionsPanel.Children.Add(editarObraBtn);
 
             // Imagem da obra no hero (se disponível)
             Border? heroImageBorder = null;
@@ -913,23 +976,26 @@ namespace RDO.App.Views
                     CornerRadius = new Microsoft.UI.Xaml.CornerRadius(8),
                     VerticalAlignment = VerticalAlignment.Center
                 };
-                var heroImage = new Image
+                heroImageBorder.Child = new Image
                 {
                     Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(obra.ImagemPath)),
                     Stretch = Stretch.UniformToFill
                 };
-                heroImageBorder.Child = heroImage;
             }
 
             Grid.SetColumn(heroLeft, 0);
-            Grid.SetColumn(statusObraBadge, heroImageBorder != null ? 2 : 1);
             heroGrid.Children.Add(heroLeft);
             if (heroImageBorder != null)
             {
                 Grid.SetColumn(heroImageBorder, 1);
                 heroGrid.Children.Add(heroImageBorder);
+                Grid.SetColumn(heroActionsPanel, 2);
             }
-            heroGrid.Children.Add(statusObraBadge);
+            else
+            {
+                Grid.SetColumn(heroActionsPanel, 1);
+            }
+            heroGrid.Children.Add(heroActionsPanel);
             heroCard.Child = heroGrid;
             root.Children.Add(heroCard);
 
@@ -1451,6 +1517,7 @@ namespace RDO.App.Views
                 Title = "Propriedades da Obra",
                 Content = scroll,
                 PrimaryButtonText = "+ Novo RDO",
+                SecondaryButtonText = "Desativar obra",
                 CloseButtonText = "Fechar",
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = this.XamlRoot
@@ -1486,32 +1553,150 @@ namespace RDO.App.Views
                                 },
                                 new TextBlock
                                 {
-                                    Text = $"Ao salvar, será gerada uma nova revisão: Rev. {novaRev:D2}.",
+                                    Text = $"Ao salvar uma nova revisão será gerada: Rev. {novaRev:D2}.",
                                     TextWrapping = TextWrapping.Wrap,
                                     FontSize = 13,
-                                    Foreground = new SolidColorBrush(Color.FromArgb(255, 200, 150, 255))
+                                    Foreground = new SolidColorBrush(Color.FromArgb(255, 96, 165, 250))
                                 },
                                 new TextBlock
                                 {
-                                    Text = "Deseja continuar?",
+                                    Text = "Como deseja prosseguir?",
                                     FontSize = 13
                                 }
                             }
                         },
-                        PrimaryButtonText = "Editar",
+                        PrimaryButtonText = "Nova revisão",
+                        SecondaryButtonText = "Editar revisão atual",
                         CloseButtonText = "Cancelar",
                         XamlRoot = this.XamlRoot
                     };
 
-                    if (await avisoDialog.ShowAsync() == ContentDialogResult.Primary)
+                    var resultado = await avisoDialog.ShowAsync();
+                    if (resultado == ContentDialogResult.Primary)
                         Frame.Navigate(typeof(RdoFormPage), new RdoFormParams { ObraId = obra.Id, RelatorioId = capturedRel.Id });
+                    else if (resultado == ContentDialogResult.Secondary)
+                        Frame.Navigate(typeof(RdoFormPage), new RdoFormParams { ObraId = obra.Id, RelatorioId = capturedRel.Id, EditarRevisaoAtual = true });
                 };
             }
 
+            // ── Handler: editar status da obra ──────────────────────────
+            statusBtn.Click += async (s, ev) =>
+            {
+                dialog.Hide();
+
+                var statusOpts = new[] { "Em execução", "Concluída", "Paralisada" };
+                var comboStatus = new ComboBox
+                {
+                    ItemsSource = statusOpts,
+                    SelectedItem = obra.Status,
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    Margin = new Thickness(0, 8, 0, 0)
+                };
+                var statusDialog = new ContentDialog
+                {
+                    Title = "Alterar status da obra",
+                    Content = new StackPanel
+                    {
+                        Spacing = 4,
+                        Children =
+                        {
+                            new TextBlock
+                            {
+                                Text = obra.Nome,
+                                FontSize = 13,
+                                FontWeight = new Windows.UI.Text.FontWeight { Weight = 600 },
+                                Foreground = (Brush)Application.Current.Resources["TextSecondaryBrush"],
+                                TextWrapping = TextWrapping.Wrap
+                            },
+                            comboStatus
+                        }
+                    },
+                    PrimaryButtonText = "Salvar",
+                    CloseButtonText = "Cancelar",
+                    DefaultButton = ContentDialogButton.Primary,
+                    XamlRoot = this.XamlRoot
+                };
+
+                if (await statusDialog.ShowAsync() == ContentDialogResult.Primary
+                    && comboStatus.SelectedItem is string novoStatus
+                    && novoStatus != obra.Status)
+                {
+                    try
+                    {
+                        using var dbStatus = new RdoDbContext(DbContextHelper.GetOptions());
+                        var obraDb = await dbStatus.Obras.FindAsync(obra.Id);
+                        if (obraDb != null)
+                        {
+                            obraDb.Status = novoStatus;
+                            obraDb.UpdatedAt = DateTime.UtcNow;
+                            await dbStatus.SaveChangesAsync();
+                        }
+                        CarregarObras();
+
+                        // Atualiza badge inline
+                        statusBadgeText.Text = novoStatus.ToUpper();
+                        statusBtn.Background = new SolidColorBrush(StatusCorFor(novoStatus));
+                    }
+                    catch (Exception ex)
+                    {
+                        await RDO.App.Services.ErrorDialogService.ShowAsync(
+                            this.XamlRoot, RDO.App.Services.AppErrorCodes.DB_002, null, ex);
+                    }
+                }
+            };
+
+            // ── Handler: editar obra completo ────────────────────────────
+            editarObraBtn.Click += (s, ev) =>
+            {
+                dialog.Hide();
+                Frame.Navigate(typeof(NovaObraPage), new NovaObraParams { ObraId = obra.Id, AbaOrigem = "Obras" });
+            };
+
             var resultado = await dialog.ShowAsync();
             _dialogPropriedadesObra = null;
+
             if (resultado == ContentDialogResult.Primary)
+            {
                 Frame.Navigate(typeof(RdoFormPage), obra.Id);
+            }
+            else if (resultado == ContentDialogResult.Secondary)
+            {
+                var confirmDialog = new ContentDialog
+                {
+                    Title = "Desativar obra",
+                    Content = new TextBlock
+                    {
+                        Text = $"Deseja realmente desativar \"{obra.Nome}\"?\n\nA obra não aparecerá mais na lista, mas seus relatórios serão preservados.",
+                        TextWrapping = TextWrapping.Wrap,
+                        FontSize = 13
+                    },
+                    PrimaryButtonText = "Desativar",
+                    CloseButtonText = "Cancelar",
+                    DefaultButton = ContentDialogButton.Close,
+                    XamlRoot = this.XamlRoot
+                };
+
+                if (await confirmDialog.ShowAsync() == ContentDialogResult.Primary)
+                {
+                    try
+                    {
+                        using var dbDes = new RdoDbContext(DbContextHelper.GetOptions());
+                        var obraDb = await dbDes.Obras.FindAsync(obra.Id);
+                        if (obraDb != null)
+                        {
+                            obraDb.Ativo = false;
+                            obraDb.UpdatedAt = DateTime.UtcNow;
+                            await dbDes.SaveChangesAsync();
+                        }
+                        CarregarObras();
+                    }
+                    catch (Exception ex)
+                    {
+                        await RDO.App.Services.ErrorDialogService.ShowAsync(
+                            this.XamlRoot, RDO.App.Services.AppErrorCodes.DB_002, null, ex);
+                    }
+                }
+            }
         }
 
         private async Task MostrarVisualizadorFotos(
@@ -1647,21 +1832,6 @@ namespace RDO.App.Views
         }
 
         private void BuscaRel_TextChanged(object sender, TextChangedEventArgs e) => AplicarFiltrosRelatorios();
-
-        private void FiltroRel_Changed(object sender, SelectionChangedEventArgs e)
-        {
-            if (_inicializandoFiltros) return;
-            AplicarFiltrosRelatorios();
-        }
-        private void LimparFiltrosRel_Click(object sender, RoutedEventArgs e)
-        {
-            BuscaRelBox.Text = "";
-            if (FiltroGrupoRelBox.Items.Count > 0) FiltroGrupoRelBox.SelectedIndex = 0;
-            if (FiltroObraRelBox.Items.Count > 0) FiltroObraRelBox.SelectedIndex = 0;
-            if (FiltroStatusObraRelBox.Items.Count > 0) FiltroStatusObraRelBox.SelectedIndex = 0;
-            if (FiltroResponsavelRelBox.Items.Count > 0) FiltroResponsavelRelBox.SelectedIndex = 0;
-            if (FiltroFuncRelBox.Items.Count > 0) FiltroFuncRelBox.SelectedIndex = 0;
-        }
 
         private async void ExportarCsv_Click(object sender, RoutedEventArgs e)
         {
@@ -1831,10 +2001,17 @@ namespace RDO.App.Views
         }
 
         private void SairBtn_Click(object sender, RoutedEventArgs e)
-            => Frame.Navigate(typeof(LoginPage));
+        {
+            var nome = LocalSettingsService.Get<string>("NomeUsuario") ?? "?";
+            AppLogger.LogInfo("AUTH", $"Logout: {nome}");
+            Frame.Navigate(typeof(LoginPage));
+        }
 
         private void BtnCadastros_Click(object sender, RoutedEventArgs e)
             => Frame.Navigate(typeof(CadastrosPage));
+
+        private void BtnConfiguracoes_Click(object sender, RoutedEventArgs e)
+            => Frame.Navigate(typeof(SettingsPage));
 
         private void BtnRascunhos_Click(object sender, RoutedEventArgs e)
         {
@@ -2034,8 +2211,11 @@ namespace RDO.App.Views
             {
                 var caminho = await RDO.App.Services.RdoPdfExportService.ExportAsync(relatorioId);
                 if (caminho != null)
+                {
+                    AppLogger.LogInfo("PDF", $"PDF gerado: relatorioId={relatorioId}  path={caminho}");
                     await Windows.System.Launcher.LaunchFileAsync(
                         await Windows.Storage.StorageFile.GetFileFromPathAsync(caminho));
+                }
             }
             catch (Exception)
             {
@@ -2071,27 +2251,31 @@ namespace RDO.App.Views
                         },
                         new TextBlock
                         {
-                            Text = $"Ao salvar, será gerada uma nova revisão: Rev. {novaRev:D2}.",
+                            Text = $"Ao salvar uma nova revisão será gerada: Rev. {novaRev:D2}.",
                             TextWrapping = TextWrapping.Wrap,
                             FontSize = 13,
                             FontWeight = new Windows.UI.Text.FontWeight { Weight = 600 },
-                            Foreground = new SolidColorBrush(Color.FromArgb(255, 200, 150, 255))
+                            Foreground = new SolidColorBrush(Color.FromArgb(255, 96, 165, 250))
                         },
                         new TextBlock
                         {
-                            Text = "Deseja continuar?",
+                            Text = "Como deseja prosseguir?",
                             FontSize = 13,
                             Foreground = (Brush)Application.Current.Resources["TextSecondaryBrush"]
                         }
                     }
                 },
-                PrimaryButtonText = "Editar",
+                PrimaryButtonText = "Nova revisão",
+                SecondaryButtonText = "Editar revisão atual",
                 CloseButtonText = "Cancelar",
                 XamlRoot = this.XamlRoot
             };
 
-            if (await avisoDialog.ShowAsync() == ContentDialogResult.Primary)
+            var resultado = await avisoDialog.ShowAsync();
+            if (resultado == ContentDialogResult.Primary)
                 Frame.Navigate(typeof(RdoFormPage), new RdoFormParams { ObraId = rel.ObraId, RelatorioId = rel.Id });
+            else if (resultado == ContentDialogResult.Secondary)
+                Frame.Navigate(typeof(RdoFormPage), new RdoFormParams { ObraId = rel.ObraId, RelatorioId = rel.Id, EditarRevisaoAtual = true });
         }
 
         private async void BtnExcluirRelatorio_Click(object sender, RoutedEventArgs e)
@@ -2139,8 +2323,8 @@ namespace RDO.App.Views
             };
 
             int? atualId = null;
-            if (ApplicationData.Current.LocalSettings.Values.ContainsKey("FuncionarioVinculadoId"))
-                atualId = (int?)ApplicationData.Current.LocalSettings.Values["FuncionarioVinculadoId"];
+            if (LocalSettingsService.ContainsKey("FuncionarioVinculadoId"))
+                atualId = LocalSettingsService.Get<int?>("FuncionarioVinculadoId");
 
             foreach (var f in funcionarios)
             {
@@ -2175,14 +2359,14 @@ namespace RDO.App.Views
             if (result == ContentDialogResult.Primary &&
                 combo.SelectedItem is ComboBoxItem selected && selected.Tag is int funcId)
             {
-                ApplicationData.Current.LocalSettings.Values["FuncionarioVinculadoId"] = funcId;
+                LocalSettingsService.Set("FuncionarioVinculadoId", funcId);
                 var nomeCompleto = funcionarios.First(f => f.Id == funcId).Nome;
                 NomeUsuarioTexto.Text = AbreviarNome(nomeCompleto);
                 PerfilUsuarioTexto.Text = "Vinculado";
             }
             else if (result == ContentDialogResult.Secondary)
             {
-                ApplicationData.Current.LocalSettings.Values.Remove("FuncionarioVinculadoId");
+                LocalSettingsService.Remove("FuncionarioVinculadoId");
                 NomeUsuarioTexto.Text = "Usuário";
                 PerfilUsuarioTexto.Text = "Sem vínculo";
             }

@@ -85,6 +85,20 @@
                                        Foreground="{ThemeResource TextPrimaryBrush}"/>
                         </StackPanel>
                     </Button>
+
+                    <Button x:Name="BtnConfiguracoes"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Padding="24,12" Background="Transparent"
+                            BorderThickness="0"
+                            Click="BtnConfiguracoes_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <FontIcon Glyph="&#xE897;" FontSize="16"
+                                      Foreground="{ThemeResource TextPrimaryBrush}"/>
+                            <TextBlock Text="Ajuda" FontSize="14"
+                                       Foreground="{ThemeResource TextPrimaryBrush}"/>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
 
                 <!-- Usuário + Tema -->
@@ -335,32 +349,10 @@
                     Padding="28,14">
                 <StackPanel Orientation="Horizontal" Spacing="14">
 
-                    <!-- Obras ativas -->
-                    <Border Background="{ThemeResource PanelBgBrush}"
-                            BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
-                            CornerRadius="8" Padding="16,12" MinWidth="150">
-                        <Grid ColumnSpacing="14">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="4"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Border Grid.Column="0" CornerRadius="2" Background="#0078D4"/>
-                            <StackPanel Grid.Column="1" Spacing="2">
-                                <TextBlock x:Name="KpiObrasAtivas" Text="—"
-                                           FontSize="26" FontWeight="Bold"
-                                           Foreground="{ThemeResource TextPrimaryBrush}"/>
-                                <TextBlock Text="OBRAS ATIVAS"
-                                           FontSize="10" FontWeight="SemiBold"
-                                           Foreground="{ThemeResource TextSecondaryBrush}"
-                                           CharacterSpacing="100"/>
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-
                     <!-- Em execução -->
                     <Border Background="{ThemeResource PanelBgBrush}"
                             BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
-                            CornerRadius="8" Padding="16,12" MinWidth="150">
+                            CornerRadius="8" Padding="16,12" MinWidth="140">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="4"/>
@@ -372,6 +364,50 @@
                                            FontSize="26" FontWeight="Bold"
                                            Foreground="{ThemeResource TextPrimaryBrush}"/>
                                 <TextBlock Text="EM EXECUÇÃO"
+                                           FontSize="10" FontWeight="SemiBold"
+                                           Foreground="{ThemeResource TextSecondaryBrush}"
+                                           CharacterSpacing="100"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Concluídas -->
+                    <Border Background="{ThemeResource PanelBgBrush}"
+                            BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                            CornerRadius="8" Padding="16,12" MinWidth="140">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="4"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" CornerRadius="2" Background="#0078D4"/>
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <TextBlock x:Name="KpiConcluidas" Text="—"
+                                           FontSize="26" FontWeight="Bold"
+                                           Foreground="{ThemeResource TextPrimaryBrush}"/>
+                                <TextBlock Text="CONCLUÍDAS"
+                                           FontSize="10" FontWeight="SemiBold"
+                                           Foreground="{ThemeResource TextSecondaryBrush}"
+                                           CharacterSpacing="100"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Paralisadas -->
+                    <Border Background="{ThemeResource PanelBgBrush}"
+                            BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                            CornerRadius="8" Padding="16,12" MinWidth="140">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="4"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" CornerRadius="2" Background="#C42B2B"/>
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <TextBlock x:Name="KpiParalisadas" Text="—"
+                                           FontSize="26" FontWeight="Bold"
+                                           Foreground="{ThemeResource TextPrimaryBrush}"/>
+                                <TextBlock Text="PARALISADAS"
                                            FontSize="10" FontWeight="SemiBold"
                                            Foreground="{ThemeResource TextSecondaryBrush}"
                                            CharacterSpacing="100"/>
@@ -531,6 +567,23 @@
                                             </StackPanel>
                                         </Border>
 
+                                        <!-- Badge prazo vencido -->
+                                        <Border HorizontalAlignment="Left"
+                                                VerticalAlignment="Top"
+                                                Margin="10,10,0,0"
+                                                CornerRadius="4" Padding="8,4"
+                                                Background="#dc2626"
+                                                Visibility="{Binding PrazoVencido, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <FontIcon Glyph="&#xE783;" FontSize="10"
+                                                          Foreground="White"/>
+                                                <TextBlock Text="Prazo vencido"
+                                                           FontSize="10"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="White"/>
+                                            </StackPanel>
+                                        </Border>
+
                                         <!-- Quantidade RDOs -->
                                         <Border HorizontalAlignment="Left"
                                                 VerticalAlignment="Bottom"
@@ -640,80 +693,38 @@
 
                     <!-- Filtros de relatórios -->
                     <StackPanel Spacing="8" Margin="0,0,0,4">
-                        <!-- Linha 1: busca textual -->
-                        <Border Background="{ThemeResource InputBgBrush}"
-                                BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
-                                CornerRadius="6" Height="36">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="&#xE721;"
-                                           FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                           Foreground="{ThemeResource TextSecondaryBrush}"
-                                           VerticalAlignment="Center" Margin="10,0,8,0"/>
-                                <TextBox x:Name="BuscaRelBox" Grid.Column="1"
-                                         PlaceholderText="Buscar por obra, número do RDO..."
-                                         Background="Transparent" BorderThickness="0"
-                                         Foreground="{ThemeResource TextPrimaryBrush}"
-                                         VerticalAlignment="Center"
-                                         TextChanged="BuscaRel_TextChanged"/>
-                            </Grid>
-                        </Border>
-                        <!-- Linha 2: filtros de dropdown -->
+                        <!-- Busca textual + contador + exportar CSV -->
                         <Grid ColumnSpacing="10">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <ComboBox x:Name="FiltroGrupoRelBox" Grid.Column="0"
-                                      PlaceholderText="Grupo"
-                                      HorizontalAlignment="Stretch" Height="36"
-                                      Background="{ThemeResource InputBgBrush}"
-                                      BorderBrush="{ThemeResource AppBorderBrush}"
-                                      Foreground="{ThemeResource TextPrimaryBrush}"
-                                      SelectionChanged="FiltroRel_Changed"/>
-                            <ComboBox x:Name="FiltroObraRelBox" Grid.Column="1"
-                                      PlaceholderText="Obra"
-                                      HorizontalAlignment="Stretch" Height="36"
-                                      Background="{ThemeResource InputBgBrush}"
-                                      BorderBrush="{ThemeResource AppBorderBrush}"
-                                      Foreground="{ThemeResource TextPrimaryBrush}"
-                                      SelectionChanged="FiltroRel_Changed"/>
-                            <ComboBox x:Name="FiltroStatusObraRelBox" Grid.Column="2"
-                                      PlaceholderText="Status obra"
-                                      HorizontalAlignment="Stretch" Height="36"
-                                      Background="{ThemeResource InputBgBrush}"
-                                      BorderBrush="{ThemeResource AppBorderBrush}"
-                                      Foreground="{ThemeResource TextPrimaryBrush}"
-                                      SelectionChanged="FiltroRel_Changed"/>
-                            <ComboBox x:Name="FiltroResponsavelRelBox" Grid.Column="3"
-                                      PlaceholderText="Responsável"
-                                      HorizontalAlignment="Stretch" Height="36"
-                                      Background="{ThemeResource InputBgBrush}"
-                                      BorderBrush="{ThemeResource AppBorderBrush}"
-                                      Foreground="{ThemeResource TextPrimaryBrush}"
-                                      SelectionChanged="FiltroRel_Changed"/>
-                            <ComboBox x:Name="FiltroFuncRelBox" Grid.Column="4"
-                                      PlaceholderText="Funcionário"
-                                      HorizontalAlignment="Stretch" Height="36"
-                                      Background="{ThemeResource InputBgBrush}"
-                                      BorderBrush="{ThemeResource AppBorderBrush}"
-                                      Foreground="{ThemeResource TextPrimaryBrush}"
-                                      SelectionChanged="FiltroRel_Changed"/>
-                            <Button Grid.Column="5" Content="Limpar" Height="36"
-                                    Background="Transparent"
+                            <Border Grid.Column="0"
+                                    Background="{ThemeResource InputBgBrush}"
                                     BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
-                                    Foreground="{ThemeResource TextSecondaryBrush}"
-                                    FontSize="12" Padding="14,0"
-                                    Click="LimparFiltrosRel_Click"/>
-                            <Button Grid.Column="6" Height="36" Padding="12,0"
+                                    CornerRadius="6" Height="36">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="&#xE721;"
+                                               FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                               Foreground="{ThemeResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center" Margin="10,0,8,0"/>
+                                    <TextBox x:Name="BuscaRelBox" Grid.Column="1"
+                                             PlaceholderText="Buscar por obra, número do RDO..."
+                                             Background="Transparent" BorderThickness="0"
+                                             Foreground="{ThemeResource TextPrimaryBrush}"
+                                             VerticalAlignment="Center"
+                                             TextChanged="BuscaRel_TextChanged"/>
+                                </Grid>
+                            </Border>
+                            <TextBlock Grid.Column="1" x:Name="ContadorRelTexto"
+                                       FontSize="11" Foreground="{ThemeResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"/>
+                            <Button Grid.Column="2" Height="36" Padding="12,0"
                                     Background="{ThemeResource PanelBgBrush}"
                                     BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
                                     Foreground="{ThemeResource AccentBrush}"

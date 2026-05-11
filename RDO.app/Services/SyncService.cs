@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RDO.App.Services;
 using RDO.Data.Data;
 using RDO.Data.Models;
 using System;
@@ -7,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
@@ -22,6 +24,9 @@ public class SyncService
     private readonly HttpClient _http;
     private readonly JsonSerializerOptions _jsonOptions;
 
+    private string? _cachedToken;
+    private DateTime _tokenExpiry = DateTime.MinValue;
+
     private const string LastSyncKey = "lastSync";
     private static readonly string StateFilePath = System.IO.Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -30,12 +35,83 @@ public class SyncService
     public SyncService(string apiBaseUrl)
     {
         _apiBaseUrl = apiBaseUrl.TrimEnd('/');
-        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
             ReferenceHandler = ReferenceHandler.IgnoreCycles
         };
+    }
+
+    // Autentica na API e devolve false se as credenciais falharem
+    private async Task<bool> AuthenticateAsync()
+    {
+        if (_cachedToken != null && DateTime.UtcNow < _tokenExpiry)
+            return true;
+
+        var email    = UserSession.Email;
+        var password = UserSession.Password;
+
+        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
+        {
+            SyncLogger.LogError(new SyncLogEntry
+            {
+                Operation       = "Auth",
+                ErrorCode       = "SYNC-AUTH-NOCRED",
+                ErrorType       = "Sem credenciais",
+                ApiUrl          = $"{_apiBaseUrl}/api/auth/login",
+                UserMessage     = "Usuário não identificado para sincronização.",
+                TechnicalDetail = "UserSession.Email está vazio — faça login novamente.",
+                Diagnosis       = "• Feche o app e faça login novamente."
+            });
+            return false;
+        }
+
+        try
+        {
+            var resp = await _http.PostAsJsonAsync(
+                $"{_apiBaseUrl}/api/auth/login",
+                new { Email = email, Password = password },
+                _jsonOptions);
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                SyncLogger.LogError(new SyncLogEntry
+                {
+                    Operation       = "Auth",
+                    ErrorCode       = "SYNC-AUTH-401",
+                    ErrorType       = "Credenciais inválidas",
+                    HttpStatusCode  = resp.StatusCode,
+                    ApiUrl          = $"{_apiBaseUrl}/api/auth/login",
+                    UserMessage     = "Falha de autenticação na API.",
+                    TechnicalDetail = $"HTTP {(int)resp.StatusCode}",
+                    Diagnosis       = "• Confirme se o usuário existe e está ativo no servidor."
+                });
+                return false;
+            }
+
+            var body = await resp.Content.ReadFromJsonAsync<JsonElement>(_jsonOptions);
+            _cachedToken = body.GetProperty("token").GetString();
+            _tokenExpiry = DateTime.UtcNow.AddHours(11); // 1h de margem antes de expirar
+            _http.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", _cachedToken);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            SyncLogger.LogError(new SyncLogEntry
+            {
+                Operation       = "Auth",
+                ErrorCode       = "SYNC-AUTH-ERR",
+                ErrorType       = ex.GetType().Name,
+                ApiUrl          = $"{_apiBaseUrl}/api/auth/login",
+                UserMessage     = "Erro ao autenticar na API.",
+                TechnicalDetail = ex.Message,
+                StackTrace      = ex.StackTrace ?? "",
+                Diagnosis       = "• Verifique se a API está acessível na rede."
+            });
+            return false;
+        }
     }
 
     public async Task<SyncResult> SyncAsync()
@@ -45,6 +121,9 @@ public class SyncService
             SyncLogger.LogOffline(_apiBaseUrl);
             return SyncResult.Offline();
         }
+
+        if (!await AuthenticateAsync())
+            return SyncResult.Failure("SYNC-AUTH-FAIL", "Falha de autenticação. Faça login novamente.");
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
         try
@@ -61,6 +140,11 @@ public class SyncService
                     pushResult.Inserted + pushResult.Updated,
                     pullResult.TotalPulled,
                     sw.Elapsed.TotalMilliseconds);
+
+                // Copia logos locais para a pasta do NAS
+                var logosCfg = RDO.App.Services.LogosConfig.Load();
+                if (logosCfg.IsConfigured)
+                    _ = RDO.App.Services.LogoService.UploadPendingLogosAsync(logosCfg);
             }
 
             return new SyncResult
@@ -106,23 +190,25 @@ public class SyncService
             .Select(r => r.Id)
             .ToListAsync();
 
+        // Usa >= em vez de > para incluir registros com UpdatedAt exatamente igual ao since
         var payload = new SyncPushPayload
         {
-            Projects         = await db.Projects.Where(x => x.UpdatedAt > since).ToListAsync(),
-            Users            = await db.Users.Where(x => x.UpdatedAt > since).ToListAsync(),
-            Employees        = await db.Employees.Where(x => x.UpdatedAt > since).ToListAsync(),
-            Equipments       = await db.Equipments.Where(x => x.UpdatedAt > since).ToListAsync(),
-            Companions       = await db.Companions.Where(x => x.UpdatedAt > since).ToListAsync(),
-            Reports          = await db.Reports.Where(x => x.UpdatedAt > since || !x.IsSynced).ToListAsync(),
-            WeatherDetails   = await db.WeatherDetails.Where(x => x.UpdatedAt > since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
-            Activities       = await db.Activities.Where(x => x.UpdatedAt > since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
-            Occurrences      = await db.Occurrences.Where(x => x.UpdatedAt > since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
-            Materials        = await db.Materials.Where(x => x.UpdatedAt > since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
-            Photos           = await db.Photos.Where(x => x.UpdatedAt > since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
-            Signatures       = await db.Signatures.Where(x => x.UpdatedAt > since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
-            ProjectMembers   = await db.ProjectMembers.Where(x => x.UpdatedAt > since).ToListAsync(),
-            ReportEquipments = await db.ReportEquipments.Where(x => x.UpdatedAt > since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
-            ReportCompanions = await db.ReportCompanions.Where(x => x.UpdatedAt > since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
+            Projects         = await db.Projects.Where(x => x.UpdatedAt >= since).ToListAsync(),
+            Users            = await db.Users.Where(x => x.UpdatedAt >= since).ToListAsync(),
+            Employees        = await db.Employees.Where(x => x.UpdatedAt >= since).ToListAsync(),
+            Equipments       = await db.Equipments.Where(x => x.UpdatedAt >= since).ToListAsync(),
+            Companions       = await db.Companions.Where(x => x.UpdatedAt >= since).ToListAsync(),
+            Reports          = await db.Reports.Where(x => x.UpdatedAt >= since || !x.IsSynced).ToListAsync(),
+            WeatherDetails   = await db.WeatherDetails.Where(x => x.UpdatedAt >= since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
+            Activities       = await db.Activities.Where(x => x.UpdatedAt >= since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
+            Occurrences      = await db.Occurrences.Where(x => x.UpdatedAt >= since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
+            Materials        = await db.Materials.Where(x => x.UpdatedAt >= since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
+            Photos           = await db.Photos.Where(x => x.UpdatedAt >= since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
+            Signatures       = await db.Signatures.Where(x => x.UpdatedAt >= since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
+            ProjectMembers   = await db.ProjectMembers.Where(x => x.UpdatedAt >= since).ToListAsync(),
+            ReportEquipments = await db.ReportEquipments.Where(x => x.UpdatedAt >= since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
+            ReportCompanions = await db.ReportCompanions.Where(x => x.UpdatedAt >= since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
+            Empresas         = await db.Empresas.Where(x => x.UpdatedAt >= since).ToListAsync(),
         };
 
         System.Diagnostics.Debug.WriteLine("PUSH payload: " + payload.Reports.Count + " reports, unsyncedIds: " + string.Join(",", unsyncedReportIds));
@@ -193,206 +279,212 @@ public class SyncService
     private async Task<PullResult> PullAsync(DateTime since)
     {
         var sinceStr = since.ToString("o");
-        var pullUrl  = $"{_apiBaseUrl}/api/sync/pull?since={Uri.EscapeDataString(sinceStr)}";
-
-        var swPull = System.Diagnostics.Stopwatch.StartNew();
-        HttpResponseMessage pullResponse;
-        try
+        var tables   = new[]
         {
-            pullResponse = await _http.GetAsync(pullUrl);
-        }
-        catch (Exception ex)
-        {
-            swPull.Stop();
-            var (userMsg, errorType, diagnosis) = ClassifyException(ex);
-            SyncLogger.LogError(new SyncLogEntry
-            {
-                Operation       = "Pull",
-                ErrorCode       = "SYNC-PULL-CONN",
-                ErrorType       = errorType,
-                ApiUrl          = pullUrl,
-                DurationMs      = swPull.Elapsed.TotalMilliseconds,
-                UserMessage     = userMsg,
-                TechnicalDetail = ex.Message,
-                StackTrace      = ex.StackTrace ?? "",
-                Diagnosis       = diagnosis
-            });
-            return new PullResult { Success = false, ErrorCode = "SYNC-PULL-CONN", Error = userMsg };
-        }
-        swPull.Stop();
-
-        if (!pullResponse.IsSuccessStatusCode)
-        {
-            var (userMsg, diagnosis) = ClassifyHttpError(pullResponse.StatusCode, "Pull");
-            SyncLogger.LogError(new SyncLogEntry
-            {
-                Operation       = "Pull",
-                ErrorCode       = "SYNC-PULL-HTTP",
-                ErrorType       = "HTTP Error",
-                HttpStatusCode  = pullResponse.StatusCode,
-                ApiUrl          = pullUrl,
-                DurationMs      = swPull.Elapsed.TotalMilliseconds,
-                UserMessage     = userMsg,
-                TechnicalDetail = $"HTTP {(int)pullResponse.StatusCode} {pullResponse.StatusCode}",
-                Diagnosis       = diagnosis
-            });
-            return new PullResult { Success = false, ErrorCode = "SYNC-PULL-HTTP", Error = userMsg };
-        }
-
-        var payload = await pullResponse.Content.ReadFromJsonAsync<SyncPullPayload>(_jsonOptions);
-        if (payload is null)
-        {
-            const string emptyMsg  = "Resposta vazia do servidor";
-            const string emptyDiag = "• A API retornou um corpo vazio — verifique os logs da API\n" +
-                                     "• Confirme que a versão da API é compatível com o aplicativo";
-            SyncLogger.LogError(new SyncLogEntry
-            {
-                Operation       = "Pull",
-                ErrorCode       = "SYNC-PULL-EMPTY",
-                ErrorType       = "Resposta Vazia",
-                ApiUrl          = pullUrl,
-                DurationMs      = swPull.Elapsed.TotalMilliseconds,
-                UserMessage     = emptyMsg,
-                TechnicalDetail = "Content-Length: 0 ou corpo não serializável",
-                Diagnosis       = emptyDiag
-            });
-            return new PullResult { Success = false, ErrorCode = "SYNC-PULL-EMPTY", Error = emptyMsg };
-        }
+            "projects", "users", "employees", "equipments", "companions", "reports",
+            "weatherdetails", "activities", "occurrences", "materials", "photos",
+            "signatures", "projectmembers", "reportequipments", "reportcompanions", "empresas"
+        };
 
         using var db = new RdoDbContext(DbContextHelper.GetOptions());
-        int total = 0;
-        string _currentEntity = "Projects";
-        try {
+        int      total         = 0;
+        DateTime serverTime    = DateTime.UtcNow;
+        bool     gotServerTime = false;
 
-        total += await UpsertLocal(db.Projects, payload.Projects, db,
-            (e, i) => { e.Name = i.Name; e.Address = i.Address; e.ART = i.ART;
-                e.Group = i.Group; e.Status = i.Status; e.Manager = i.Manager;
-                e.ClientManager = i.ClientManager;
-                e.ContractType = i.ContractType; e.Client = i.Client;
-                e.StartDate = i.StartDate; e.ExpectedEndDate = i.ExpectedEndDate;
-                e.ImagePath = i.ImagePath; e.IsActive = i.IsActive;
-                e.IsDeleted = i.IsDeleted; });
+        foreach (var table in tables)
+        {
+            var pullUrl = $"{_apiBaseUrl}/api/sync/pull?since={Uri.EscapeDataString(sinceStr)}&table={table}";
 
-        _currentEntity = "Users";
-        total += await UpsertLocal(db.Users, payload.Users, db,
-            (e, i) => { e.Name = i.Name; e.Email = i.Email;
-                e.PasswordHash = i.PasswordHash; e.Profile = i.Profile;
-                e.IsActive = i.IsActive; e.IsDeleted = i.IsDeleted; });
-
-        _currentEntity = "Employees";
-        total += await UpsertLocal(db.Employees, payload.Employees, db,
-            (e, i) => { e.Name = i.Name; e.JobTitle = i.JobTitle;
-                e.Company = i.Company; e.Type = i.Type; e.Contact = i.Contact;
-                e.IsActive = i.IsActive; e.IsDeleted = i.IsDeleted; });
-
-        _currentEntity = "Equipments";
-        total += await UpsertLocal(db.Equipments, payload.Equipments, db,
-            (e, i) => { e.Name = i.Name; e.Manufacturer = i.Manufacturer;
-                e.Model = i.Model; e.SerialNumber = i.SerialNumber;
-                e.IsActive = i.IsActive; e.IsDeleted = i.IsDeleted; });
-
-        _currentEntity = "Companions";
-        total += await UpsertLocal(db.Companions, payload.Companions, db,
-            (e, i) => { e.Name = i.Name; e.Role = i.Role; e.Group = i.Group;
-                e.Contact = i.Contact; e.IsActive = i.IsActive;
-                e.IsDeleted = i.IsDeleted; });
-
-        _currentEntity = "Reports";
-        total += await UpsertLocal(db.Reports, payload.Reports, db,
-            (e, i) => { e.ProjectId = i.ProjectId; e.UserId = i.UserId;
-                e.CompanionId = i.CompanionId; e.Number = i.Number;
-                e.Date = i.Date; e.CheckInTime = i.CheckInTime;
-                e.CheckOutTime = i.CheckOutTime; e.BreakTime = i.BreakTime;
-                e.GeneralNotes = i.GeneralNotes; e.Status = i.Status;
-                e.IsDraft = i.IsDraft;
-                e.IsDeleted = i.IsDeleted;
-                e.IsSynced = true; });
-
-        _currentEntity = "WeatherDetails";
-        total += await UpsertLocal(db.WeatherDetails, payload.WeatherDetails, db,
-            (e, i) => { e.ReportId = i.ReportId; e.Period = i.Period;
-                e.IsActive = i.IsActive; e.Weather = i.Weather;
-                e.Condition = i.Condition; e.RainfallIndex = i.RainfallIndex;
-                e.IsDeleted = i.IsDeleted; });
-
-        _currentEntity = "Activities";
-        total += await UpsertLocal(db.Activities, payload.Activities, db,
-            (e, i) => { e.ReportId = i.ReportId; e.Description = i.Description;
-                e.Location = i.Location; e.Status = i.Status;
-                e.IsDeleted = i.IsDeleted; });
-
-        _currentEntity = "Occurrences";
-        total += await UpsertLocal(db.Occurrences, payload.Occurrences, db,
-            (e, i) => { e.ReportId = i.ReportId; e.Description = i.Description;
-                e.Tags = i.Tags; e.StartTime = i.StartTime; e.EndTime = i.EndTime;
-                e.IsDeleted = i.IsDeleted; });
-
-        _currentEntity = "Materials";
-        total += await UpsertLocal(db.Materials, payload.Materials, db,
-            (e, i) => { e.ReportId = i.ReportId; e.Name = i.Name;
-                e.Quantity = i.Quantity; e.Unit = i.Unit;
-                e.Type = i.Type; e.IsDeleted = i.IsDeleted; });
-
-        _currentEntity = "Photos";
-        total += await UpsertLocal(db.Photos, payload.Photos, db,
-            (e, i) => { e.ReportId = i.ReportId; e.FilePath = i.FilePath;
-                e.Caption = i.Caption; e.RelatedActivity = i.RelatedActivity;
-                e.TakenAt = i.TakenAt; e.IsDeleted = i.IsDeleted; });
-
-        _currentEntity = "Signatures";
-        total += await UpsertLocal(db.Signatures, payload.Signatures, db,
-            (e, i) => { e.ReportId = i.ReportId; e.SignerName = i.SignerName;
-                e.Role = i.Role; e.SignedAt = i.SignedAt;
-                e.IsSigned = i.IsSigned; e.EmployeeId = i.EmployeeId;
-                e.CheckInTime = i.CheckInTime; e.CheckOutTime = i.CheckOutTime;
-                e.BreakTime = i.BreakTime; e.IsDeleted = i.IsDeleted; });
-
-        _currentEntity = "ProjectMembers";
-        total += await UpsertLocal(db.ProjectMembers, payload.ProjectMembers, db,
-            (e, i) => { e.ProjectId = i.ProjectId; e.UserId = i.UserId;
-                e.Role = i.Role; e.IsDeleted = i.IsDeleted; });
-
-        _currentEntity = "ReportEquipments";
-        total += await UpsertLocal(db.ReportEquipments, payload.ReportEquipments, db,
-            (e, i) => { e.ReportId = i.ReportId; e.EquipmentId = i.EquipmentId;
-                e.IsDeleted = i.IsDeleted; });
-
-        _currentEntity = "ReportCompanions";
-        total += await UpsertLocal(db.ReportCompanions, payload.ReportCompanions, db,
-            (e, i) => { e.ReportId = i.ReportId; e.CompanionId = i.CompanionId;
-                e.IsDeleted = i.IsDeleted; });
-
-        _currentEntity = "SaveChangesAsync";
-        await db.SaveChangesAsync();
-        } catch (Exception ex) {
-            // Constrói cadeia completa de mensagens para diagnóstico
-            var innerChain = new System.Text.StringBuilder();
-            var inner = ex.InnerException;
-            while (inner != null)
+            var swPull = System.Diagnostics.Stopwatch.StartNew();
+            HttpResponseMessage pullResponse;
+            try
             {
-                innerChain.Append(" → ").Append(inner.Message);
-                inner = inner.InnerException;
+                pullResponse = await _http.GetAsync(pullUrl);
             }
-            var fullMessage = ex.Message + (innerChain.Length > 0 ? innerChain.ToString() : "");
-            var error = $"Erro ao salvar {_currentEntity} localmente: {fullMessage}";
-            SyncLogger.LogError(new SyncLogEntry
+            catch (Exception ex)
             {
-                Operation       = $"Pull — Upsert {_currentEntity}",
-                ErrorCode       = "SYNC-PULL-UPSERT",
-                ErrorType       = ex.GetType().Name,
-                ApiUrl          = pullUrl,
-                UserMessage     = error,
-                TechnicalDetail = fullMessage,
-                StackTrace      = ex.StackTrace ?? "",
-                Diagnosis       = $"• Erro ao persistir entidade '{_currentEntity}' no banco local\n" +
-                                  $"• Verifique se as migrations do SQLite estão atualizadas\n" +
-                                  $"• Logs em: {SyncLogger.GetLogDirectory()}"
-            });
-            return new PullResult { Success = false, ErrorCode = "SYNC-PULL-UPSERT", Error = error };
+                swPull.Stop();
+                var (userMsg, errorType, diagnosis) = ClassifyException(ex);
+                SyncLogger.LogError(new SyncLogEntry
+                {
+                    Operation       = $"Pull/{table}",
+                    ErrorCode       = "SYNC-PULL-CONN",
+                    ErrorType       = errorType,
+                    ApiUrl          = pullUrl,
+                    DurationMs      = swPull.Elapsed.TotalMilliseconds,
+                    UserMessage     = userMsg,
+                    TechnicalDetail = ex.Message,
+                    StackTrace      = ex.StackTrace ?? "",
+                    Diagnosis       = diagnosis
+                });
+                return new PullResult { Success = false, ErrorCode = "SYNC-PULL-CONN", Error = userMsg };
+            }
+            swPull.Stop();
+
+            if (!pullResponse.IsSuccessStatusCode)
+            {
+                var (userMsg, diagnosis) = ClassifyHttpError(pullResponse.StatusCode, "Pull");
+                SyncLogger.LogError(new SyncLogEntry
+                {
+                    Operation       = $"Pull/{table}",
+                    ErrorCode       = "SYNC-PULL-HTTP",
+                    ErrorType       = "HTTP Error",
+                    HttpStatusCode  = pullResponse.StatusCode,
+                    ApiUrl          = pullUrl,
+                    DurationMs      = swPull.Elapsed.TotalMilliseconds,
+                    UserMessage     = userMsg,
+                    TechnicalDetail = $"HTTP {(int)pullResponse.StatusCode} {pullResponse.StatusCode}",
+                    Diagnosis       = diagnosis
+                });
+                return new PullResult { Success = false, ErrorCode = "SYNC-PULL-HTTP", Error = userMsg };
+            }
+
+            var payload = await pullResponse.Content.ReadFromJsonAsync<SyncPullPayload>(_jsonOptions);
+            if (payload is null)
+            {
+                const string emptyMsg  = "Resposta vazia do servidor";
+                const string emptyDiag = "• A API retornou um corpo vazio — verifique os logs da API\n" +
+                                         "• Confirme que a versão da API é compatível com o aplicativo";
+                SyncLogger.LogError(new SyncLogEntry
+                {
+                    Operation       = $"Pull/{table}",
+                    ErrorCode       = "SYNC-PULL-EMPTY",
+                    ErrorType       = "Resposta Vazia",
+                    ApiUrl          = pullUrl,
+                    DurationMs      = swPull.Elapsed.TotalMilliseconds,
+                    UserMessage     = emptyMsg,
+                    TechnicalDetail = "Content-Length: 0 ou corpo não serializável",
+                    Diagnosis       = emptyDiag
+                });
+                return new PullResult { Success = false, ErrorCode = "SYNC-PULL-EMPTY", Error = emptyMsg };
+            }
+
+            if (!gotServerTime && payload.ServerTime != default)
+            {
+                serverTime    = payload.ServerTime.ToUniversalTime();
+                gotServerTime = true;
+            }
+
+            try
+            {
+                total += table switch
+                {
+                    "projects" => await UpsertLocal(db.Projects, payload.Projects, db,
+                        (e, i) => { e.Name = i.Name; e.Address = i.Address; e.ART = i.ART;
+                            e.Group = i.Group; e.Status = i.Status; e.Manager = i.Manager;
+                            e.ClientManager = i.ClientManager;
+                            e.ContractType = i.ContractType; e.Client = i.Client;
+                            e.StartDate = i.StartDate; e.ExpectedEndDate = i.ExpectedEndDate;
+                            e.ImagePath = i.ImagePath; e.IsActive = i.IsActive;
+                            e.IsDeleted = i.IsDeleted; }),
+
+                    "users" => await UpsertLocal(db.Users, payload.Users, db,
+                        (e, i) => { e.Name = i.Name; e.Email = i.Email;
+                            e.PasswordHash = i.PasswordHash; e.Profile = i.Profile;
+                            e.IsActive = i.IsActive; e.IsDeleted = i.IsDeleted; }),
+
+                    "employees" => await UpsertLocal(db.Employees, payload.Employees, db,
+                        (e, i) => { e.Name = i.Name; e.JobTitle = i.JobTitle;
+                            e.Company = i.Company; e.Type = i.Type; e.Contact = i.Contact;
+                            e.IsActive = i.IsActive; e.IsDeleted = i.IsDeleted; }),
+
+                    "equipments" => await UpsertLocal(db.Equipments, payload.Equipments, db,
+                        (e, i) => { e.Name = i.Name; e.Manufacturer = i.Manufacturer;
+                            e.Model = i.Model; e.SerialNumber = i.SerialNumber;
+                            e.IsActive = i.IsActive; e.IsDeleted = i.IsDeleted; }),
+
+                    "companions" => await UpsertLocal(db.Companions, payload.Companions, db,
+                        (e, i) => { e.Name = i.Name; e.Role = i.Role; e.Group = i.Group;
+                            e.Contact = i.Contact; e.IsActive = i.IsActive;
+                            e.IsDeleted = i.IsDeleted; }),
+
+                    "reports" => await UpsertLocal(db.Reports, payload.Reports, db,
+                        (e, i) => { e.ProjectId = i.ProjectId; e.UserId = i.UserId;
+                            e.CompanionId = i.CompanionId; e.Number = i.Number;
+                            e.Date = i.Date; e.CheckInTime = i.CheckInTime;
+                            e.CheckOutTime = i.CheckOutTime; e.BreakTime = i.BreakTime;
+                            e.GeneralNotes = i.GeneralNotes; e.Status = i.Status;
+                            e.IsDraft = i.IsDraft; e.IsDeleted = i.IsDeleted;
+                            e.IsSynced = true; }),
+
+                    "weatherdetails" => await UpsertLocal(db.WeatherDetails, payload.WeatherDetails, db,
+                        (e, i) => { e.ReportId = i.ReportId; e.Period = i.Period;
+                            e.IsActive = i.IsActive; e.Weather = i.Weather;
+                            e.Condition = i.Condition; e.RainfallIndex = i.RainfallIndex;
+                            e.IsDeleted = i.IsDeleted; }),
+
+                    "activities" => await UpsertLocal(db.Activities, payload.Activities, db,
+                        (e, i) => { e.ReportId = i.ReportId; e.Description = i.Description;
+                            e.Location = i.Location; e.Status = i.Status;
+                            e.IsDeleted = i.IsDeleted; }),
+
+                    "occurrences" => await UpsertLocal(db.Occurrences, payload.Occurrences, db,
+                        (e, i) => { e.ReportId = i.ReportId; e.Description = i.Description;
+                            e.Tags = i.Tags; e.StartTime = i.StartTime; e.EndTime = i.EndTime;
+                            e.IsDeleted = i.IsDeleted; }),
+
+                    "materials" => await UpsertLocal(db.Materials, payload.Materials, db,
+                        (e, i) => { e.ReportId = i.ReportId; e.Name = i.Name;
+                            e.Quantity = i.Quantity; e.Unit = i.Unit;
+                            e.Type = i.Type; e.IsDeleted = i.IsDeleted; }),
+
+                    "photos" => await UpsertLocal(db.Photos, payload.Photos, db,
+                        (e, i) => { e.ReportId = i.ReportId; e.FilePath = i.FilePath;
+                            e.Caption = i.Caption; e.RelatedActivity = i.RelatedActivity;
+                            e.TakenAt = i.TakenAt; e.IsDeleted = i.IsDeleted; }),
+
+                    "signatures" => await UpsertLocal(db.Signatures, payload.Signatures, db,
+                        (e, i) => { e.ReportId = i.ReportId; e.SignerName = i.SignerName;
+                            e.Role = i.Role; e.SignedAt = i.SignedAt;
+                            e.IsSigned = i.IsSigned; e.EmployeeId = i.EmployeeId;
+                            e.CheckInTime = i.CheckInTime; e.CheckOutTime = i.CheckOutTime;
+                            e.BreakTime = i.BreakTime; e.IsDeleted = i.IsDeleted; }),
+
+                    "projectmembers" => await UpsertLocal(db.ProjectMembers, payload.ProjectMembers, db,
+                        (e, i) => { e.ProjectId = i.ProjectId; e.UserId = i.UserId;
+                            e.Role = i.Role; e.IsDeleted = i.IsDeleted; }),
+
+                    "reportequipments" => await UpsertLocal(db.ReportEquipments, payload.ReportEquipments, db,
+                        (e, i) => { e.ReportId = i.ReportId; e.EquipmentId = i.EquipmentId;
+                            e.IsDeleted = i.IsDeleted; }),
+
+                    "reportcompanions" => await UpsertLocal(db.ReportCompanions, payload.ReportCompanions, db,
+                        (e, i) => { e.ReportId = i.ReportId; e.CompanionId = i.CompanionId;
+                            e.IsDeleted = i.IsDeleted; }),
+
+                    "empresas" => await UpsertLocal(db.Empresas, payload.Empresas, db,
+                        (e, i) => { e.Nome = i.Nome; e.ImagemPath = i.ImagemPath;
+                            e.IsActive = i.IsActive; e.IsDeleted = i.IsDeleted; }),
+
+                    _ => 0
+                };
+
+                await db.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                var innerChain = new System.Text.StringBuilder();
+                var inner = ex.InnerException;
+                while (inner != null) { innerChain.Append(" → ").Append(inner.Message); inner = inner.InnerException; }
+                var fullMessage = ex.Message + (innerChain.Length > 0 ? innerChain.ToString() : "");
+                var error = $"Erro ao salvar {table} localmente: {fullMessage}";
+                SyncLogger.LogError(new SyncLogEntry
+                {
+                    Operation       = $"Pull — Upsert {table}",
+                    ErrorCode       = "SYNC-PULL-UPSERT",
+                    ErrorType       = ex.GetType().Name,
+                    ApiUrl          = pullUrl,
+                    UserMessage     = error,
+                    TechnicalDetail = fullMessage,
+                    StackTrace      = ex.StackTrace ?? "",
+                    Diagnosis       = $"• Erro ao persistir entidade '{table}' no banco local\n" +
+                                      $"• Verifique se as migrations do SQLite estão atualizadas\n" +
+                                      $"• Logs em: {SyncLogger.GetLogDirectory()}"
+                });
+                return new PullResult { Success = false, ErrorCode = "SYNC-PULL-UPSERT", Error = error };
+            }
         }
-        var serverTime = payload.ServerTime == default
-            ? DateTime.UtcNow
-            : payload.ServerTime.ToUniversalTime();
+
         return new PullResult { Success = true, TotalPulled = total, ServerTime = serverTime };
     }
 
@@ -607,6 +699,7 @@ public class SyncPullPayload
     public List<ProjectMember> ProjectMembers { get; set; } = new();
     public List<ReportEquipment> ReportEquipments { get; set; } = new();
     public List<ReportCompanion> ReportCompanions { get; set; } = new();
+    public List<Empresa>         Empresas         { get; set; } = new();
     public DateTime ServerTime { get; set; }
 }
 
@@ -627,6 +720,7 @@ public class SyncPushPayload
     public List<ProjectMember> ProjectMembers { get; set; } = new();
     public List<ReportEquipment> ReportEquipments { get; set; } = new();
     public List<ReportCompanion> ReportCompanions { get; set; } = new();
+    public List<Empresa>         Empresas         { get; set; } = new();
 }
 
 public class ApiSyncPushResult
