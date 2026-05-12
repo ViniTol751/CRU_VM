@@ -6,7 +6,7 @@ namespace RDO.App.Services;
 
 public class LogosConfig
 {
-    public string NasPath { get; set; } = @"\\192.168.0.89\Levantamentos\Logos";
+    public string NasPath { get; set; } = @"\\192.168.0.89\Levantamentos\RDO\Logos";
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(NasPath);
 

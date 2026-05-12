@@ -41,8 +41,8 @@ Name: "startupicon"; Description: "Iniciar automaticamente com o Windows"; Group
 [Files]
 ; Todos os arquivos da pasta publish\unpackaged
 Source: "{#MyAppSourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-; resources.pri fica na pasta pai do unpackaged — essencial para WinUI 3 carregar os XAMLs
-Source: "C:\dev\TesteAPI\RDO.app\publish\resources.pri"; DestDir: "{app}"; Flags: ignoreversion
+; resources.pri — PRI do build atual, essencial para WinUI 3 resolver ms-appx:/// URIs
+Source: "C:\dev\TesteAPI\RDO.app\publish\unpackaged\RDO.app.pri"; DestDir: "{app}"; DestName: "resources.pri"; Flags: ignoreversion
 ; Pasta Assets com imagens (logo, ícones, tela de login)
 Source: "C:\dev\TesteAPI\RDO.app\Assets\*"; DestDir: "{app}\Assets"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Banco SQLite inicial com usuários pré-cadastrados — copiado para AppData apenas se não existir

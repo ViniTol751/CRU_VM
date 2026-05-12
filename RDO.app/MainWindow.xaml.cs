@@ -1,32 +1,26 @@
-﻿using Microsoft.UI;
-using Microsoft.UI.Input;
+using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Navigation;
 using RDO.App.Services;
 using RDO.App.Views;
-using Windows.Graphics;
 using Windows.UI;
 
 namespace RDO.App
 {
     public sealed partial class MainWindow : Window
     {
-        private static readonly SolidColorBrush Transparent  = new(Colors.Transparent);
-        private static readonly SolidColorBrush CloseHover   = new(Color.FromArgb(255, 196, 43, 28));
-        private static readonly SolidColorBrush ClosePressed = new(Color.FromArgb(255, 166, 35, 24));
-        private static readonly SolidColorBrush White        = new(Colors.White);
-
         public MainWindow()
         {
             InitializeComponent();
             ConfigurarTitleBar();
             CarregarIcone();
-            AppTitleBar.Loaded += (_, _) => AtualizarPassthrough();
+            AppTitleBar.Loaded += (_, _) =>
+            {
+                AtualizarCoresBotoes();
+                AppTitleBar.ActualThemeChanged += (_, _) => AtualizarCoresBotoes();
+            };
             RootFrame.Navigated += RootFrame_Navigated;
             RootFrame.Navigate(typeof(LoginPage));
         }
@@ -50,115 +44,37 @@ namespace RDO.App
         {
             ExtendsContentIntoTitleBar = true;
             SetTitleBar(AppTitleBar);
-
-            // Oculta os botoes nativos — substituidos pelos XAML customizados
-            var tb = AppWindow.TitleBar;
-            var t  = Colors.Transparent;
-            tb.ButtonBackgroundColor         = t;
-            tb.ButtonInactiveBackgroundColor = t;
-            tb.ButtonHoverBackgroundColor    = t;
-            tb.ButtonPressedBackgroundColor  = t;
-            tb.ButtonForegroundColor         = t;
-            tb.ButtonInactiveForegroundColor = t;
-            tb.ButtonHoverForegroundColor    = t;
-            tb.ButtonPressedForegroundColor  = t;
-
-            AppWindow.Changed += (_, _) =>
-            {
-                AtualizarPassthrough();
-                AtualizarIconeMaximize();
-            };
         }
 
         private ElementTheme Tema =>
             (Content as FrameworkElement)?.ActualTheme ?? ElementTheme.Dark;
 
-        private void AtualizarPassthrough()
+        private void AtualizarCoresBotoes()
         {
-            if (Content?.XamlRoot is not { } root) return;
+            var tb = AppWindow.TitleBar;
+            var isDark = Tema == ElementTheme.Dark;
 
-            var scale          = root.RasterizationScale;
-            const int btnCount = 3;
-            const int btnW     = 46;
-            const int btnH     = 44;
+            tb.ButtonBackgroundColor         = Colors.Transparent;
+            tb.ButtonInactiveBackgroundColor = Colors.Transparent;
 
-            var scaledW = (int)(btnW * btnCount * scale);
-            var scaledH = (int)(btnH * scale);
-            var rect    = new RectInt32(AppWindow.Size.Width - scaledW, 0, scaledW, scaledH);
-
-            InputNonClientPointerSource
-                .GetForWindowId(AppWindow.Id)
-                .SetRegionRects(NonClientRegionKind.Passthrough, new[] { rect });
-        }
-
-        private void AtualizarIconeMaximize()
-        {
-            if (AppWindow.Presenter is OverlappedPresenter p)
-                MaxRestoreIcon.Glyph = p.State == OverlappedPresenterState.Maximized
-                    ? ""   // E923 ChromeRestore
-                    : ""; // E922 ChromeMaximize
-        }
-
-        // ── Hover min / max — fundo adaptado ao tema ─────────────────────────────
-        private SolidColorBrush HoverBrush => Tema == ElementTheme.Dark
-            ? new SolidColorBrush(Color.FromArgb(255, 44, 44, 44))
-            : new SolidColorBrush(Color.FromArgb(255, 194, 196, 206));
-
-        private SolidColorBrush PressedBrush => Tema == ElementTheme.Dark
-            ? new SolidColorBrush(Color.FromArgb(255, 58, 58, 58))
-            : new SolidColorBrush(Color.FromArgb(255, 181, 183, 194));
-
-        private void CaptionBtn_PointerEntered(object s, PointerRoutedEventArgs _)
-            => ((Button)s).Background = HoverBrush;
-
-        private void CaptionBtn_PointerExited(object s, PointerRoutedEventArgs _)
-            => ((Button)s).Background = Transparent;
-
-        private void CaptionBtn_PointerPressed(object s, PointerRoutedEventArgs _)
-            => ((Button)s).Background = PressedBrush;
-
-        private void CaptionBtn_PointerReleased(object s, PointerRoutedEventArgs _)
-            => ((Button)s).Background = HoverBrush;
-
-        // ── Hover fechar — fundo vermelho + icone branco ─────────────────────────
-        private SolidColorBrush CloseFgDefault => Tema == ElementTheme.Dark
-            ? new SolidColorBrush(Color.FromArgb(255, 204, 204, 204))
-            : new SolidColorBrush(Color.FromArgb(255, 30, 36, 51));
-
-        private void CloseBtn_PointerEntered(object s, PointerRoutedEventArgs _)
-        {
-            BtnClose.Background  = CloseHover;
-            CloseIcon.Foreground = White;
-        }
-
-        private void CloseBtn_PointerExited(object s, PointerRoutedEventArgs _)
-        {
-            BtnClose.Background  = Transparent;
-            CloseIcon.Foreground = CloseFgDefault;
-        }
-
-        private void CloseBtn_PointerPressed(object s, PointerRoutedEventArgs _)
-            => BtnClose.Background = ClosePressed;
-
-        private void CloseBtn_PointerReleased(object s, PointerRoutedEventArgs _)
-            => BtnClose.Background = CloseHover;
-
-        // ── Handlers dos botoes ──────────────────────────────────────────────────
-        private void BtnMinimize_Click(object sender, RoutedEventArgs e)
-        {
-            if (AppWindow.Presenter is OverlappedPresenter p) p.Minimize();
-        }
-
-        private void BtnMaximize_Click(object sender, RoutedEventArgs e)
-        {
-            if (AppWindow.Presenter is OverlappedPresenter p)
+            if (isDark)
             {
-                if (p.State == OverlappedPresenterState.Maximized) p.Restore();
-                else p.Maximize();
+                tb.ButtonForegroundColor         = Color.FromArgb(255, 204, 204, 204);
+                tb.ButtonInactiveForegroundColor = Color.FromArgb(255,  90,  90,  90);
+                tb.ButtonHoverBackgroundColor    = Color.FromArgb( 40, 255, 255, 255);
+                tb.ButtonHoverForegroundColor    = Color.FromArgb(255, 255, 255, 255);
+                tb.ButtonPressedBackgroundColor  = Color.FromArgb( 20, 255, 255, 255);
+                tb.ButtonPressedForegroundColor  = Color.FromArgb(255, 180, 180, 180);
+            }
+            else
+            {
+                tb.ButtonForegroundColor         = Color.FromArgb(255,  30,  36,  51);
+                tb.ButtonInactiveForegroundColor = Color.FromArgb(255, 140, 140, 150);
+                tb.ButtonHoverBackgroundColor    = Color.FromArgb( 40,   0,   0,   0);
+                tb.ButtonHoverForegroundColor    = Color.FromArgb(255,  10,  16,  35);
+                tb.ButtonPressedBackgroundColor  = Color.FromArgb( 20,   0,   0,   0);
+                tb.ButtonPressedForegroundColor  = Color.FromArgb(255,  50,  60,  80);
             }
         }
-
-        private void BtnClose_Click(object sender, RoutedEventArgs e)
-            => Close();
     }
 }
