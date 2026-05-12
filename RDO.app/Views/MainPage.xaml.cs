@@ -1250,12 +1250,34 @@ namespace RDO.App.Views
                             var r = db2.Relatorios.Find(capturedRel.Id);
                             if (r != null)
                             {
-                                db2.Climas.RemoveRange(db2.Climas.Where(c => c.RelatorioId == r.Id));
-                                db2.Atividades.RemoveRange(db2.Atividades.Where(a => a.RelatorioId == r.Id));
-                                db2.Ocorrencias.RemoveRange(db2.Ocorrencias.Where(o => o.RelatorioId == r.Id));
-                                db2.Assinaturas.RemoveRange(db2.Assinaturas.Where(a => a.RelatorioId == r.Id));
-                                db2.Fotos.RemoveRange(db2.Fotos.Where(f => f.RelatorioId == r.Id));
-                                db2.Relatorios.Remove(r);
+                                var now = DateTime.UtcNow;
+                                if (r.IsSynced)
+                                {
+                                    // Soft-delete: propaga para API e outras máquinas no próximo sync
+                                    r.IsDeleted = true;
+                                    r.UpdatedAt = now;
+                                    r.IsSynced = false;
+                                    foreach (var x in db2.Climas.Where(c => c.RelatorioId == r.Id).ToList())
+                                        { x.IsDeleted = true; x.UpdatedAt = now; }
+                                    foreach (var x in db2.Atividades.Where(a => a.RelatorioId == r.Id).ToList())
+                                        { x.IsDeleted = true; x.UpdatedAt = now; }
+                                    foreach (var x in db2.Ocorrencias.Where(o => o.RelatorioId == r.Id).ToList())
+                                        { x.IsDeleted = true; x.UpdatedAt = now; }
+                                    foreach (var x in db2.Assinaturas.Where(a => a.RelatorioId == r.Id).ToList())
+                                        { x.IsDeleted = true; x.UpdatedAt = now; }
+                                    foreach (var x in db2.Fotos.Where(f => f.RelatorioId == r.Id).ToList())
+                                        { x.IsDeleted = true; x.UpdatedAt = now; }
+                                }
+                                else
+                                {
+                                    // Rascunho local — nunca chegou à API, hard-delete é seguro
+                                    db2.Climas.RemoveRange(db2.Climas.Where(c => c.RelatorioId == r.Id));
+                                    db2.Atividades.RemoveRange(db2.Atividades.Where(a => a.RelatorioId == r.Id));
+                                    db2.Ocorrencias.RemoveRange(db2.Ocorrencias.Where(o => o.RelatorioId == r.Id));
+                                    db2.Assinaturas.RemoveRange(db2.Assinaturas.Where(a => a.RelatorioId == r.Id));
+                                    db2.Fotos.RemoveRange(db2.Fotos.Where(f => f.RelatorioId == r.Id));
+                                    db2.Relatorios.Remove(r);
+                                }
                                 db2.SaveChanges();
                             }
                             capturedListaPanel.Children.Remove(capturedBorder);

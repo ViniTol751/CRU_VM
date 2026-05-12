@@ -506,7 +506,7 @@ namespace RDO.App.Views
                 {
                     using var db = new RdoDbContext(DbContextHelper.GetOptions());
                     var item = await db.Obras.FindAsync(o.Id);
-                    if (item != null) { item.Ativo = false; await db.SaveChangesAsync(); }
+                    if (item != null) { item.Ativo = false; item.UpdatedAt = DateTime.UtcNow; await db.SaveChangesAsync(); }
                     _ = FiltrarObrasAsync(BuscaObrasBox?.Text ?? "");
                 }
                 catch (Exception ex)
@@ -782,7 +782,7 @@ namespace RDO.App.Views
                 {
                     using var db = new RdoDbContext(DbContextHelper.GetOptions());
                     var item = await db.Funcionarios.FindAsync(f.Id);
-                    if (item != null) { item.Ativo = false; await db.SaveChangesAsync(); }
+                    if (item != null) { item.Ativo = false; item.UpdatedAt = DateTime.UtcNow; await db.SaveChangesAsync(); }
                     _ = FiltrarFuncionariosAsync(BuscaFuncionariosBox?.Text ?? "");
                 }
                 catch (Exception ex)

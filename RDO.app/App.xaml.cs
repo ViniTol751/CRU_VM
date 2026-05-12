@@ -138,7 +138,11 @@ namespace RDO.App
                     db.Database.ExecuteSqlRaw(
                         $"INSERT OR IGNORE INTO \"__EFMigrationsHistory\" " +
                         $"(\"MigrationId\", \"ProductVersion\") VALUES ('{migId}', '8.0.0')");
-                
+
+                // Banco recriado do zero — reset do estado de sync para forçar full resync.
+                // Sem isso, o sync_state.json antigo faria o próximo sync puxar só dados recentes,
+                // deixando projetos/usuários antigos ausentes e causando FOREIGN KEY constraint failed.
+                ResetSyncState();
                 System.Diagnostics.Debug.WriteLine("[DB-INIT] ✓ EnsureCreated concluído");
             }
             else
@@ -257,6 +261,22 @@ namespace RDO.App
                 {
                     System.Diagnostics.Debug.WriteLine($"[DB-INIT] ⚠️ Erro ao garantir {tabela}.{coluna}: {ex.Message}");
                 }
+            }
+        }
+
+        private static void ResetSyncState()
+        {
+            var stateFile = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "RDOApp", "sync_state.json");
+            try
+            {
+                if (File.Exists(stateFile)) File.Delete(stateFile);
+                System.Diagnostics.Debug.WriteLine("[DB-INIT] ✓ sync_state.json resetado");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DB-INIT] ⚠️ Não foi possível resetar sync_state: {ex.Message}");
             }
         }
 
