@@ -17,5 +17,8 @@ obj/
 # Environment — nunca commitar arquivos com credenciais reais
 appsettings.Development.json
 appsettings.Production.json
+# Instalador gerado (muito grande para GitHub)
+Instalador/Output/
+
 # Added by code-review-graph
 .code-review-graph/
