@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 namespace RDO.Data.Models;
 
 public class ReportCompanion : ILocalSyncEntity
@@ -13,7 +12,7 @@ public class ReportCompanion : ILocalSyncEntity
     public Companion? Companion { get; set; }
 
     // Compatibilidade português
-    [NotMapped] public int RelatorioId { get => ReportId; set => ReportId = value; }
-    [NotMapped] public int AcompanhanteId { get => CompanionId; set => CompanionId = value; }
-    [NotMapped] public Companion? Acompanhante { get => Companion; set => Companion = value; }
+    public int RelatorioId { get => ReportId; set => ReportId = value; }
+    public int AcompanhanteId { get => CompanionId; set => CompanionId = value; }
+    public Companion? Acompanhante { get => Companion; set => Companion = value; }
 }
