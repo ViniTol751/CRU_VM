@@ -26,8 +26,11 @@ namespace RDO.App
             "20260409180159_InitialCreate",
             "20260410132443_TornarCPFOpcional",
             "20260413161819_AddSyncQueue",
+            "20260413200000_RemoveSyncQueue",
             "20260414170010_AddResponsavelCliente",
             "20260414193159_AddPhotoTypeForSQLite",
+            "20260414200000_AddReportCompanionAliasColumns",
+            "20260414210000_AddPhotoType",
             "20260415120000_AddCreaToProject",
             "20260416100000_AddRevisaoToReport",
         };
@@ -219,6 +222,7 @@ namespace RDO.App
                 ("Project",   "ResponsavelCliente",  "TEXT NOT NULL DEFAULT ''"),
                 ("Companion", "EmpresaId",            "INTEGER NULL"),
                 ("Activity",  "ParentId",             "INTEGER NULL"),
+                ("Photo",     "Type",                "TEXT NOT NULL DEFAULT 'photo'"),
             };
 
             foreach (var (tabela, coluna, definicao) in colunas)

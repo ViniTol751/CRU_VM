@@ -10,12 +10,10 @@ namespace RDO.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "Type",
-                table: "Photo",
-                type: "text",
-                nullable: false,
-                defaultValue: "photo");
+            // A coluna Type já foi adicionada por AddPhotoTypeForSQLite (20260414193159).
+            // Apenas corrige registros com valor vazio gerado pelo default "" daquela migration.
+            migrationBuilder.Sql(
+                "UPDATE \"Photo\" SET \"Type\" = 'photo' WHERE \"Type\" = '' OR \"Type\" IS NULL");
         }
 
         /// <inheritdoc />

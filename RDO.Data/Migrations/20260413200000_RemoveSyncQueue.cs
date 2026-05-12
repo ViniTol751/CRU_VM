@@ -10,7 +10,8 @@ namespace RDO.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(name: "SyncQueue");
+            // IF EXISTS evita falha em bancos SQLite onde SyncQueue nunca foi criada
+            migrationBuilder.Sql("DROP TABLE IF EXISTS \"SyncQueue\"");
         }
 
         /// <inheritdoc />

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 namespace RDO.Data.Models;
 
 public class Companion : ILocalSyncEntity
@@ -10,12 +11,12 @@ public class Companion : ILocalSyncEntity
     public bool IsActive { get; set; } = true;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; } = false;
-
-    // Compatibilidade portugu�s
-    public string Nome { get => Name; set => Name = value; }
-    public string Cargo { get => Role; set => Role = value; }
-    public string Grupo { get => Group; set => Group = value; }
-    public string Contato { get => Contact; set => Contact = value; }
-    public bool Ativo { get => IsActive; set => IsActive = value; }
     public int? EmpresaId { get; set; }
+
+    // Compatibilidade português
+    [NotMapped] public string Nome { get => Name; set => Name = value; }
+    [NotMapped] public string Cargo { get => Role; set => Role = value; }
+    [NotMapped] public string Grupo { get => Group; set => Group = value; }
+    [NotMapped] public string Contato { get => Contact; set => Contact = value; }
+    [NotMapped] public bool Ativo { get => IsActive; set => IsActive = value; }
 }

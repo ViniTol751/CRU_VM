@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 namespace RDO.Data.Models;
 
 public class User : ILocalSyncEntity
@@ -13,8 +14,10 @@ public class User : ILocalSyncEntity
     public bool IsDeleted { get; set; } = false;
     [JsonIgnore] public ICollection<ProjectMember> Projects { get; set; } = new List<ProjectMember>();
     [JsonIgnore] public ICollection<Report> Reports { get; set; } = new List<Report>();
-    public string Nome { get => Name; set => Name = value; }
-    public string SenhaHash { get => PasswordHash; set => PasswordHash = value; }
-    public string Perfil { get => Profile; set => Profile = value; }
-    public bool Ativo { get => IsActive; set => IsActive = value; }
+
+    // Compatibilidade português
+    [NotMapped] public string Nome { get => Name; set => Name = value; }
+    [NotMapped] public string SenhaHash { get => PasswordHash; set => PasswordHash = value; }
+    [NotMapped] public string Perfil { get => Profile; set => Profile = value; }
+    [NotMapped] public bool Ativo { get => IsActive; set => IsActive = value; }
 }
