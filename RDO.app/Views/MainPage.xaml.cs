@@ -519,7 +519,7 @@ namespace RDO.App.Views
             var (obras, empPorGrupo, rdoCounts, rascunhoCounts, rdosMes) = await Task.Run(() =>
             {
                 using var db = new RdoDbContext(DbContextHelper.GetOptions());
-                var o = db.Obras.Where(x => x.IsActive).ToList();
+                var o = db.Obras.Where(x => x.IsActive && !x.IsDeleted).ToList();
 
                 var empresas = db.Empresas.Where(e => e.IsActive).ToList();
                 var epg = new Dictionary<string, RDO.Data.Models.Empresa>(StringComparer.OrdinalIgnoreCase);
@@ -531,17 +531,17 @@ namespace RDO.App.Views
 
                 var obraIds = o.Select(x => x.Id).ToList();
                 var rdc = db.Relatorios
-                    .Where(r => !r.Rascunho && obraIds.Contains(r.ObraId))
+                    .Where(r => !r.Rascunho && !r.IsDeleted && obraIds.Contains(r.ObraId))
                     .GroupBy(r => r.ObraId)
                     .ToDictionary(g => g.Key, g => g.Count());
                 var rsc = db.Relatorios
-                    .Where(r => r.Rascunho && obraIds.Contains(r.ObraId))
+                    .Where(r => r.Rascunho && !r.IsDeleted && obraIds.Contains(r.ObraId))
                     .GroupBy(r => r.ObraId)
                     .ToDictionary(g => g.Key, g => true);
 
                 var agora = DateTime.Now;
                 var rdosMesCount = db.Relatorios
-                    .Where(r => !r.Rascunho)
+                    .Where(r => !r.Rascunho && !r.IsDeleted)
                     .ToList()
                     .Count(r => r.Data.Year == agora.Year && r.Data.Month == agora.Month);
 

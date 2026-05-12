@@ -355,7 +355,6 @@
                                             <ColumnDefinition Width="200"/>
                                             <ColumnDefinition Width="120"/>
                                             <ColumnDefinition Width="160"/>
-                                            <ColumnDefinition Width="140"/>
                                             <ColumnDefinition Width="170"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="90"/>
@@ -412,26 +411,14 @@
                                             <TextBlock Text="RESP. CLIENTE"
                    FontSize="9" FontWeight="SemiBold"
                    Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="100"/>
-                                            <TextBlock Text="{Binding Contratante}"
-                   FontSize="13" Foreground="{ThemeResource TextTertiaryBrush}"
-                   Margin="0,4,0,0"
-                   TextTrimming="CharacterEllipsis"/>
-                                        </StackPanel>
-
-                                        <!-- Tipo Contrato -->
-                                        <StackPanel Grid.Column="5" Spacing="4"
-                Padding="12,14" VerticalAlignment="Center">
-                                            <TextBlock Text="TIPO CONTRATO"
-                   FontSize="9" FontWeight="SemiBold"
-                   Foreground="{ThemeResource TextSecondaryBrush}" CharacterSpacing="100"/>
-                                            <TextBlock Text="{Binding TipoContrato}"
+                                            <TextBlock Text="{Binding ResponsavelCliente}"
                    FontSize="13" Foreground="{ThemeResource TextTertiaryBrush}"
                    Margin="0,4,0,0"
                    TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
 
                                         <!-- Responsável Focus -->
-                                        <StackPanel Grid.Column="6" Spacing="4"
+                                        <StackPanel Grid.Column="5" Spacing="4"
                 Padding="12,14" VerticalAlignment="Center">
                                             <TextBlock Text="RESP. FOCUS"
                    FontSize="9" FontWeight="SemiBold"
@@ -443,7 +430,7 @@
                                         </StackPanel>
 
                                         <!-- Período -->
-                                        <StackPanel Grid.Column="7" Spacing="4"
+                                        <StackPanel Grid.Column="6" Spacing="4"
                 Padding="12,14" VerticalAlignment="Center">
                                             <TextBlock Text="PERÍODO"
                    FontSize="9" FontWeight="SemiBold"
@@ -456,7 +443,7 @@
                                         </StackPanel>
 
                                         <!-- Botões -->
-                                        <StackPanel Grid.Column="8" Orientation="Horizontal"
+                                        <StackPanel Grid.Column="7" Orientation="Horizontal"
                 Spacing="6" Margin="0,0,12,0"
                 VerticalAlignment="Center">
                                             <Button Content="✏" Width="34" Height="34"

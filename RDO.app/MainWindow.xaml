@@ -4,7 +4,27 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="RDO">
+
     <Grid>
+        <Grid.Resources>
+            <!-- Template minimal — hover controlado via code-behind -->
+            <ControlTemplate x:Key="CaptionBtnTemplate" TargetType="Button">
+                <Border Background="{TemplateBinding Background}">
+                    <ContentPresenter Foreground="{TemplateBinding Foreground}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+            </ControlTemplate>
+
+            <Style x:Key="CaptionBtnStyle" TargetType="Button">
+                <Setter Property="Background"      Value="Transparent"/>
+                <Setter Property="Foreground"      Value="{ThemeResource TextPrimaryBrush}"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding"         Value="0"/>
+                <Setter Property="Width"           Value="46"/>
+                <Setter Property="Height"          Value="44"/>
+                <Setter Property="Template"        Value="{StaticResource CaptionBtnTemplate}"/>
+            </Style>
+        </Grid.Resources>
         <!-- Frame ocupa toda a altura da janela -->
         <Frame x:Name="RootFrame"/>
 
@@ -16,7 +36,7 @@
                 <RowDefinition Height="1"/>
             </Grid.RowDefinitions>
 
-            <!-- Fundo sólido — visível fora do login, oculto no login -->
+            <!-- Fundo sólido — visível fora do login -->
             <Rectangle x:Name="TitleBarBg" Grid.Row="0"
                        Fill="{ThemeResource NavBgBrush}"/>
 
@@ -30,6 +50,39 @@
                            FontSize="12" FontWeight="SemiBold"
                            Foreground="{ThemeResource TextSecondaryBrush}"
                            VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Botões de caption customizados (min / max / fechar) -->
+            <StackPanel x:Name="CaptionButtons" Grid.Row="0"
+                        Orientation="Horizontal" HorizontalAlignment="Right"
+                        VerticalAlignment="Top">
+                <Button x:Name="BtnMinimize" Style="{StaticResource CaptionBtnStyle}"
+                        ToolTipService.ToolTip="Minimizar" Click="BtnMinimize_Click"
+                        PointerEntered="CaptionBtn_PointerEntered"
+                        PointerExited="CaptionBtn_PointerExited"
+                        PointerPressed="CaptionBtn_PointerPressed"
+                        PointerReleased="CaptionBtn_PointerReleased">
+                    <FontIcon Glyph="&#xE921;" FontSize="10"
+                              Foreground="{ThemeResource TextPrimaryBrush}"/>
+                </Button>
+                <Button x:Name="BtnMaximize" Style="{StaticResource CaptionBtnStyle}"
+                        ToolTipService.ToolTip="Maximizar" Click="BtnMaximize_Click"
+                        PointerEntered="CaptionBtn_PointerEntered"
+                        PointerExited="CaptionBtn_PointerExited"
+                        PointerPressed="CaptionBtn_PointerPressed"
+                        PointerReleased="CaptionBtn_PointerReleased">
+                    <FontIcon x:Name="MaxRestoreIcon" Glyph="&#xE922;" FontSize="10"
+                              Foreground="{ThemeResource TextPrimaryBrush}"/>
+                </Button>
+                <Button x:Name="BtnClose" Style="{StaticResource CaptionBtnStyle}"
+                        ToolTipService.ToolTip="Fechar" Click="BtnClose_Click"
+                        PointerEntered="CloseBtn_PointerEntered"
+                        PointerExited="CloseBtn_PointerExited"
+                        PointerPressed="CloseBtn_PointerPressed"
+                        PointerReleased="CloseBtn_PointerReleased">
+                    <FontIcon x:Name="CloseIcon" Glyph="&#xE8BB;" FontSize="10"
+                              Foreground="{ThemeResource TextPrimaryBrush}"/>
+                </Button>
             </StackPanel>
 
             <!-- Linha divisória inferior — visível fora do login -->
