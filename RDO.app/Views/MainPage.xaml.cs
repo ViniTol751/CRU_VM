@@ -168,8 +168,10 @@ namespace RDO.App.Views
                 {
                     AtualizarSyncUI(SyncEstado.Sincronizado,
                         $"↑{resultado.PushedInserted + resultado.PushedUpdated}  ↓{resultado.PulledRecords}");
-                    // Notifica CadastrosPage para recarregar na próxima visita
                     CadastrosPage.PendingRefresh = true;
+                    // Se o usuário já está em CadastrosPage, recarrega a aba imediatamente
+                    if (Frame.Content is CadastrosPage cadastrosAtivo)
+                        cadastrosAtivo.RefreshFromSync();
                     if (_mostraMeusRelatorios) CarregarMeusRelatorios();
                     else CarregarObras();
                     // Atualiza rascunhos se o painel estiver aberto
@@ -647,7 +649,7 @@ namespace RDO.App.Views
                     .ToHashSet();
 
                 var relatorios = db.Relatorios
-                    .Where(r => !r.Rascunho && r.Status != "Rascunho")
+                    .Where(r => !r.Rascunho && !r.IsDeleted && r.Status != "Rascunho")
                     .OrderByDescending(r => r.Data)
                     .ToList()
                     .Where(r => obraIds.Contains(r.ObraId))
@@ -871,7 +873,7 @@ namespace RDO.App.Views
         {
             using var db = new RdoDbContext(DbContextHelper.GetOptions());
             var relatoriosBd = db.Relatorios
-                .Where(r => r.ObraId == obra.Id && !r.Rascunho)
+                .Where(r => r.ObraId == obra.Id && !r.Rascunho && !r.IsDeleted)
                 .OrderByDescending(r => r.Data)
                 .ToList()
                 .Select(r => new MeuRelatorioViewModel
@@ -1273,13 +1275,14 @@ namespace RDO.App.Views
                             var r = db2.Relatorios.Find(capturedRel.Id);
                             if (r != null)
                             {
-                                var now = DateTime.UtcNow;
+                                var now = SyncService.GetPushTimestamp();
                                 if (r.IsSynced)
                                 {
                                     // Soft-delete: propaga para API e outras máquinas no próximo sync
                                     r.IsDeleted = true;
                                     r.UpdatedAt = now;
                                     r.IsSynced = false;
+                                    RDO.app.Services.SyncLogger.LogDebug($"[DELETE-REPORT] id={r.Id} updatedAt={now:O} since={SyncService.LoadLastSyncTime():O}");
                                     foreach (var x in db2.Climas.Where(c => c.RelatorioId == r.Id).ToList())
                                         { x.IsDeleted = true; x.UpdatedAt = now; }
                                     foreach (var x in db2.Atividades.Where(a => a.RelatorioId == r.Id).ToList())
@@ -1319,7 +1322,7 @@ namespace RDO.App.Views
 
             // ── GALERIA DE FOTOS ─────────────────────────────────────────
             var relIdsGal = db.Relatorios
-                .Where(r => r.ObraId == obra.Id && !r.Rascunho)
+                .Where(r => r.ObraId == obra.Id && !r.Rascunho && !r.IsDeleted)
                 .Select(r => r.Id).ToList();
 
             // Carrega fotos e mapeia para o número do RDO
@@ -1436,7 +1439,7 @@ namespace RDO.App.Views
 
             // ── HISTÓRICO DE ATIVIDADE ──────────────────────────────────
             var histRelatorios = db.Relatorios
-                .Where(r => r.ObraId == obra.Id)
+                .Where(r => r.ObraId == obra.Id && !r.IsDeleted)
                 .OrderBy(r => r.CriadoEm)
                 .ToList();
 

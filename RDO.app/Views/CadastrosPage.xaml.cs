@@ -2,6 +2,7 @@
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using RDO.App.Services;
+using RDO.app.Services;
 using RDO.Data.Data;
 using RDO.Data.Models;
 using System;
@@ -84,6 +85,9 @@ namespace RDO.App.Views
             else
                 RecarregarAbaAtual();
         }
+
+        // Chamado pelo MainPage após sync bem-sucedido quando esta página já está ativa
+        public void RefreshFromSync() => RecarregarAbaAtual();
 
         // Força recarga da aba visível (após CRUD global)
         private void RecarregarAbaAtual()
@@ -220,7 +224,7 @@ namespace RDO.App.Views
                 {
                     using var db = new RdoDbContext(DbContextHelper.GetOptions());
                     var item = await db.Empresas.FindAsync(empresa.Id);
-                    if (item != null) { item.IsActive = false; item.UpdatedAt = DateTime.UtcNow; await db.SaveChangesAsync(); }
+                    if (item != null) { item.IsActive = false; item.UpdatedAt = SyncService.GetPushTimestamp(); await db.SaveChangesAsync(); }
                     _ = FiltrarEmpresasAsync(BuscaEmpresasBox?.Text ?? "");
                     AtualizarBannerSemEmpresas();
                 }
@@ -515,7 +519,14 @@ namespace RDO.App.Views
                 {
                     using var db = new RdoDbContext(DbContextHelper.GetOptions());
                     var item = await db.Obras.FindAsync(o.Id);
-                    if (item != null) { item.Ativo = false; item.UpdatedAt = DateTime.UtcNow; await db.SaveChangesAsync(); }
+                    if (item != null)
+                    {
+                        var ts = SyncService.GetPushTimestamp();
+                        var since = SyncService.LoadLastSyncTime();
+                        item.Ativo = false; item.IsDeleted = true; item.UpdatedAt = ts;
+                        await db.SaveChangesAsync();
+                        RDO.app.Services.SyncLogger.LogDebug($"[DELETE-OBRA] id={item.Id} updatedAt={ts:O} since={since:O} incluiNoProximoPush={ts >= since}");
+                    }
                     _ = FiltrarObrasAsync(BuscaObrasBox?.Text ?? "");
                 }
                 catch (Exception ex)
@@ -791,7 +802,7 @@ namespace RDO.App.Views
                 {
                     using var db = new RdoDbContext(DbContextHelper.GetOptions());
                     var item = await db.Funcionarios.FindAsync(f.Id);
-                    if (item != null) { item.Ativo = false; item.UpdatedAt = DateTime.UtcNow; await db.SaveChangesAsync(); }
+                    if (item != null) { item.Ativo = false; item.IsDeleted = true; item.UpdatedAt = SyncService.GetPushTimestamp(); await db.SaveChangesAsync(); }
                     _ = FiltrarFuncionariosAsync(BuscaFuncionariosBox?.Text ?? "");
                 }
                 catch (Exception ex)
@@ -1008,7 +1019,7 @@ namespace RDO.App.Views
                 {
                     using var db = new RdoDbContext(DbContextHelper.GetOptions());
                     var item = await db.EquipamentosCadastrados.FindAsync(eq.Id);
-                    if (item != null) { item.Ativo = false; item.UpdatedAt = DateTime.UtcNow; await db.SaveChangesAsync(); }
+                    if (item != null) { item.Ativo = false; item.IsDeleted = true; item.UpdatedAt = SyncService.GetPushTimestamp(); await db.SaveChangesAsync(); }
                     RecarregarAbaAtual();
                 }
                 catch (Exception ex)
@@ -1339,7 +1350,7 @@ namespace RDO.App.Views
                 {
                     using var db = new RdoDbContext(DbContextHelper.GetOptions());
                     var a = await db.Acompanhantes.FindAsync(item.Id);
-                    if (a != null) { a.Ativo = false; a.UpdatedAt = DateTime.UtcNow; await db.SaveChangesAsync(); }
+                    if (a != null) { a.Ativo = false; a.IsDeleted = true; a.UpdatedAt = SyncService.GetPushTimestamp(); await db.SaveChangesAsync(); }
                     RecarregarAbaAtual();
                 }
                 catch (Exception ex)

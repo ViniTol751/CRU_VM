@@ -132,7 +132,8 @@ public class SyncController : ControllerBase
                 _context.Entry(item).State = EntityState.Added;
                 ins++;
             }
-            else if (item.UpdatedAt.ToUniversalTime() >= found.UpdatedAt.ToUniversalTime())
+            else if (item.UpdatedAt.ToUniversalTime() >= found.UpdatedAt.ToUniversalTime()
+                     || (item.IsDeleted && !found.IsDeleted))
             {
                 item.UpdatedAt = serverNow;
                 _context.Entry(item).State = EntityState.Modified;

@@ -190,15 +190,14 @@ public class SyncService
             .Select(r => r.Id)
             .ToListAsync();
 
-        // Usa >= em vez de > para incluir registros com UpdatedAt exatamente igual ao since
         var payload = new SyncPushPayload
         {
-            Projects         = await db.Projects.Where(x => x.UpdatedAt >= since).ToListAsync(),
+            Projects         = await db.Projects.Where(x => x.UpdatedAt >= since || !x.IsActive || x.IsDeleted).ToListAsync(),
             Users            = await db.Users.Where(x => x.UpdatedAt >= since).ToListAsync(),
-            Employees        = await db.Employees.Where(x => x.UpdatedAt >= since).ToListAsync(),
-            Equipments       = await db.Equipments.Where(x => x.UpdatedAt >= since).ToListAsync(),
-            Companions       = await db.Companions.Where(x => x.UpdatedAt >= since).ToListAsync(),
-            Reports          = await db.Reports.Where(x => x.UpdatedAt >= since || !x.IsSynced).ToListAsync(),
+            Employees        = await db.Employees.Where(x => x.UpdatedAt >= since || !x.IsActive || x.IsDeleted).ToListAsync(),
+            Equipments       = await db.Equipments.Where(x => x.UpdatedAt >= since || !x.IsActive || x.IsDeleted).ToListAsync(),
+            Companions       = await db.Companions.Where(x => x.UpdatedAt >= since || !x.IsActive || x.IsDeleted).ToListAsync(),
+            Reports          = await db.Reports.Where(x => x.UpdatedAt >= since || !x.IsSynced || x.IsDeleted).ToListAsync(),
             WeatherDetails   = await db.WeatherDetails.Where(x => x.UpdatedAt >= since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
             Activities       = await db.Activities.Where(x => x.UpdatedAt >= since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
             Occurrences      = await db.Occurrences.Where(x => x.UpdatedAt >= since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
@@ -208,10 +207,15 @@ public class SyncService
             ProjectMembers   = await db.ProjectMembers.Where(x => x.UpdatedAt >= since).ToListAsync(),
             ReportEquipments = await db.ReportEquipments.Where(x => x.UpdatedAt >= since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
             ReportCompanions = await db.ReportCompanions.Where(x => x.UpdatedAt >= since || unsyncedReportIds.Contains(x.ReportId)).ToListAsync(),
-            Empresas         = await db.Empresas.Where(x => x.UpdatedAt >= since).ToListAsync(),
+            Empresas         = await db.Empresas.Where(x => x.UpdatedAt >= since || !x.IsActive || x.IsDeleted).ToListAsync(),
         };
 
         System.Diagnostics.Debug.WriteLine("PUSH payload: " + payload.Reports.Count + " reports, unsyncedIds: " + string.Join(",", unsyncedReportIds));
+        SyncLogger.LogDebug($"[PUSH] since={since:O} | projects={payload.Projects.Count} reports={payload.Reports.Count}");
+        foreach (var p in payload.Projects.Where(p => !p.IsActive || p.IsDeleted))
+            SyncLogger.LogDebug($"[PUSH] project #{p.Id} isActive={p.IsActive} isDeleted={p.IsDeleted} updatedAt={p.UpdatedAt:O}");
+        foreach (var r in payload.Reports.Where(r => r.IsDeleted))
+            SyncLogger.LogDebug($"[PUSH] report #{r.Id} isDeleted={r.IsDeleted} isSynced={r.IsSynced} updatedAt={r.UpdatedAt:O}");
 
         var swPush = System.Diagnostics.Stopwatch.StartNew();
         HttpResponseMessage pushResponse;
@@ -369,6 +373,19 @@ public class SyncService
                 gotServerTime = true;
             }
 
+            if (table == "projects")
+            {
+                SyncLogger.LogDebug($"[PULL] projects received={payload.Projects.Count} since={sinceStr}");
+                foreach (var p in payload.Projects.Where(p => !p.IsActive || p.IsDeleted))
+                    SyncLogger.LogDebug($"[PULL] project #{p.Id} isActive={p.IsActive} isDeleted={p.IsDeleted} updatedAt={p.UpdatedAt:O}");
+            }
+            if (table == "reports")
+            {
+                SyncLogger.LogDebug($"[PULL] reports received={payload.Reports.Count}");
+                foreach (var r in payload.Reports.Where(r => r.IsDeleted))
+                    SyncLogger.LogDebug($"[PULL] report #{r.Id} isDeleted={r.IsDeleted} updatedAt={r.UpdatedAt:O}");
+            }
+
             try
             {
                 total += table switch
@@ -511,7 +528,8 @@ public class SyncService
                 db.Entry(item).State = Microsoft.EntityFrameworkCore.EntityState.Added;
                 count++;
             }
-            else if (item.UpdatedAt.ToUniversalTime() >= existing.UpdatedAt.ToUniversalTime())
+            else if (item.UpdatedAt.ToUniversalTime() >= existing.UpdatedAt.ToUniversalTime()
+                     || (item.IsDeleted && !existing.IsDeleted))
             {
                 applyChanges(existing, item);
                 existing.UpdatedAt = item.UpdatedAt;
@@ -520,6 +538,17 @@ public class SyncService
             }
         }
         return count;
+    }
+
+    // Retorna um timestamp garantidamente > lastSync para usar em UpdatedAt ao deletar/editar.
+    // Evita que o relógio da máquina (ligeiramente atrás do servidor) faça o registro
+    // não entrar no filtro `UpdatedAt >= since` do push.
+    public static DateTime GetPushTimestamp()
+    {
+        var lastSync = LoadLastSyncTime();
+        var now      = DateTime.UtcNow;
+        return lastSync == DateTime.MinValue ? now
+            : new DateTime(Math.Max(now.Ticks, lastSync.AddSeconds(1).Ticks), DateTimeKind.Utc);
     }
 
     // Apaga todos os dados locais e reseta o timestamp de sync.
@@ -549,7 +578,7 @@ public class SyncService
     public static bool IsNetworkAvailable() =>
         NetworkInterface.GetIsNetworkAvailable();
 
-    private DateTime LoadLastSyncTime()
+    public static DateTime LoadLastSyncTime()
     {
         try
         {
@@ -564,7 +593,7 @@ public class SyncService
             SyncLogger.LogError(new SyncLogEntry
             {
                 Operation = "LoadLastSyncTime", ErrorCode = "SYNC-STATE-READ",
-                ErrorType = ex.GetType().Name, ApiUrl = _apiBaseUrl,
+                ErrorType = ex.GetType().Name,
                 UserMessage = "Falha ao ler estado de sincronização local.",
                 TechnicalDetail = ex.Message, StackTrace = ex.StackTrace ?? "",
                 Diagnosis = $"• Verifique permissões em: {StateFilePath}"

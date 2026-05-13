@@ -82,6 +82,17 @@ public static class SyncLogger
         catch { }
     }
 
+    public static void LogDebug(string message)
+    {
+        try
+        {
+            EnsureDirectory();
+            var line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [DBG] {message}{Environment.NewLine}";
+            File.AppendAllText(DailyFilePath(), line, Encoding.UTF8);
+        }
+        catch { }
+    }
+
     public static string GetLogDirectory() => LogDirectory;
 
     private static string DailyFilePath() =>

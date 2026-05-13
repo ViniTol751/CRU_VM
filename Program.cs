@@ -68,11 +68,11 @@ builder.Services.AddRateLimiter(options =>
         o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
     });
 
-    // API geral: 300 req/min por IP
+    // API geral: 1000 req/min por IP
     options.AddFixedWindowLimiter("api", o =>
     {
         o.Window            = TimeSpan.FromMinutes(1);
-        o.PermitLimit       = 300;
+        o.PermitLimit       = 1000;
         o.QueueLimit        = 0;
         o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
     });
