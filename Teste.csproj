@@ -17,6 +17,10 @@
     <Content Remove="Tests\**" />
     <EmbeddedResource Remove="Tests\**" />
     <None Remove="Tests\**" />
+    <Compile Remove="_tmp_gendb\**" />
+    <Content Remove="_tmp_gendb\**" />
+    <EmbeddedResource Remove="_tmp_gendb\**" />
+    <None Remove="_tmp_gendb\**" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />

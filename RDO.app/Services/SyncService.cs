@@ -287,6 +287,10 @@ public class SyncService
         };
 
         using var db = new RdoDbContext(DbContextHelper.GetOptions());
+        // FK enforcement é por-conexão. Desabilita durante o pull porque o servidor pode omitir
+        // companions/projects soft-deleted que reports ainda referenciam, causando SQLITE_CONSTRAINT_FOREIGNKEY.
+        // A ordem de pull (projects→users→companions→reports) já garante consistência para dados novos.
+        db.Database.ExecuteSqlRaw("PRAGMA foreign_keys=OFF;");
         int      total         = 0;
         DateTime serverTime    = DateTime.UtcNow;
         bool     gotServerTime = false;
@@ -516,6 +520,30 @@ public class SyncService
             }
         }
         return count;
+    }
+
+    // Apaga todos os dados locais e reseta o timestamp de sync.
+    // Na próxima chamada a SyncAsync(), um pull completo traz tudo do servidor.
+    public static async Task ResetLocalDataAsync()
+    {
+        await Task.Run(() =>
+        {
+            using var db = new RdoDbContext(DbContextHelper.GetOptions());
+            db.Database.ExecuteSqlRaw("PRAGMA foreign_keys=OFF;");
+            // Filhos primeiro (dependem de FK), depois pais
+            foreach (var table in new[]
+            {
+                "ReportCompanion", "ReportEquipment", "EmployeePresence",
+                "Signature", "Photo", "Material", "Occurrence", "Activity", "WeatherDetail",
+                "Report", "ProjectMember",
+                "Companion", "Equipment", "Employee", "User", "Project", "Empresas"
+            })
+                db.Database.ExecuteSqlRaw($"DELETE FROM \"{table}\"");
+            db.Database.ExecuteSqlRaw("PRAGMA foreign_keys=ON;");
+        });
+
+        // Reseta o timestamp — próximo pull traz tudo desde o início
+        if (File.Exists(StateFilePath)) File.Delete(StateFilePath);
     }
 
     public static bool IsNetworkAvailable() =>

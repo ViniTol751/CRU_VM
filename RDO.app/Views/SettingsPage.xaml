@@ -435,6 +435,48 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Seção: Manutenção -->
+                <Border Background="{ThemeResource PanelBgBrush}"
+                        BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"
+                        CornerRadius="8" Padding="20">
+                    <StackPanel Spacing="16">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon Glyph="&#xE7BA;" FontSize="18"
+                                      Foreground="#CC3A3A"/>
+                            <TextBlock Text="Manutenção" FontSize="15" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <TextBlock Text="Limpar banco local e ressincronizar"
+                                           FontSize="13" FontWeight="SemiBold"
+                                           Foreground="{ThemeResource TextPrimaryBrush}"/>
+                                <TextBlock Text="Remove todos os dados locais e força um download completo do servidor na próxima sincronização. Use para corrigir inconsistências entre máquinas."
+                                           FontSize="11" Foreground="{ThemeResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    x:Name="BtnResetBanco"
+                                    Content="Limpar"
+                                    Height="36" Padding="14,0"
+                                    Background="#CC3A3A"
+                                    BorderThickness="0"
+                                    Foreground="White"
+                                    FontSize="12"
+                                    CornerRadius="6"
+                                    Margin="16,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Click="BtnResetBanco_Click"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
                 <!-- Seção: Aparência -->
                 <Border Background="{ThemeResource PanelBgBrush}"
                         BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1"

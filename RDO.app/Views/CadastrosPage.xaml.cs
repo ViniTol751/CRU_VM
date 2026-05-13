@@ -37,6 +37,9 @@ namespace RDO.App.Views
 
     public sealed partial class CadastrosPage : Page
     {
+        // Sinaliza que um sync ocorreu e a próxima visita deve forçar reload de todas as abas
+        internal static bool PendingRefresh { get; set; }
+
         private const string EmpresaPadrao = "Focus Engenharia Elétrica";
         private CadastrosParams? _params;
         private string _abaAtual = "Obras";
@@ -91,6 +94,12 @@ namespace RDO.App.Views
 
         private void CarregarAbaSeNecessario(string aba)
         {
+            // Sync ocorreu enquanto esta página estava em memória — descarta cache de todas as abas
+            if (PendingRefresh)
+            {
+                _abasCarregadas.Clear();
+                PendingRefresh = false;
+            }
             if (_abasCarregadas.Contains(aba)) return;
             _abasCarregadas.Add(aba);
             switch (aba)
@@ -999,7 +1008,7 @@ namespace RDO.App.Views
                 {
                     using var db = new RdoDbContext(DbContextHelper.GetOptions());
                     var item = await db.EquipamentosCadastrados.FindAsync(eq.Id);
-                    if (item != null) { item.Ativo = false; await db.SaveChangesAsync(); }
+                    if (item != null) { item.Ativo = false; item.UpdatedAt = DateTime.UtcNow; await db.SaveChangesAsync(); }
                     RecarregarAbaAtual();
                 }
                 catch (Exception ex)
@@ -1330,7 +1339,7 @@ namespace RDO.App.Views
                 {
                     using var db = new RdoDbContext(DbContextHelper.GetOptions());
                     var a = await db.Acompanhantes.FindAsync(item.Id);
-                    if (a != null) { a.Ativo = false; await db.SaveChangesAsync(); }
+                    if (a != null) { a.Ativo = false; a.UpdatedAt = DateTime.UtcNow; await db.SaveChangesAsync(); }
                     RecarregarAbaAtual();
                 }
                 catch (Exception ex)

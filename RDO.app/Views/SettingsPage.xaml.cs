@@ -56,6 +56,53 @@ namespace RDO.App.Views
             AtualizarTemaTexto();
         }
 
+        private async void BtnResetBanco_Click(object sender, RoutedEventArgs e)
+        {
+            var confirm = new ContentDialog
+            {
+                Title = "Limpar banco local?",
+                Content = "Todos os dados locais serão removidos.\n\nOs dados serão baixados novamente do servidor na próxima sincronização. Rascunhos não sincronizados serão perdidos.",
+                PrimaryButtonText = "Limpar",
+                CloseButtonText = "Cancelar",
+                DefaultButton = ContentDialogButton.Close,
+                XamlRoot = this.XamlRoot
+            };
+
+            if (await confirm.ShowAsync() != ContentDialogResult.Primary)
+                return;
+
+            BtnResetBanco.IsEnabled = false;
+            BtnResetBanco.Content = "Limpando…";
+
+            try
+            {
+                await SyncService.ResetLocalDataAsync();
+
+                var ok = new ContentDialog
+                {
+                    Title = "Banco limpo",
+                    Content = "Dados locais removidos com sucesso. Ao voltar para a tela principal, a sincronização automática restaurará os dados do servidor.",
+                    CloseButtonText = "OK",
+                    XamlRoot = this.XamlRoot
+                };
+                await ok.ShowAsync();
+                Frame.GoBack();
+            }
+            catch (Exception ex)
+            {
+                BtnResetBanco.IsEnabled = true;
+                BtnResetBanco.Content = "Limpar";
+                var erro = new ContentDialog
+                {
+                    Title = "Erro ao limpar",
+                    Content = $"Não foi possível limpar o banco local:\n{ex.Message}",
+                    CloseButtonText = "OK",
+                    XamlRoot = this.XamlRoot
+                };
+                await erro.ShowAsync();
+            }
+        }
+
         private void VoltarBtn_Click(object sender, RoutedEventArgs e)
             => Frame.GoBack();
     }

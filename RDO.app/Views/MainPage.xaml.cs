@@ -108,6 +108,8 @@ namespace RDO.App.Views
 
         private static string ApiUrl => RDO.App.Services.AppConfig.Load().ApiUrl;
         private readonly SyncService _syncService = new SyncService(RDO.App.Services.AppConfig.Load().ApiUrl);
+        private DispatcherTimer? _autoSyncTimer;
+        private bool _sincronizando = false;
 
         public MainPage()
         {
@@ -136,10 +138,17 @@ namespace RDO.App.Views
 
             // Sync automático ao carregar a página (não bloqueia a UI)
             _ = SincronizarAsync();
+
+            // Auto-sync a cada 2 minutos (replica mudanças de outras máquinas sem clicar)
+            _autoSyncTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(2) };
+            _autoSyncTimer.Tick += async (_, _) => { if (!_sincronizando) await SincronizarAsync(); };
+            _autoSyncTimer.Start();
         }
 
         private async Task SincronizarAsync()
         {
+            if (_sincronizando) return;
+            _sincronizando = true;
             AtualizarSyncUI(SyncEstado.Sincronizando);
             BtnSync.IsEnabled = false;
 
@@ -159,8 +168,12 @@ namespace RDO.App.Views
                 {
                     AtualizarSyncUI(SyncEstado.Sincronizado,
                         $"↑{resultado.PushedInserted + resultado.PushedUpdated}  ↓{resultado.PulledRecords}");
+                    // Notifica CadastrosPage para recarregar na próxima visita
+                    CadastrosPage.PendingRefresh = true;
                     if (_mostraMeusRelatorios) CarregarMeusRelatorios();
                     else CarregarObras();
+                    // Atualiza rascunhos se o painel estiver aberto
+                    if (_mostraRascunhos) CarregarRascunhos();
                 }
                 else
                 {
@@ -179,6 +192,10 @@ namespace RDO.App.Views
                 AtualizarSyncUI(SyncEstado.Erro,
                     RDO.App.Services.AppErrorCodes.SYNC_007,
                     "Falha na comunicação com o servidor");
+            }
+            finally
+            {
+                _sincronizando = false;
             }
         }
 
@@ -516,7 +533,7 @@ namespace RDO.App.Views
             try
             {
             // DB em background — libera a UI thread imediatamente
-            var (obras, empPorGrupo, rdoCounts, rascunhoCounts, rdosMes) = await Task.Run(() =>
+            var (obras, empPorGrupo, rdoCounts, rascunhoCounts, rascunhoTotal, rdosMes) = await Task.Run(() =>
             {
                 using var db = new RdoDbContext(DbContextHelper.GetOptions());
                 var o = db.Obras.Where(x => x.IsActive && !x.IsDeleted).ToList();
@@ -539,17 +556,22 @@ namespace RDO.App.Views
                     .GroupBy(r => r.ObraId)
                     .ToDictionary(g => g.Key, g => true);
 
+                // Total real de rascunhos (não o número de obras com rascunho)
+                var rascTotal = db.Relatorios
+                    .Count(r => r.Rascunho && !r.IsDeleted && obraIds.Contains(r.ObraId));
+
                 var agora = DateTime.Now;
+                // Filtrado por obras ativas para não contar RDOs de obras excluídas
                 var rdosMesCount = db.Relatorios
-                    .Where(r => !r.Rascunho && !r.IsDeleted)
+                    .Where(r => !r.Rascunho && !r.IsDeleted && obraIds.Contains(r.ObraId))
                     .ToList()
                     .Count(r => r.Data.Year == agora.Year && r.Data.Month == agora.Month);
 
-                return (o, epg, rdc, rsc, rdosMesCount);
+                return (o, epg, rdc, rsc, rascTotal, rdosMesCount);
             });
 
             // Atualiza KPIs com dados já carregados
-            AtualizarKpis(obras, rdoCounts, rascunhoCounts, rdosMes);
+            AtualizarKpis(obras, rdoCounts, rascunhoCounts, rascunhoTotal, rdosMes);
 
             var cfg = RDO.App.Services.LogosConfig.Load();
             var nasFiles = await RDO.App.Services.LogoService.GetNasFilesAsync(cfg);
@@ -818,6 +840,7 @@ namespace RDO.App.Views
             List<Obra> obras,
             Dictionary<int, int> rdoCounts,
             Dictionary<int, bool> rascunhoCounts,
+            int rascunhoTotal,
             int rdosMes)
         {
             if (KpiEmExecucao == null) return;
@@ -826,7 +849,7 @@ namespace RDO.App.Views
             KpiConcluidas.Text  = obras.Count(o => o.Status == "Concluída").ToString();
             KpiParalisadas.Text = obras.Count(o => o.Status == "Paralisada").ToString();
             KpiRdosMes.Text     = rdosMes.ToString();
-            KpiRascunhos.Text   = rascunhoCounts.Count.ToString();
+            KpiRascunhos.Text   = rascunhoTotal.ToString();
         }
 
         private void AtualizarIconeTema()
@@ -1266,6 +1289,10 @@ namespace RDO.App.Views
                                     foreach (var x in db2.Assinaturas.Where(a => a.RelatorioId == r.Id).ToList())
                                         { x.IsDeleted = true; x.UpdatedAt = now; }
                                     foreach (var x in db2.Fotos.Where(f => f.RelatorioId == r.Id).ToList())
+                                        { x.IsDeleted = true; x.UpdatedAt = now; }
+                                    foreach (var x in db2.RelatorioEquipamentos.Where(re => re.RelatorioId == r.Id).ToList())
+                                        { x.IsDeleted = true; x.UpdatedAt = now; }
+                                    foreach (var x in db2.RelatorioAcompanhantes.Where(rc => rc.RelatorioId == r.Id).ToList())
                                         { x.IsDeleted = true; x.UpdatedAt = now; }
                                 }
                                 else
@@ -2050,7 +2077,7 @@ namespace RDO.App.Views
             _todosRascunhos = await Task.Run(() =>
             {
                 using var db = new RdoDbContext(DbContextHelper.GetOptions());
-                var rels = db.Relatorios.Where(r => r.Rascunho).OrderByDescending(r => r.CriadoEm).ToList();
+                var rels = db.Relatorios.Where(r => r.Rascunho && !r.IsDeleted).OrderByDescending(r => r.CriadoEm).ToList();
 
                 var obraIds   = rels.Select(r => r.ObraId).Distinct().ToList();
                 var usuIds    = rels.Select(r => r.UsuarioId).Distinct().ToList();

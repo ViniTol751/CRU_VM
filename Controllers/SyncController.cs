@@ -123,15 +123,18 @@ public class SyncController : ControllerBase
 
         int ins = 0, upd = 0, skp = 0;
 
+        var serverNow = DateTime.UtcNow;
         foreach (var item in incoming)
         {
             if (!existing.TryGetValue(item.Id, out var found))
             {
+                item.UpdatedAt = serverNow;
                 _context.Entry(item).State = EntityState.Added;
                 ins++;
             }
             else if (item.UpdatedAt.ToUniversalTime() >= found.UpdatedAt.ToUniversalTime())
             {
+                item.UpdatedAt = serverNow;
                 _context.Entry(item).State = EntityState.Modified;
                 upd++;
             }
