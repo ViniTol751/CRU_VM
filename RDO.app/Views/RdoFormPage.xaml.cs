@@ -142,7 +142,7 @@ namespace RDO.App.Views
                 }
                 else
                 {
-                    var numero = db.Relatorios.Count(r => r.ObraId == obraId && !r.Rascunho) + 1;
+                    var numero = db.Relatorios.Count(r => r.ObraId == obraId && !r.Rascunho && !r.IsDeleted) + 1;
                     NumeroRdoTexto.Text = $"Nº {numero:D3}";
                     // Novo relatório sempre começa em Rev. 00
                     RevisaoBadge.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
@@ -1790,7 +1790,7 @@ namespace RDO.App.Views
                     relatorio.Status = statusEscolhido;
                     relatorio.AcompanhanteId = null;
                     relatorio.Rascunho = false;
-                    relatorio.UpdatedAt = DateTime.UtcNow;
+                    relatorio.UpdatedAt = RDO.app.Services.SyncService.GetPushTimestamp();
                     relatorio.IsSynced = false;
                     if (!_editarRevisaoAtual)
                         relatorio.Revisao = relatorio.Revisao + 1;
@@ -1811,7 +1811,7 @@ namespace RDO.App.Views
                 else
                 {
                     // ── Modo novo ────────────────────────────────────────────
-                    var numero = db.Relatorios.Count(r => r.ObraId == _obraId && !r.Rascunho) + 1;
+                    var numero = db.Relatorios.Count(r => r.ObraId == _obraId && !r.Rascunho && !r.IsDeleted) + 1;
                     relatorio = new Relatorio
                     {
                         ObraId = _obraId,

@@ -38,4 +38,29 @@ public class AuthController : ControllerBase
             user  = new { user.Id, user.Name, user.Email, user.Profile }
         });
     }
+
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+    {
+        var exists = await _context.Users
+            .AnyAsync(u => u.Email == request.Email && !u.IsDeleted);
+        if (exists)
+            return Conflict(new { message = "E-mail já cadastrado." });
+
+        var user = new User
+        {
+            Name         = request.Name,
+            Email        = request.Email,
+            PasswordHash = PasswordHasher.Hash(request.Password),
+            Profile      = "Technician",
+            IsActive     = true,
+            UpdatedAt    = DateTime.UtcNow
+        };
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Usuário criado.", userId = user.Id });
+    }
 }
+
+public record RegisterRequest(string Name, string Email, string Password);

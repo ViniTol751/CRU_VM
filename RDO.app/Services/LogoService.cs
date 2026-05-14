@@ -43,11 +43,10 @@ public static class LogoService
         return idx >= 0 ? nomeCompleto[..idx].Trim() : nomeCompleto.Trim();
     }
 
-    // "Açucar Guarani" → "Acucar_Guarani"
+    // "Ambev | Carambeí (PR)" → "Ambev_Carambei_PR"
     public static string SanitizeNome(string nome)
     {
-        var baseNome = GetBaseNome(nome);
-        var normalized = baseNome.Normalize(NormalizationForm.FormD);
+        var normalized = nome.Trim().Normalize(NormalizationForm.FormD);
         var sb = new StringBuilder();
         foreach (var c in normalized)
             if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)

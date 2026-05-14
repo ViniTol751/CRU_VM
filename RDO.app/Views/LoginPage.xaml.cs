@@ -9,6 +9,9 @@ using RDO.Data.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
 using Windows.Security.Credentials;
 using Windows.System;
 using Windows.UI;
@@ -146,7 +149,7 @@ namespace RDO.App.Views
                 AssetHelper.GetUri(isDark ? "Assets/SE_Dark.png" : "Assets/SE_Light.png"));
         }
 
-        private void EntrarBtn_Click(object sender, RoutedEventArgs e)
+        private async void EntrarBtn_Click(object sender, RoutedEventArgs e)
         {
             var login = EmailBox.Text.Trim();
             var senha = SenhaBox.Password;
@@ -169,7 +172,10 @@ namespace RDO.App.Views
             ErroTexto.Visibility = Visibility.Collapsed;
 
             // Guarda credenciais em memória para o SyncService usar JWT na API
-            UserSession.Set(login, senha);
+            UserSession.Set(login, senha, usuario.Nome);
+
+            // Garante que o usuário existe no servidor (recupera contas criadas offline)
+            await EnsureServerUserAsync(login, senha, usuario.Nome);
 
             if (LembrarCheck.IsChecked == true)
             {
@@ -193,6 +199,22 @@ namespace RDO.App.Views
 
             AppLogger.LogInfo("AUTH", $"Login: {usuario.Email}  (perfil={usuario.Perfil})");
             Frame.Navigate(typeof(MainPage));
+        }
+
+        private static async Task EnsureServerUserAsync(string email, string password, string nome)
+        {
+            try
+            {
+                var apiUrl = AppConfig.Load().ApiUrl.TrimEnd('/');
+                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+                var resp = await http.PostAsJsonAsync($"{apiUrl}/api/auth/login",
+                    new { Email = email, Password = password });
+                if (resp.IsSuccessStatusCode) return;
+                if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    await http.PostAsJsonAsync($"{apiUrl}/api/auth/register",
+                        new { Name = nome, Email = email, Password = password });
+            }
+            catch { }
         }
 
         private async void EsqueceuSenhaBtn_Click(object sender, RoutedEventArgs e)
@@ -292,6 +314,7 @@ namespace RDO.App.Views
         {
             var passo = 1;
             var criouConta = false;
+            string? regNome = null, regEmail = null, regSenha = null;
 
             // ── Passo 1: Identificação ─────────────────────────────────────────
             var nomeBox = new TextBox { PlaceholderText = "Nome completo", Header = "NOME COMPLETO" };
@@ -469,6 +492,7 @@ namespace RDO.App.Views
                         });
                         db.SaveChanges();
                         criouConta = true;
+                        regNome = nome; regEmail = loginVal; regSenha = senha;
                         args.Cancel = false;
                     }
                     catch (Exception)
@@ -506,6 +530,16 @@ namespace RDO.App.Views
 
             if (criouConta)
             {
+                // Registra no servidor (best-effort — se offline, o sync posterior enviará)
+                try
+                {
+                    using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+                    var apiUrl = AppConfig.Load().ApiUrl.TrimEnd('/');
+                    await http.PostAsJsonAsync($"{apiUrl}/api/auth/register",
+                        new { Name = regNome, Email = regEmail, Password = regSenha });
+                }
+                catch { }
+
                 var loginVal = loginBox.Text.Trim();
                 var ok = new ContentDialog
                 {

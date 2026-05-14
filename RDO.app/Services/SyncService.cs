@@ -76,18 +76,40 @@ public class SyncService
 
             if (!resp.IsSuccessStatusCode)
             {
-                SyncLogger.LogError(new SyncLogEntry
+                // Conta criada offline? Tenta registrar no servidor e logar novamente.
+                if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
-                    Operation       = "Auth",
-                    ErrorCode       = "SYNC-AUTH-401",
-                    ErrorType       = "Credenciais inválidas",
-                    HttpStatusCode  = resp.StatusCode,
-                    ApiUrl          = $"{_apiBaseUrl}/api/auth/login",
-                    UserMessage     = "Falha de autenticação na API.",
-                    TechnicalDetail = $"HTTP {(int)resp.StatusCode}",
-                    Diagnosis       = "• Confirme se o usuário existe e está ativo no servidor."
-                });
-                return false;
+                    var name = string.IsNullOrEmpty(UserSession.Name) ? email : UserSession.Name;
+                    var regResp = await _http.PostAsJsonAsync(
+                        $"{_apiBaseUrl}/api/auth/register",
+                        new { Name = name, Email = email, Password = password },
+                        _jsonOptions);
+                    // 200 = registrado agora; 409 = já existia — tenta login mesmo assim
+                    if (regResp.IsSuccessStatusCode ||
+                        regResp.StatusCode == System.Net.HttpStatusCode.Conflict)
+                    {
+                        resp = await _http.PostAsJsonAsync(
+                            $"{_apiBaseUrl}/api/auth/login",
+                            new { Email = email, Password = password },
+                            _jsonOptions);
+                    }
+                }
+
+                if (!resp.IsSuccessStatusCode)
+                {
+                    SyncLogger.LogError(new SyncLogEntry
+                    {
+                        Operation       = "Auth",
+                        ErrorCode       = "SYNC-AUTH-401",
+                        ErrorType       = "Credenciais inválidas",
+                        HttpStatusCode  = resp.StatusCode,
+                        ApiUrl          = $"{_apiBaseUrl}/api/auth/login",
+                        UserMessage     = "Falha de autenticação na API.",
+                        TechnicalDetail = $"HTTP {(int)resp.StatusCode}",
+                        Diagnosis       = "• Confirme se o usuário existe e está ativo no servidor."
+                    });
+                    return false;
+                }
             }
 
             var body = await resp.Content.ReadFromJsonAsync<JsonElement>(_jsonOptions);
@@ -123,7 +145,13 @@ public class SyncService
         }
 
         if (!await AuthenticateAsync())
+        {
+            // #region agent log
+            DebugAgentLog.Write("H1", "SyncService.cs:SyncAsync", "AuthenticateAsync returned false",
+                new { apiBase = _apiBaseUrl, hasEmail = !string.IsNullOrEmpty(UserSession.Email) });
+            // #endregion
             return SyncResult.Failure("SYNC-AUTH-FAIL", "Falha de autenticação. Faça login novamente.");
+        }
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
         try
@@ -147,7 +175,7 @@ public class SyncService
                     _ = RDO.App.Services.LogoService.UploadPendingLogosAsync(logosCfg);
             }
 
-            return new SyncResult
+            var combined = new SyncResult
             {
                 Success        = pushResult.Success && pullResult.Success,
                 PushedInserted = pushResult.Inserted,
@@ -157,6 +185,19 @@ public class SyncService
                 Error          = pushResult.Error ?? pullResult.Error,
                 ErrorCode      = pushResult.ErrorCode ?? pullResult.ErrorCode
             };
+            // #region agent log
+            if (!combined.Success)
+                DebugAgentLog.Write("H4", "SyncService.cs:SyncAsync", "push/pull reported failure",
+                    new
+                    {
+                        pushOk = pushResult.Success,
+                        pullOk = pullResult.Success,
+                        combined.ErrorCode,
+                        pushCode = pushResult.ErrorCode,
+                        pullCode = pullResult.ErrorCode
+                    });
+            // #endregion
+            return combined;
         }
         catch (Exception ex)
         {
@@ -174,6 +215,10 @@ public class SyncService
                 StackTrace      = ex.StackTrace ?? "",
                 Diagnosis       = diagnosis
             });
+            // #region agent log
+            DebugAgentLog.Write("H3", "SyncService.cs:SyncAsync", "outer catch SYNC-UNEXPECTED",
+                new { exType = ex.GetType().Name, exMessage = ex.Message });
+            // #endregion
             return SyncResult.Failure("SYNC-UNEXPECTED", userMsg);
         }
     }
@@ -269,7 +314,9 @@ public class SyncService
         if (sentIds.Any())
             await db.Reports
                 .Where(r => sentIds.Contains(r.Id))
-                .ExecuteUpdateAsync(s => s.SetProperty(r => r.IsSynced, true));
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(r => r.IsSynced, true)
+                    .SetProperty(r => r.Sincronizado, true));
 
         return new PushResult
         {
@@ -298,6 +345,16 @@ public class SyncService
         int      total         = 0;
         DateTime serverTime    = DateTime.UtcNow;
         bool     gotServerTime = false;
+
+        var updatedReportIds    = new HashSet<int>();
+        var inPayloadActivities = new HashSet<int>();
+        var inPayloadWeather    = new HashSet<int>();
+        var inPayloadOccurr     = new HashSet<int>();
+        var inPayloadSignatures = new HashSet<int>();
+        var inPayloadMaterials  = new HashSet<int>();
+        var inPayloadPhotos     = new HashSet<int>();
+        var inPayloadRepEquip   = new HashSet<int>();
+        var inPayloadRepComp    = new HashSet<int>();
 
         foreach (var table in tables)
         {
@@ -386,6 +443,16 @@ public class SyncService
                     SyncLogger.LogDebug($"[PULL] report #{r.Id} isDeleted={r.IsDeleted} updatedAt={r.UpdatedAt:O}");
             }
 
+            if (table == "reports")          updatedReportIds.UnionWith(payload.Reports.Select(r => r.Id));
+            if (table == "activities")       inPayloadActivities.UnionWith(payload.Activities.Select(a => a.Id));
+            if (table == "weatherdetails")   inPayloadWeather.UnionWith(payload.WeatherDetails.Select(w => w.Id));
+            if (table == "occurrences")      inPayloadOccurr.UnionWith(payload.Occurrences.Select(o => o.Id));
+            if (table == "signatures")       inPayloadSignatures.UnionWith(payload.Signatures.Select(s => s.Id));
+            if (table == "materials")        inPayloadMaterials.UnionWith(payload.Materials.Select(m => m.Id));
+            if (table == "photos")           inPayloadPhotos.UnionWith(payload.Photos.Select(p => p.Id));
+            if (table == "reportequipments") inPayloadRepEquip.UnionWith(payload.ReportEquipments.Select(re => re.Id));
+            if (table == "reportcompanions") inPayloadRepComp.UnionWith(payload.ReportCompanions.Select(rc => rc.Id));
+
             try
             {
                 total += table switch
@@ -426,6 +493,7 @@ public class SyncService
                             e.CheckOutTime = i.CheckOutTime; e.BreakTime = i.BreakTime;
                             e.GeneralNotes = i.GeneralNotes; e.Status = i.Status;
                             e.IsDraft = i.IsDraft; e.IsDeleted = i.IsDeleted;
+                            e.Revisao = i.Revisao;
                             e.IsSynced = true; }),
 
                     "weatherdetails" => await UpsertLocal(db.WeatherDetails, payload.WeatherDetails, db,
@@ -504,6 +572,32 @@ public class SyncService
                 });
                 return new PullResult { Success = false, ErrorCode = "SYNC-PULL-UPSERT", Error = error };
             }
+        }
+
+        // Remove entidades filhas de relatórios revisados que não estão no payload
+        // (foram hard-deleted localmente ao criar nova revisão, mas o servidor ainda as tem)
+        if (updatedReportIds.Count > 0)
+        {
+            var staleAct = await db.Activities.Where(a => updatedReportIds.Contains(a.ReportId) && !inPayloadActivities.Contains(a.Id)).ToListAsync();
+            var staleWth = await db.WeatherDetails.Where(w => updatedReportIds.Contains(w.ReportId) && !inPayloadWeather.Contains(w.Id)).ToListAsync();
+            var staleOcc = await db.Occurrences.Where(o => updatedReportIds.Contains(o.ReportId) && !inPayloadOccurr.Contains(o.Id)).ToListAsync();
+            var staleSig = await db.Signatures.Where(s => updatedReportIds.Contains(s.ReportId) && !inPayloadSignatures.Contains(s.Id)).ToListAsync();
+            var staleMat = await db.Materials.Where(m => updatedReportIds.Contains(m.ReportId) && !inPayloadMaterials.Contains(m.Id)).ToListAsync();
+            var stalePho = await db.Photos.Where(p => updatedReportIds.Contains(p.ReportId) && !inPayloadPhotos.Contains(p.Id)).ToListAsync();
+            var staleReq = await db.ReportEquipments.Where(re => updatedReportIds.Contains(re.ReportId) && !inPayloadRepEquip.Contains(re.Id)).ToListAsync();
+            var staleRcp = await db.ReportCompanions.Where(rc => updatedReportIds.Contains(rc.ReportId) && !inPayloadRepComp.Contains(rc.Id)).ToListAsync();
+            db.Activities.RemoveRange(staleAct);
+            db.WeatherDetails.RemoveRange(staleWth);
+            db.Occurrences.RemoveRange(staleOcc);
+            db.Signatures.RemoveRange(staleSig);
+            db.Materials.RemoveRange(staleMat);
+            db.Photos.RemoveRange(stalePho);
+            db.ReportEquipments.RemoveRange(staleReq);
+            db.ReportCompanions.RemoveRange(staleRcp);
+            var staleCount = staleAct.Count + staleWth.Count + staleOcc.Count + staleSig.Count +
+                             staleMat.Count + stalePho.Count + staleReq.Count + staleRcp.Count;
+            if (staleCount > 0)
+                await db.SaveChangesAsync();
         }
 
         return new PullResult { Success = true, TotalPulled = total, ServerTime = serverTime };

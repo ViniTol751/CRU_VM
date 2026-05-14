@@ -59,11 +59,11 @@ builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-    // Login: máx 10 tentativas/minuto por IP
+    // Login: máx 60 tentativas/minuto por IP
     options.AddFixedWindowLimiter("login", o =>
     {
         o.Window            = TimeSpan.FromMinutes(1);
-        o.PermitLimit       = 10;
+        o.PermitLimit       = 60;
         o.QueueLimit        = 0;
         o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
     });
@@ -89,6 +89,13 @@ builder.Services.AddHealthChecks()
 
 // ── Pipeline ──────────────────────────────────────────────────────────────────
 var app = builder.Build();
+
+// Aplica migrações pendentes ao iniciar (idempotente — seguro em multi-instância)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+}
 
 app.UseExceptionHandler(err => err.Run(async ctx =>
 {

@@ -156,7 +156,6 @@ namespace RDO.App.Views
         // ── EMPRESAS ──────────────────────────────────────────────────────────
         private async Task FiltrarEmpresasAsync(string termo)
         {
-            var cfg = LogosConfig.Load();
             var asc = _sortAscEmpresas;
             var lista = await Task.Run(() =>
             {
@@ -172,16 +171,6 @@ namespace RDO.App.Views
 
             EmpresasListView.ItemsSource = lista;
             EmpresasCountText.Text = $"{lista.Count} registro(s)";
-
-            // Logos em segundo plano — escaneia NAS uma única vez
-            var nasFiles = await LogoService.GetNasFilesAsync(cfg);
-            await Task.Run(() =>
-            {
-                foreach (var e in lista)
-                    e.LogoUrl = LogoService.ResolveLogoUrlFast(cfg, e.ImagemPath, e.Nome, nasFiles);
-            });
-            EmpresasListView.ItemsSource = null;
-            EmpresasListView.ItemsSource = lista;
         }
 
         private async void BuscaEmpresas_TextChanged(object sender, TextChangedEventArgs e)

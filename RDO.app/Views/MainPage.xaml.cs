@@ -184,13 +184,28 @@ namespace RDO.App.Views
                         ? RDO.App.Services.AppErrorCodes.SYNC_007
                         : RDO.App.Services.AppErrorCodes.MapToStandardCode(resultado.ErrorCode);
                     var mensagem = resultado.Error ?? "Erro desconhecido";
-                    AtualizarSyncUI(SyncEstado.Erro, codigoPadrao, mensagem);
+                    // #region agent log
+                    RDO.app.Services.DebugAgentLog.Write("H1-H4", "MainPage.xaml.cs:SincronizarAsync", "sync UI error branch",
+                        new
+                        {
+                            rawErrorCode = resultado.ErrorCode,
+                            mappedCode = codigoPadrao,
+                            resultado.Success,
+                            resultado.IsOffline,
+                            msgLen = (mensagem ?? "").Length
+                        });
+                    // #endregion
+                    AtualizarSyncUI(SyncEstado.Erro, codigoPadrao, mensagem ?? "");
                 }
             }
             catch (Exception ex)
             {
                 BtnSync.IsEnabled = true;
                 System.Diagnostics.Debug.WriteLine($"[SYNC] Exceção inesperada: {ex}");
+                // #region agent log
+                RDO.app.Services.DebugAgentLog.Write("H5", "MainPage.xaml.cs:SincronizarAsync", "exception in SincronizarAsync",
+                    new { exType = ex.GetType().Name, exMessage = ex.Message });
+                // #endregion
                 AtualizarSyncUI(SyncEstado.Erro,
                     RDO.App.Services.AppErrorCodes.SYNC_007,
                     "Falha na comunicação com o servidor");
@@ -1203,8 +1218,8 @@ namespace RDO.App.Views
                     infoRel.Children.Add(infoTexts);
                     infoRel.Children.Add(statusBadge);
 
-                    // Badge de revisão (só aparece se revisão > 1)
-                    if (rel.Revisao > 1)
+                    // Badge de revisão (aparece a partir de Rev. 01)
+                    if (rel.Revisao > 0)
                     {
                         var revBadge = new Border
                         {
@@ -1276,7 +1291,7 @@ namespace RDO.App.Views
                             if (r != null)
                             {
                                 var now = SyncService.GetPushTimestamp();
-                                if (r.IsSynced)
+                                if (r.IsSynced || !r.IsDraft)
                                 {
                                     // Soft-delete: propaga para API e outras máquinas no próximo sync
                                     r.IsDeleted = true;
@@ -1309,6 +1324,24 @@ namespace RDO.App.Views
                                     db2.Relatorios.Remove(r);
                                 }
                                 db2.SaveChanges();
+
+                                // Renumera os relatórios com Numero maior ao excluído
+                                if (!r.Rascunho)
+                                {
+                                    var subsequentes = db2.Relatorios
+                                        .Where(x => x.ObraId == r.ObraId && x.Numero > r.Numero && !x.IsDeleted && !x.Rascunho)
+                                        .ToList();
+                                    if (subsequentes.Count > 0)
+                                    {
+                                        foreach (var sub in subsequentes)
+                                        {
+                                            sub.Numero--;
+                                            sub.UpdatedAt = now;
+                                            sub.IsSynced = false;
+                                        }
+                                        db2.SaveChanges();
+                                    }
+                                }
                             }
                             capturedListaPanel.Children.Remove(capturedBorder);
                         };
