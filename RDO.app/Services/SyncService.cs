@@ -468,7 +468,10 @@ public class SyncService
 
                     "users" => await UpsertLocal(db.Users, payload.Users, db,
                         (e, i) => { e.Name = i.Name; e.Email = i.Email;
-                            e.PasswordHash = i.PasswordHash; e.Profile = i.Profile;
+                            // Server omits PasswordHash ([JsonIgnore]). Never overwrite a valid
+                            // local hash with empty string — that would break local login.
+                            if (!string.IsNullOrEmpty(i.PasswordHash)) e.PasswordHash = i.PasswordHash;
+                            e.Profile = i.Profile;
                             e.IsActive = i.IsActive; e.IsDeleted = i.IsDeleted; }),
 
                     "employees" => await UpsertLocal(db.Employees, payload.Employees, db,

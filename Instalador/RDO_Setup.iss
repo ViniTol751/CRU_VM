@@ -1,5 +1,5 @@
 #define MyAppName "RDO · Relatório Diário de Obra"
-#define MyAppVersion "1.0.4.0"
+#define MyAppVersion "1.0.5.0"
 #define MyAppPublisher "Focus Engenharia Elétrica"
 #define MyAppExeName "RDO.app.exe"
 #define MyAppSourceDir "C:\dev\TesteAPI\RDO.app\publish\unpackaged"
