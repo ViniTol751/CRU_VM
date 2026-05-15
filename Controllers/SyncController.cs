@@ -86,7 +86,12 @@ public class SyncController : ControllerBase
         void Acc((int I, int U, int S) r) { inserted += r.I; updated += r.U; skipped += r.S; }
 
         Acc(await UpsertAll(_context.Projects,         payload.Projects));
-        Acc(await UpsertUsers(_context.Users,          payload.Users));
+        // Users são criados/atualizados via /api/auth/register e /api/auth/login.
+        // Processar users aqui sobrescreveria PasswordHash com string vazia ([JsonIgnore]
+        // impede que o hash chegue no payload) e poderia causar deleção em cascata de
+        // ProjectMembers/Reports via EF Core ao marcar EntityState.Modified com coleções
+        // de navegação vazias. O pull ainda propaga nome/perfil para os outros clientes.
+        // Acc(await UpsertUsers(_context.Users, payload.Users));
         Acc(await UpsertAll(_context.Employees,        payload.Employees));
         Acc(await UpsertAll(_context.Equipments,       payload.Equipments));
         Acc(await UpsertAll(_context.Companions,       payload.Companions));
