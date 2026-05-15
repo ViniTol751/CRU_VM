@@ -82,32 +82,82 @@ public class SyncController : ControllerBase
         _logger.LogInformation("[Sync/Push] {Count} report(s)", payload.Reports.Count);
 
         int inserted = 0, updated = 0, skipped = 0;
-
         void Acc((int I, int U, int S) r) { inserted += r.I; updated += r.U; skipped += r.S; }
 
-        Acc(await UpsertAll(_context.Projects,         payload.Projects));
-        Acc(await UpsertAll(_context.Users,            payload.Users));
-        Acc(await UpsertAll(_context.Employees,        payload.Employees));
-        Acc(await UpsertAll(_context.Equipments,       payload.Equipments));
-        Acc(await UpsertAll(_context.Companions,       payload.Companions));
-        Acc(await UpsertAll(_context.Reports,          payload.Reports));
-        Acc(await UpsertAll(_context.WeatherDetails,   payload.WeatherDetails));
-        Acc(await UpsertAll(_context.Activities,       payload.Activities));
-        Acc(await UpsertAll(_context.Occurrences,      payload.Occurrences));
-        Acc(await UpsertAll(_context.Materials,        payload.Materials));
-        Acc(await UpsertAll(_context.Photos,           payload.Photos));
-        Acc(await UpsertAll(_context.Signatures,       payload.Signatures));
-        Acc(await UpsertAll(_context.ProjectMembers,   payload.ProjectMembers));
-        Acc(await UpsertAll(_context.ReportEquipments, payload.ReportEquipments));
-        Acc(await UpsertAll(_context.ReportCompanions, payload.ReportCompanions));
-        Acc(await UpsertAll(_context.Empresas,         payload.Empresas));
+        // Fase 1: entidades pai (sem FK entre si que o server não controle)
+        Acc(await UpsertAll(_context.Projects,   payload.Projects));
+        Acc(await UpsertAll(_context.Employees,  payload.Employees));
+        Acc(await UpsertAll(_context.Equipments, payload.Equipments));
+        Acc(await UpsertAll(_context.Companions, payload.Companions));
+        Acc(await UpsertAll(_context.Empresas,   payload.Empresas));
+        Acc(await UpsertUsersPreservingHash(payload.Users));
+        await _context.SaveChangesAsync();
 
+        // Fase 2: ProjectMembers + Reports (FK → Projects/Users/Companions já persistidos)
+        Acc(await UpsertAll(_context.ProjectMembers, payload.ProjectMembers));
+
+        var existingProjectIds = (await _context.Projects.Select(p => p.Id).ToListAsync()).ToHashSet();
+        var validReports = payload.Reports.Where(r => existingProjectIds.Contains(r.ProjectId)).ToList();
+        int orphanReports = payload.Reports.Count - validReports.Count;
+        if (orphanReports > 0)
+            _logger.LogWarning("[Sync/Push] {N} report(s) ignorados — ProjectId inexistente no servidor", orphanReports);
+        skipped += orphanReports;
+        Acc(await UpsertAll(_context.Reports, validReports));
+        await _context.SaveChangesAsync();
+
+        // Fase 3: filhos de Report (FK → Reports já persistidos)
+        var existingReportIds = (await _context.Reports.Select(r => r.Id).ToListAsync()).ToHashSet();
+        Acc(await UpsertAll(_context.WeatherDetails,   payload.WeatherDetails  .Where(x => existingReportIds.Contains(x.ReportId)).ToList()));
+        Acc(await UpsertAll(_context.Activities,       payload.Activities      .Where(x => existingReportIds.Contains(x.ReportId)).ToList()));
+        Acc(await UpsertAll(_context.Occurrences,      payload.Occurrences     .Where(x => existingReportIds.Contains(x.ReportId)).ToList()));
+        Acc(await UpsertAll(_context.Materials,        payload.Materials       .Where(x => existingReportIds.Contains(x.ReportId)).ToList()));
+        Acc(await UpsertAll(_context.Photos,           payload.Photos          .Where(x => existingReportIds.Contains(x.ReportId)).ToList()));
+        Acc(await UpsertAll(_context.Signatures,       payload.Signatures      .Where(x => existingReportIds.Contains(x.ReportId)).ToList()));
+        Acc(await UpsertAll(_context.ReportEquipments, payload.ReportEquipments.Where(x => existingReportIds.Contains(x.ReportId)).ToList()));
+        Acc(await UpsertAll(_context.ReportCompanions, payload.ReportCompanions.Where(x => existingReportIds.Contains(x.ReportId)).ToList()));
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("[Sync/Push] inserted={I} updated={U} skipped={S}",
             inserted, updated, skipped);
 
         return Ok(new { Inserted = inserted, Updated = updated, Skipped = skipped });
+    }
+
+    private async Task<(int I, int U, int S)> UpsertUsersPreservingHash(List<User> incoming)
+    {
+        if (incoming.Count == 0) return (0, 0, 0);
+
+        var ids = incoming.Select(x => x.Id).ToList();
+        var existing = await _context.Users.AsNoTracking()
+            .Where(x => ids.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id);
+
+        int ins = 0, upd = 0, skp = 0;
+        var serverNow = DateTime.UtcNow;
+
+        foreach (var item in incoming)
+        {
+            if (!existing.TryGetValue(item.Id, out var found))
+            {
+                // Novo usuário: só insere se tiver hash válido (vindo de Register, não de sync)
+                if (string.IsNullOrEmpty(item.PasswordHash)) { skp++; continue; }
+                item.UpdatedAt = serverNow;
+                _context.Entry(item).State = EntityState.Added;
+                ins++;
+            }
+            else if (item.UpdatedAt.ToUniversalTime() >= found.UpdatedAt.ToUniversalTime()
+                     || (item.IsDeleted && !found.IsDeleted))
+            {
+                // Atualiza preservando o hash existente (PasswordHash vem vazio via [JsonIgnore])
+                item.PasswordHash = found.PasswordHash;
+                item.UpdatedAt    = serverNow;
+                _context.Entry(item).State = EntityState.Modified;
+                upd++;
+            }
+            else { skp++; }
+        }
+
+        return (ins, upd, skp);
     }
 
     private async Task<(int I, int U, int S)> UpsertAll<T>(
