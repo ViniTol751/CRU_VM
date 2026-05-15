@@ -42,22 +42,10 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
-        var existing = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == request.Email && !u.IsDeleted);
-
-        if (existing is not null)
-        {
-            // Hash vazio = corrompido por push anterior (JsonIgnore excluía o hash do payload).
-            // Restaura o hash com a senha fornecida para desbloquear o login.
-            if (string.IsNullOrEmpty(existing.PasswordHash))
-            {
-                existing.PasswordHash = PasswordHasher.Hash(request.Password);
-                existing.UpdatedAt    = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
-                return Ok(new { message = "Hash restaurado.", userId = existing.Id });
-            }
+        var exists = await _context.Users
+            .AnyAsync(u => u.Email == request.Email && !u.IsDeleted);
+        if (exists)
             return Conflict(new { message = "E-mail já cadastrado." });
-        }
 
         var user = new User
         {

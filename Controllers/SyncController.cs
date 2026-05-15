@@ -86,12 +86,7 @@ public class SyncController : ControllerBase
         void Acc((int I, int U, int S) r) { inserted += r.I; updated += r.U; skipped += r.S; }
 
         Acc(await UpsertAll(_context.Projects,         payload.Projects));
-        // Users são criados/atualizados via /api/auth/register e /api/auth/login.
-        // Processar users aqui sobrescreveria PasswordHash com string vazia ([JsonIgnore]
-        // impede que o hash chegue no payload) e poderia causar deleção em cascata de
-        // ProjectMembers/Reports via EF Core ao marcar EntityState.Modified com coleções
-        // de navegação vazias. O pull ainda propaga nome/perfil para os outros clientes.
-        // Acc(await UpsertUsers(_context.Users, payload.Users));
+        Acc(await UpsertAll(_context.Users,            payload.Users));
         Acc(await UpsertAll(_context.Employees,        payload.Employees));
         Acc(await UpsertAll(_context.Equipments,       payload.Equipments));
         Acc(await UpsertAll(_context.Companions,       payload.Companions));
@@ -113,49 +108,6 @@ public class SyncController : ControllerBase
             inserted, updated, skipped);
 
         return Ok(new { Inserted = inserted, Updated = updated, Skipped = skipped });
-    }
-
-    // Users never arrive with a valid PasswordHash ([JsonIgnore] strips it from the push payload).
-    // Inserting a passwordless phantom breaks FirstOrDefaultAsync email lookups in AuthController.
-    // Rule: skip inserts entirely (auth endpoints own user creation); for updates, copy the
-    // stored hash into the incoming entity so EF Core does not overwrite it with empty string.
-    private async Task<(int I, int U, int S)> UpsertUsers(
-        DbSet<User> dbSet, List<User> incoming)
-    {
-        if (incoming.Count == 0) return (0, 0, 0);
-
-        var ids      = incoming.Select(x => x.Id).ToList();
-        var existing = await dbSet.AsNoTracking()
-            .Where(x => ids.Contains(x.Id))
-            .ToDictionaryAsync(x => x.Id);
-
-        int ins = 0, upd = 0, skp = 0;
-        var serverNow = DateTime.UtcNow;
-
-        foreach (var item in incoming)
-        {
-            if (!existing.TryGetValue(item.Id, out var found))
-            {
-                // Skip: new users must be created via /api/auth/register.
-                // Inserting here with PasswordHash="" would create a phantom record that
-                // shadows the correctly-hashed user and breaks email-based auth lookups.
-                skp++;
-            }
-            else if (item.UpdatedAt.ToUniversalTime() >= found.UpdatedAt.ToUniversalTime()
-                     || (item.IsDeleted && !found.IsDeleted))
-            {
-                item.PasswordHash = found.PasswordHash; // preserve — not included in push payload
-                item.UpdatedAt    = serverNow;
-                _context.Entry(item).State = EntityState.Modified;
-                upd++;
-            }
-            else
-            {
-                skp++;
-            }
-        }
-
-        return (ins, upd, skp);
     }
 
     private async Task<(int I, int U, int S)> UpsertAll<T>(
