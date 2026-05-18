@@ -550,12 +550,15 @@ namespace RDO.App.Views
             try
             {
             // DB em background — libera a UI thread imediatamente
-            var (obras, empPorGrupo, rdoCounts, rascunhoCounts, rascunhoTotal, rdosMes) = await Task.Run(() =>
+            var (obras, empById, empPorGrupo, rdoCounts, rascunhoCounts, rascunhoTotal, rdosMes) = await Task.Run(() =>
             {
                 using var db = new RdoDbContext(DbContextHelper.GetOptions());
                 var o = db.Obras.Where(x => x.IsActive && !x.IsDeleted).ToList();
 
                 var empresas = db.Empresas.Where(e => e.IsActive).ToList();
+                // Índice por ID (lookup direto via EmpresaId)
+                var empById = empresas.ToDictionary(e => e.Id);
+                // Índice por nome-base para fallback em obras antigas (sem EmpresaId)
                 var epg = new Dictionary<string, RDO.Data.Models.Empresa>(StringComparer.OrdinalIgnoreCase);
                 foreach (var e in empresas)
                 {
@@ -584,7 +587,7 @@ namespace RDO.App.Views
                     .ToList()
                     .Count(r => r.Data.Year == agora.Year && r.Data.Month == agora.Month);
 
-                return (o, epg, rdc, rsc, rascTotal, rdosMesCount);
+                return (o, empById, epg, rdc, rsc, rascTotal, rdosMesCount);
             });
 
             // Atualiza KPIs com dados já carregados
@@ -598,7 +601,11 @@ namespace RDO.App.Views
             foreach (var o in obras)
             {
                 RDO.Data.Models.Empresa? emp = null;
-                if (!string.IsNullOrEmpty(o.Grupo)) empPorGrupo.TryGetValue(o.Grupo, out emp);
+                // Lookup direto por EmpresaId; fallback por Grupo para obras antigas
+                if (o.EmpresaId.HasValue)
+                    empById.TryGetValue(o.EmpresaId.Value, out emp);
+                else if (!string.IsNullOrEmpty(o.Grupo))
+                    empPorGrupo.TryGetValue(o.Grupo, out emp);
                 rawUrlByObra[o.Id] = emp != null
                     ? RDO.App.Services.LogoService.ResolveLogoUrlFast(cfg, emp.ImagemPath, emp.Nome, nasFiles)
                     : null;

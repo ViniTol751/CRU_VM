@@ -20,7 +20,9 @@ public class Project : ILocalSyncEntity
     public string? ImagePath { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public int? EmpresaId { get; set; }
     public bool IsDeleted { get; set; } = false;
+    [JsonIgnore] public Empresa? Empresa { get; set; }
     [JsonIgnore] public ICollection<Report> Reports { get; set; } = new List<Report>();
     [JsonIgnore] public ICollection<ProjectMember> Members { get; set; } = new List<ProjectMember>();
     [NotMapped] public string Nome { get => Name; set => Name = value; }

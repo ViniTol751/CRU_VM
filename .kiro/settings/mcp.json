@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "code-review-graph": {
+      "command": "code-review-graph",
+      "args": [
+        "serve"
+      ],
+      "type": "stdio",
+      "autoApprove": [
+        "semantic_search_nodes_tool",
+        "get_minimal_context_tool",
+        "get_architecture_overview_tool"
+      ]
+    }
+  }
+}

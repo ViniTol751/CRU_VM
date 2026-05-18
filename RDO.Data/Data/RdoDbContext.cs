@@ -109,5 +109,8 @@ public class RdoDbContext : DbContext
             e.HasOne(pm => pm.Project).WithMany(p => p.Members).HasForeignKey(pm => pm.ProjectId);
             e.HasOne(pm => pm.User).WithMany(u => u.Projects).HasForeignKey(pm => pm.UserId);
         });
+
+        modelBuilder.Entity<Project>(e =>
+            e.HasOne(p => p.Empresa).WithMany().HasForeignKey(p => p.EmpresaId).IsRequired(false));
     }
 }

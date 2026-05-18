@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "0PFxCkfQPUs=",
+  "dgSpecHash": "tCOr1Bz0Hn0=",
   "success": true,
   "projectFilePath": "C:\\dev\\TesteAPI\\RDO.app\\RDO.app.csproj",
   "expectedPackageFiles": [
@@ -70,16 +70,16 @@
     "C:\\Users\\ViniciusToledo\\.nuget\\packages\\system.text.encodings.web\\8.0.0\\system.text.encodings.web.8.0.0.nupkg.sha512",
     "C:\\Users\\ViniciusToledo\\.nuget\\packages\\system.text.json\\8.0.0\\system.text.json.8.0.0.nupkg.sha512",
     "C:\\Users\\ViniciusToledo\\.nuget\\packages\\system.threading.channels\\6.0.0\\system.threading.channels.6.0.0.nupkg.sha512",
-    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x86\\8.0.25\\microsoft.netcore.app.runtime.win-x86.8.0.25.nupkg.sha512",
-    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.57\\microsoft.windows.sdk.net.ref.10.0.19041.57.nupkg.sha512",
-    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x86\\8.0.25\\microsoft.aspnetcore.app.runtime.win-x86.8.0.25.nupkg.sha512",
-    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.netcore.app.runtime.win-arm64\\8.0.25\\microsoft.netcore.app.runtime.win-arm64.8.0.25.nupkg.sha512",
-    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\8.0.25\\microsoft.aspnetcore.app.runtime.win-x64.8.0.25.nupkg.sha512",
-    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-arm64\\8.0.25\\microsoft.windowsdesktop.app.runtime.win-arm64.8.0.25.nupkg.sha512",
-    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.25\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.25.nupkg.sha512",
-    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-arm64\\8.0.25\\microsoft.aspnetcore.app.runtime.win-arm64.8.0.25.nupkg.sha512",
-    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.25\\microsoft.netcore.app.runtime.win-x64.8.0.25.nupkg.sha512",
-    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x86\\8.0.25\\microsoft.windowsdesktop.app.runtime.win-x86.8.0.25.nupkg.sha512"
+    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x86\\8.0.26\\microsoft.netcore.app.runtime.win-x86.8.0.26.nupkg.sha512",
+    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.26\\microsoft.netcore.app.runtime.win-x64.8.0.26.nupkg.sha512",
+    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.netcore.app.runtime.win-arm64\\8.0.26\\microsoft.netcore.app.runtime.win-arm64.8.0.26.nupkg.sha512",
+    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x86\\8.0.26\\microsoft.windowsdesktop.app.runtime.win-x86.8.0.26.nupkg.sha512",
+    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.26\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.26.nupkg.sha512",
+    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-arm64\\8.0.26\\microsoft.windowsdesktop.app.runtime.win-arm64.8.0.26.nupkg.sha512",
+    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x86\\8.0.26\\microsoft.aspnetcore.app.runtime.win-x86.8.0.26.nupkg.sha512",
+    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\8.0.26\\microsoft.aspnetcore.app.runtime.win-x64.8.0.26.nupkg.sha512",
+    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-arm64\\8.0.26\\microsoft.aspnetcore.app.runtime.win-arm64.8.0.26.nupkg.sha512",
+    "C:\\Users\\ViniciusToledo\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.57\\microsoft.windows.sdk.net.ref.10.0.19041.57.nupkg.sha512"
   ],
   "logs": []
 }

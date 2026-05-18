@@ -49,6 +49,9 @@ namespace RDO.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("RelatorioId")
                         .HasColumnType("integer");
 
@@ -91,6 +94,9 @@ namespace RDO.Data.Migrations
                     b.Property<string>("Contato")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int?>("EmpresaId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Group")
                         .IsRequired()
@@ -238,6 +244,35 @@ namespace RDO.Data.Migrations
                     b.HasIndex("ReportId");
 
                     b.ToTable("EmployeePresence");
+                });
+
+            modelBuilder.Entity("RDO.Data.Models.Empresa", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ImagemPath")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Empresas");
                 });
 
             modelBuilder.Entity("RDO.Data.Models.Equipment", b =>
@@ -496,13 +531,16 @@ namespace RDO.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ContractType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Crea")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("ContractType")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int?>("EmpresaId")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("ExpectedEndDate")
                         .HasColumnType("timestamp with time zone");
@@ -539,6 +577,8 @@ namespace RDO.Data.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("EmpresaId");
 
                     b.ToTable("Project");
                 });
@@ -669,8 +709,7 @@ namespace RDO.Data.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<int>("Revisao")
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
+                        .HasColumnType("integer");
 
                     b.Property<bool>("Sincronizado")
                         .HasColumnType("boolean");
@@ -1023,6 +1062,15 @@ namespace RDO.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Report");
+                });
+
+            modelBuilder.Entity("RDO.Data.Models.Project", b =>
+                {
+                    b.HasOne("RDO.Data.Models.Empresa", "Empresa")
+                        .WithMany()
+                        .HasForeignKey("EmpresaId");
+
+                    b.Navigation("Empresa");
                 });
 
             modelBuilder.Entity("RDO.Data.Models.ProjectMember", b =>

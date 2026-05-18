@@ -27,6 +27,7 @@ namespace RDO.App.Views
         public DateTimeOffset DataTermino { get; set; }
         public string? ImagemPath { get; set; }
         public int? ObraExistenteId { get; set; }
+        public int? EmpresaId { get; set; }
     }
 
     public class CadastrosParams
@@ -42,6 +43,7 @@ namespace RDO.App.Views
         private string _abaOrigem = "Obras";
         private List<Acompanhante> _terceirosCache = new();
         private Acompanhante? _responsavelClienteSelecionado;
+        private int? _empresaSelecionadaId;
 
         public NovaObraPage()
         {
@@ -121,6 +123,7 @@ namespace RDO.App.Views
                     var empresa = db.Empresas.Find(terceiro.EmpresaId.Value);
                     if (empresa != null)
                     {
+                        _empresaSelecionadaId = empresa.Id;
                         GrupoBox.IsReadOnly = true;
                         GrupoBox.Text = LogoService.GetBaseNome(empresa.Nome);
                         GrupoBox.PlaceholderText = "";
@@ -168,6 +171,7 @@ namespace RDO.App.Views
             GrupoBox.IsReadOnly = false;
             EnderecoBox.IsReadOnly = false;
             _responsavelClienteSelecionado = null;
+            _empresaSelecionadaId = null;
             ResponsavelClienteBox.Text = "";
         }
 
@@ -207,7 +211,8 @@ namespace RDO.App.Views
                 ART = ArtBox.Text,
                 DataInicio = DataInicioPicker.Date,
                 DataTermino = DataTerminoPicker.Date,
-                ObraExistenteId = _obraExistente?.Id
+                ObraExistenteId = _obraExistente?.Id,
+                EmpresaId = _empresaSelecionadaId
             };
 
             // Navega para cadastros com parâmetro para voltar
@@ -251,6 +256,8 @@ namespace RDO.App.Views
             DataInicioPicker.Date = estado.DataInicio;
             DataTerminoPicker.Date = estado.DataTermino;
 
+            _empresaSelecionadaId = estado.EmpresaId;
+
             if (estado.ObraExistenteId.HasValue)
             {
                 using var db = new RdoDbContext(DbContextHelper.GetOptions());
@@ -275,6 +282,7 @@ namespace RDO.App.Views
                 if (obra == null) return;
 
                 _obraExistente = obra;
+                _empresaSelecionadaId = obra.EmpresaId;
 
                 TituloTexto.Text = "Editar Obra";
                 SalvarBtn.Content = "Salvar Alterações";
@@ -337,6 +345,7 @@ namespace RDO.App.Views
                     {
                         item.Nome = NomeBox.Text.Trim();
                         item.Grupo = GrupoBox.Text.Trim();
+                        item.EmpresaId = _empresaSelecionadaId;
                         item.Status = (StatusBox.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "Em execução";
                         item.Responsavel = (ResponsavelBox.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "";
                         item.ResponsavelCliente = _responsavelClienteSelecionado != null ? _responsavelClienteSelecionado.Nome : ResponsavelClienteBox.Text.Trim();
@@ -364,6 +373,7 @@ namespace RDO.App.Views
                     {
                         Nome = NomeBox.Text.Trim(),
                         Grupo = GrupoBox.Text.Trim(),
+                        EmpresaId = _empresaSelecionadaId,
                         Status = (StatusBox.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "Em execução",
                         Responsavel = (ResponsavelBox.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "",
                         ResponsavelCliente = _responsavelClienteSelecionado != null ? _responsavelClienteSelecionado.Nome : ResponsavelClienteBox.Text.Trim(),

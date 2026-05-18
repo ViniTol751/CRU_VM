@@ -1,0 +1,13 @@
+bin/
+obj/
+.vs/
+.git/
+*.user
+RDO.app/
+RDO.Data/
+Tests/
+deploy/
+docs/
+code-review-graph/
+appsettings.Development.json
+appsettings.Production.json

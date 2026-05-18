@@ -18,6 +18,7 @@ public class Project : ILocalSyncEntity
     public string? ImagePath { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public int? EmpresaId { get; set; }
     public bool IsDeleted { get; set; } = false;
     public ICollection<Report> Reports { get; set; } = new List<Report>();
     public ICollection<ProjectMember> Members { get; set; } = new List<ProjectMember>();

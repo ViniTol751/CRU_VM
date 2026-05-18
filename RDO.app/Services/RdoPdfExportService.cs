@@ -65,13 +65,18 @@ namespace RDO.App.Services
                 var relLight = db.Relatorios
                     .Include(r => r.Project)
                     .FirstOrDefault(r => r.Id == relatorioId);
-                var grupo = relLight?.Obra?.Grupo;
-                if (!string.IsNullOrEmpty(grupo))
+                var obra = relLight?.Obra;
+                if (obra != null)
                 {
                     var cfg = LogosConfig.Load();
-                    var empresa = db.Empresas.Where(e => e.IsActive).AsEnumerable()
-                        .FirstOrDefault(e => LogoService.GetBaseNome(e.Nome)
-                            .Equals(grupo, StringComparison.OrdinalIgnoreCase));
+                    RDO.Data.Models.Empresa? empresa = null;
+                    // Lookup direto por EmpresaId; fallback por Grupo para obras antigas
+                    if (obra.EmpresaId.HasValue)
+                        empresa = db.Empresas.Find(obra.EmpresaId.Value);
+                    if (empresa == null && !string.IsNullOrEmpty(obra.Grupo))
+                        empresa = db.Empresas.Where(e => e.IsActive).AsEnumerable()
+                            .FirstOrDefault(e => LogoService.GetBaseNome(e.Nome)
+                                .Equals(obra.Grupo, StringComparison.OrdinalIgnoreCase));
                     if (empresa != null)
                         clientLogoPath = LogoService.ResolveLogoUrl(cfg, empresa.ImagemPath, empresa.Nome);
                 }
