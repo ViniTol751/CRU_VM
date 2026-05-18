@@ -224,6 +224,7 @@ namespace RDO.App
                 ("Report",    "Revisao",             "INTEGER NOT NULL DEFAULT 0"),
                 ("Project",   "Crea",                "TEXT NOT NULL DEFAULT ''"),
                 ("Project",   "ResponsavelCliente",  "TEXT NOT NULL DEFAULT ''"),
+                ("Project",   "EmpresaId",            "INTEGER NULL"),
                 ("Companion", "EmpresaId",            "INTEGER NULL"),
                 ("Activity",  "ParentId",             "INTEGER NULL"),
                 ("Photo",     "Type",                "TEXT NOT NULL DEFAULT 'photo'"),
