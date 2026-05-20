@@ -116,9 +116,6 @@ namespace RDO.App
                 System.Diagnostics.Debug.WriteLine($"[DB-INIT] ⚠️ Erro ao configurar WAL: {ex.Message}");
             }
 
-            // Garante colunas adicionadas em migrations recentes (segurança para bancos existentes)
-            GarantirColunasExtras(db);
-
             if (usarEnsureCreated)
             {
                 System.Diagnostics.Debug.WriteLine("[DB-INIT] Executando EnsureCreated...");
@@ -148,10 +145,22 @@ namespace RDO.App
             else
             {
                 System.Diagnostics.Debug.WriteLine("[DB-INIT] Executando Migrate...");
-                // Banco existente com migrations — aplica apenas as pendentes
+                // Bancos que rodaram uma versão antiga do app podem ter colunas adicionadas
+                // manualmente por GarantirColunasExtras mas sem o registro correspondente em
+                // __EFMigrationsHistory (porque o app crashou antes de gravar). Nesse caso
+                // Migrate() tentaria adicionar a coluna de novo → "duplicate column". Solução:
+                // pré-marcar a migration como aplicada se a coluna já existir.
+                PreMarcarMigracoesSeColunasExistem(db);
                 db.Database.Migrate();
                 System.Diagnostics.Debug.WriteLine("[DB-INIT] ✓ Migrate concluído");
             }
+
+            // Garante colunas adicionadas em migrations recentes (segurança para bancos criados
+            // via EnsureCreated que têm todas as migrations marcadas como aplicadas na tabela
+            // __EFMigrationsHistory, impedindo que Migrate() aplique as novas colunas).
+            // Chamado APÓS EnsureCreated/Migrate para evitar "duplicate column" quando Migrate()
+            // já adicionou a coluna antes desta verificação.
+            GarantirColunasExtras(db);
 
             // Seed de dados
             if (db.Usuarios.Find(1) == null)
@@ -188,6 +197,67 @@ namespace RDO.App
         /// <summary>
         /// Garante que colunas adicionadas em migrations recentes existam no banco.
         /// Usa ALTER TABLE ... ADD COLUMN IF NOT EXISTS (seguro — não falha se já existir).
+        /// Verifica se colunas que seriam criadas por migrations já existem no banco (adicionadas
+        /// manualmente por uma versão anterior do app). Se existem mas a migration não está no
+        /// __EFMigrationsHistory, marca-a como aplicada para que Migrate() não tente adicioná-la
+        /// de novo, evitando "duplicate column name".
+        /// </summary>
+        private static void PreMarcarMigracoesSeColunasExistem(RdoDbContext db)
+        {
+            // Mapeamento: (tabela, coluna) → migration ID que cria essa coluna
+            var checks = new[]
+            {
+                ("Project",   "EmpresaId", "20260518115435_AddEmpresaIdToProject"),
+                ("Companion", "EmpresaId", "20260518115435_AddEmpresaIdToProject"),
+                ("Activity",  "ParentId",  "20260518115435_AddEmpresaIdToProject"),
+            };
+
+            var migracoesMarcadas = new System.Collections.Generic.HashSet<string>();
+
+            foreach (var (tabela, coluna, migId) in checks)
+            {
+                if (migracoesMarcadas.Contains(migId)) continue;
+
+                try
+                {
+                    using var conn = new Microsoft.Data.Sqlite.SqliteConnection(
+                        $"Data Source={DbContextHelper.GetDbPath()};Mode=ReadWriteCreate;Cache=Shared;");
+                    conn.Open();
+
+                    // Checa se a coluna já existe
+                    bool colunaExiste = false;
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = $"PRAGMA table_info(\"{tabela}\")";
+                        using var reader = cmd.ExecuteReader();
+                        while (reader.Read())
+                        {
+                            if (reader.GetString(1).Equals(coluna, StringComparison.OrdinalIgnoreCase))
+                            { colunaExiste = true; break; }
+                        }
+                    }
+
+                    if (!colunaExiste) continue;
+
+                    // Coluna existe — garante que a migration está marcada como aplicada
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText =
+                            $"INSERT OR IGNORE INTO \"__EFMigrationsHistory\" " +
+                            $"(\"MigrationId\", \"ProductVersion\") VALUES ('{migId}', '8.0.0')";
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    migracoesMarcadas.Add(migId);
+                    System.Diagnostics.Debug.WriteLine($"[DB-INIT] ✓ Migration {migId} pré-marcada (coluna {tabela}.{coluna} já existe)");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DB-INIT] ⚠️ PreMarcar {migId}: {ex.Message}");
+                }
+            }
+        }
+
         /// Necessário para bancos que foram criados via EnsureCreated e não passaram pelo Migrate().
         /// </summary>
         private static void GarantirColunasExtras(RdoDbContext db)

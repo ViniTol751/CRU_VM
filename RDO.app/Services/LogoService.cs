@@ -127,7 +127,7 @@ public static class LogoService
                 "RDOApp", "LogoCache");
             Directory.CreateDirectory(cacheDir);
 
-            var cachedName = "v5_" + Path.GetFileNameWithoutExtension(path) + ".jpg";
+            var cachedName = "v6_" + Path.GetFileNameWithoutExtension(path) + ".jpg";
             var cachedPath = Path.Combine(cacheDir, cachedName);
 
             if (File.Exists(cachedPath) &&
@@ -166,6 +166,48 @@ public static class LogoService
                 pixels[i + 1] = (byte)(pixels[i + 1] * a + 255 * (1 - a)); // G
                 pixels[i + 2] = (byte)(pixels[i + 2] * a + 255 * (1 - a)); // R
                 pixels[i + 3] = 255; // alpha totalmente opaco
+            }
+
+            // Autocrop: remove bordas brancas para que logos preencham o espaço de renderização
+            // sem desperdiçar área em pixels vazios (logos com aspect-ratios diferentes ficam
+            // visualmente padronizados quando não há espaço em branco desnecessário).
+            {
+                const int T = 248; // limiar: canal abaixo disto = não-branco
+                int minX = (int)w, maxX = -1, minY = (int)h, maxY = -1;
+                for (int y = 0; y < (int)h; y++)
+                for (int x = 0; x < (int)w; x++)
+                {
+                    int idx = (y * (int)w + x) * 4;
+                    if (pixels[idx] < T || pixels[idx + 1] < T || pixels[idx + 2] < T)
+                    {
+                        if (x < minX) minX = x;
+                        if (x > maxX) maxX = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                    }
+                }
+
+                if (minX <= maxX && minY <= maxY)
+                {
+                    const int Pad = 8; // pixels de margem ao redor do conteúdo
+                    int cropX = Math.Max(0, minX - Pad);
+                    int cropY = Math.Max(0, minY - Pad);
+                    int cropW = Math.Min((int)w, maxX + Pad + 1) - cropX;
+                    int cropH = Math.Min((int)h, maxY + Pad + 1) - cropY;
+
+                    if (cropW < (int)w || cropH < (int)h)
+                    {
+                        var cropped = new byte[cropW * cropH * 4];
+                        for (int cy = 0; cy < cropH; cy++)
+                            Buffer.BlockCopy(pixels,
+                                ((cropY + cy) * (int)w + cropX) * 4,
+                                cropped, cy * cropW * 4,
+                                cropW * 4);
+                        pixels = cropped;
+                        w = (uint)cropW;
+                        h = (uint)cropH;
+                    }
+                }
             }
 
             // Salva como JPEG (sem canal alpha — impossível ter transparência)

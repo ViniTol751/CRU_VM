@@ -308,18 +308,20 @@ namespace RDO.App.Services
                     {
                         // Logo Focus Engenharia Elétrica
                         if (focusBytes != null)
-                            logoRow.RelativeItem(3).Padding(6).MaxHeight(60).Image(focusBytes).FitArea();
+                            logoRow.RelativeItem().Padding(5).MaxHeight(55)
+                                .AlignCenter().AlignMiddle().Image(focusBytes).FitArea();
                         else
-                            logoRow.RelativeItem(3).AlignCenter()
+                            logoRow.RelativeItem().AlignCenter().AlignMiddle()
                                 .Text("focus").FontSize(10).Bold().FontColor(CorPreta);
 
-                        logoRow.ConstantItem(16);
+                        logoRow.ConstantItem(8);
 
-                        // Logo do cliente (empresa da obra)
+                        // Logo do cliente — menor, centralizado verticalmente
                         if (clientBytes != null)
-                            logoRow.RelativeItem(2).Padding(6).MaxHeight(60).Image(clientBytes).FitArea();
+                            logoRow.RelativeItem().Padding(5).MaxHeight(34)
+                                .AlignCenter().AlignMiddle().Image(clientBytes).FitArea();
                         else
-                            logoRow.RelativeItem(2).AlignMiddle()
+                            logoRow.RelativeItem().AlignCenter().AlignMiddle()
                                 .Text(rel.Obra?.Grupo ?? "").FontSize(9).FontColor(CorLabelCinza);
                     });
 
