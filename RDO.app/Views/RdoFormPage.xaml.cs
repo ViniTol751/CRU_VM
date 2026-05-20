@@ -180,6 +180,7 @@ namespace RDO.App.Views
             _ocorrenciasConfirmadas.Clear();
             _savedRelatorioId = 0;
             _editRelatorioId = 0;
+            _editarRevisaoAtual = false;
             _isInitialized = false;
 
             // Painéis dinâmicos
@@ -1792,6 +1793,9 @@ namespace RDO.App.Views
                     relatorio.Rascunho = false;
                     relatorio.UpdatedAt = RDO.app.Services.SyncService.GetPushTimestamp();
                     relatorio.IsSynced = false;
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[RDO-REVISAO] editRelId={_editRelatorioId} editarAtual={_editarRevisaoAtual} " +
+                        $"revisaoAntes={relatorio.Revisao} → depois={(!_editarRevisaoAtual ? relatorio.Revisao + 1 : relatorio.Revisao)}");
                     if (!_editarRevisaoAtual)
                         relatorio.Revisao = relatorio.Revisao + 1;
 

@@ -261,6 +261,8 @@ public class SyncService
             SyncLogger.LogDebug($"[PUSH] project #{p.Id} isActive={p.IsActive} isDeleted={p.IsDeleted} updatedAt={p.UpdatedAt:O}");
         foreach (var r in payload.Reports.Where(r => r.IsDeleted))
             SyncLogger.LogDebug($"[PUSH] report #{r.Id} isDeleted={r.IsDeleted} isSynced={r.IsSynced} updatedAt={r.UpdatedAt:O}");
+        foreach (var r in payload.Reports)
+            System.Diagnostics.Debug.WriteLine($"[PUSH] Report #{r.Id} Revisao={r.Revisao} IsSynced={r.IsSynced} UpdatedAt={r.UpdatedAt:O}");
 
         var swPush = System.Diagnostics.Stopwatch.StartNew();
         HttpResponseMessage pushResponse;
@@ -496,7 +498,7 @@ public class SyncService
                             e.CheckOutTime = i.CheckOutTime; e.BreakTime = i.BreakTime;
                             e.GeneralNotes = i.GeneralNotes; e.Status = i.Status;
                             e.IsDraft = i.IsDraft; e.IsDeleted = i.IsDeleted;
-                            e.Revisao = i.Revisao;
+                            e.Revisao = Math.Max(e.Revisao, i.Revisao);
                             e.IsSynced = true; }),
 
                     "weatherdetails" => await UpsertLocal(db.WeatherDetails, payload.WeatherDetails, db,

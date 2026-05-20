@@ -102,7 +102,7 @@ public class SyncController : ControllerBase
         if (orphanReports > 0)
             _logger.LogWarning("[Sync/Push] {N} report(s) ignorados — ProjectId inexistente no servidor", orphanReports);
         skipped += orphanReports;
-        Acc(await UpsertAll(_context.Reports, validReports));
+        Acc(await UpsertAllReports(validReports));
         await _context.SaveChangesAsync();
 
         // Fase 3: filhos de Report (FK → Reports já persistidos)
@@ -121,6 +121,52 @@ public class SyncController : ControllerBase
             inserted, updated, skipped);
 
         return Ok(new { Inserted = inserted, Updated = updated, Skipped = skipped });
+    }
+
+    private async Task<(int I, int U, int S)> UpsertAllReports(List<Report> incoming)
+    {
+        if (incoming.Count == 0) return (0, 0, 0);
+
+        var ids = incoming.Select(x => x.Id).ToList();
+        var existing = await _context.Reports.AsNoTracking()
+            .Where(x => ids.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id);
+
+        int ins = 0, upd = 0, skp = 0;
+        var serverNow = DateTime.UtcNow;
+
+        foreach (var item in incoming)
+        {
+            if (!existing.TryGetValue(item.Id, out var found))
+            {
+                item.UpdatedAt = serverNow;
+                _context.Entry(item).State = EntityState.Added;
+                ins++;
+            }
+            else if (item.UpdatedAt.ToUniversalTime() >= found.UpdatedAt.ToUniversalTime()
+                     || (item.IsDeleted && !found.IsDeleted))
+            {
+                // Revisao só pode aumentar — nunca aceitar regressão
+                item.Revisao = Math.Max(item.Revisao, found.Revisao);
+                item.UpdatedAt = serverNow;
+                _context.Entry(item).State = EntityState.Modified;
+                upd++;
+            }
+            else if (item.Revisao > found.Revisao)
+            {
+                // Mesmo com UpdatedAt mais antigo, Revisao maior sempre vence
+                found.Revisao = item.Revisao;
+                found.UpdatedAt = serverNow;
+                _context.Entry(found).State = EntityState.Modified;
+                upd++;
+            }
+            else
+            {
+                skp++;
+            }
+        }
+
+        return (ins, upd, skp);
     }
 
     private async Task<(int I, int U, int S)> UpsertUsersPreservingHash(List<User> incoming)
