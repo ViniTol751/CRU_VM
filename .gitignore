@@ -29,6 +29,7 @@ Instalador/Output/
 
 # Artefatos de build e pacotes grandes
 RDO.app/AppPackages/
+RDO.app/publish/
 publish/
 artifacts/
 rdo-api.tar
