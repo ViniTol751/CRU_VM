@@ -22,3 +22,15 @@ Instalador/Output/
 
 # Added by code-review-graph
 .code-review-graph/
+
+# Claude Code local settings (gerado automaticamente, não commitar)
+.claude/settings.local.json
+.git-rewrite/
+
+# Artefatos de build e pacotes grandes
+RDO.app/AppPackages/
+publish/
+artifacts/
+rdo-api.tar
+rdo-api.tar.gz
+Instalador/AppFiles/Microsoft.Windows.SDK.NET.dll
